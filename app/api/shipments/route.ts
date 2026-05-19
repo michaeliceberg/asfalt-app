@@ -1,4 +1,3 @@
-// app/api/shipments/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { shipments } from '@/lib/db/schema';

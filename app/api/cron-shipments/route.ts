@@ -1,4 +1,3 @@
-// app/api/cron-shipments/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { shipments } from '@/lib/db/schema';
@@ -34,7 +33,6 @@ export async function GET(request: Request) {
     const LOGIN = process.env.UNF_LOGIN;
     const PASSWORD = process.env.UNF_PASSWORD;
     
-    // Получаем ВСЕ данные (без фильтра по дате)
     const response = await fetch(`${UNF_BASE_URL}/hs/WebData-API/outgoing`, {
       headers: {
         'Authorization': 'Basic ' + Buffer.from(`${LOGIN}:${PASSWORD}`).toString('base64'),
@@ -73,7 +71,6 @@ export async function GET(request: Request) {
       }
     }
     
-    // Сохраняем время последней синхронизации
     fs.writeFileSync(LAST_SYNC_FILE, JSON.stringify({
       lastSync: new Date().toISOString(),
     }));
