@@ -56,19 +56,19 @@ export async function GET(request: Request) {
       
       if (existing.length === 0) {
         await db.insert(shipments).values({
-          number: record.Номер,
-          date: record.Дата,
-          division: record.Подразделение,
-          customer: record.Покупатель,
-          material: record.Номенклатура,
-          gross: record.Брутто || null,
-          tara: record.Тара || null,
-          quantity: record.Количество,
-          driver: record.Водитель || null,
-          licensePlate: record.ГосНомер || null,
-          createdAt: Date.now(),
-          consignee: record.Грузополучатель || null,
-        });
+            number: record.Номер,
+            date: record.Дата,
+            division: record.Подразделение,
+            customer: record.Покупатель,
+            consignee: record.Грузополучатель || null,  // ← ДОБАВИТЬ ЭТУ СТРОКУ
+            material: record.Номенклатура,
+            gross: record.Брутто || null,
+            tara: record.Тара || null,
+            quantity: record.Количество,
+            driver: record.Водитель || null,
+            licensePlate: record.ГосНомер || null,
+            createdAt: Date.now(),
+            });
         insertedCount++;
       }
     }

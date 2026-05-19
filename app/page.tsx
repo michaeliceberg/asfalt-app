@@ -576,13 +576,18 @@ export default function Home() {
                         </span>
                       </div>
                       
-                      {activeDataType === 'shipment' && (item as ShipmentItem).consignee && (
+                      {/* {activeDataType === 'shipment' && (item as ShipmentItem).consignee && (
                         <div className="consignee">
                           <span className="label">📦 Грузополучатель:</span>
                           <span className="value">{(item as ShipmentItem).consignee}</span>
                         </div>
-                      )}
-                      
+                      )} */}
+                      {activeDataType === 'shipment' && (
+  <div className="consignee">
+    <span className="label">📦 {(item as ShipmentItem).consignee ? 'Грузополучатель:' : 'Покупатель:'}</span>
+    <span className="value">{(item as ShipmentItem).consignee || (item as ShipmentItem).customer}</span>
+  </div>
+)}
                       <div className="material">
                         <span className="label">Материал:</span>
                         <span className="value material-name">{item.material}</span>
