@@ -642,3 +642,41 @@ body {
 .factory-btn:active {
   transform: scale(0.96);
 }
+
+
+
+
+
+
+
+
+/* Переключатель между поступлением и отгрузкой */
+.data-type-switch {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.data-type-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 10px 12px;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.data-type-btn.active {
+  background: white;
+  color: #667eea;
+  border-color: white;
+}
+
+.data-type-btn:active {
+  transform: scale(0.96);
+}

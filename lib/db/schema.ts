@@ -17,3 +17,25 @@ export const incomingMaterials = sqliteTable('incoming_materials', {
 
 export type IncomingMaterial = typeof incomingMaterials.$inferSelect;
 export type NewIncomingMaterial = typeof incomingMaterials.$inferInsert;
+
+
+
+// lib/db/schema.ts — добавьте это в конец файла
+
+export const shipments = sqliteTable('shipments', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  number: text('number').notNull().unique(),     // Номер документа
+  date: text('date').notNull(),                   // Дата отгрузки
+  division: text('division').notNull(),           // Подразделение (Люберцы/Луховицы)
+  customer: text('customer').notNull(),           // Покупатель
+  material: text('material').notNull(),           // Номенклатура (асфальт)
+  gross: real('gross'),                           // Брутто
+  tara: real('tara'),                             // Тара
+  quantity: real('quantity').notNull(),           // Количество (чистый вес)
+  driver: text('driver'),                         // Водитель
+  licensePlate: text('license_plate'),            // Госномер
+  createdAt: integer('created_at').notNull(),
+});
+
+export type Shipment = typeof shipments.$inferSelect;
+export type NewShipment = typeof shipments.$inferInsert;
