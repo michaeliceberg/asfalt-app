@@ -605,3 +605,40 @@ body {
     white-space: nowrap;
   }
 }
+
+
+
+
+
+
+
+/* Переключатель заводов */
+.factory-switch {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.factory-btn {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+  padding: 8px 12px;
+  color: white;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.factory-btn.active {
+  background: white;
+  color: #667eea;
+  border-color: white;
+}
+
+.factory-btn:active {
+  transform: scale(0.96);
+}
