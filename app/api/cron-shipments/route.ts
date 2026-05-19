@@ -18,6 +18,7 @@ interface ShipmentItem {
   Количество: number;
   Водитель: string;
   ГосНомер: string;
+  Грузополучатель: string;
 }
 
 export async function GET(request: Request) {
@@ -66,6 +67,7 @@ export async function GET(request: Request) {
           driver: record.Водитель || null,
           licensePlate: record.ГосНомер || null,
           createdAt: Date.now(),
+          consignee: record.Грузополучатель || null,
         });
         insertedCount++;
       }
