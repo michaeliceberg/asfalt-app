@@ -1,26 +1,23 @@
+// app/api/cron-outgoing-requests/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { shipments } from '@/lib/db/schema';
+import { outgoingRequests } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
 
-const LAST_SYNC_FILE = path.join(process.cwd(), 'data', 'last-sync-shipments.json');
+const LAST_SYNC_FILE = path.join(process.cwd(), 'data', 'last-sync-requests.json');
 
-interface ShipmentItem {
+interface OutgoingRequestItem {
   Подразделение: string;
   Номер: string;
   Дата: string;
   Покупатель: string;
-  Номенклатура: string;
-  Брутто: number;
-  Тара: number;
-  Количество: number;
-  Водитель: string;
-  ГосНомер: string;
   Грузополучатель: string;
-  ЗаявкаНаОтгрузкуНомер: string | null;   // ← добавить
-  ЗаявкаНаОтгрузкуДата: string | null;    // ← добавить
+  Номенклатура: string;
+  Количество: number;
+  НомерЗаявкиКлиента: string;
+  ДатаЗаявкиКлиента: string;
 }
 
 export async function GET(request: Request) {
@@ -36,7 +33,7 @@ export async function GET(request: Request) {
     const LOGIN = process.env.UNF_LOGIN;
     const PASSWORD = process.env.UNF_PASSWORD;
     
-    const response = await fetch(`${UNF_BASE_URL}/hs/WebData-API/outgoing`, {
+    const response = await fetch(`${UNF_BASE_URL}/hs/WebData-API/OutgoingRequest`, {
       headers: {
         'Authorization': 'Basic ' + Buffer.from(`${LOGIN}:${PASSWORD}`).toString('base64'),
       },
@@ -46,33 +43,29 @@ export async function GET(request: Request) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
     
-    const data: ShipmentItem[] = await response.json();
+    const data: OutgoingRequestItem[] = await response.json();
     
     let insertedCount = 0;
     for (const record of data) {
       const existing = await db
         .select()
-        .from(shipments)
-        .where(eq(shipments.number, record.Номер))
+        .from(outgoingRequests)
+        .where(eq(outgoingRequests.number, record.Номер))
         .limit(1);
       
       if (existing.length === 0) {
-await db.insert(shipments).values({
-  number: record.Номер,
-  date: record.Дата,
-  division: record.Подразделение,
-  customer: record.Покупатель,
-  consignee: record.Грузополучатель || null,
-  material: record.Номенклатура,
-  gross: record.Брутто || null,
-  tara: record.Тара || null,
-  quantity: record.Количество,
-  driver: record.Водитель || null,
-  licensePlate: record.ГосНомер || null,
-  clientRequestNumber: record.ЗаявкаНаОтгрузкуНомер || null,
-  clientRequestDate: record.ЗаявкаНаОтгрузкуДата || null,
-  createdAt: Date.now(),
-});
+        await db.insert(outgoingRequests).values({
+          number: record.Номер,
+          date: record.Дата,
+          division: record.Подразделение,
+          customer: record.Покупатель,
+          consignee: record.Грузополучатель || null,
+          material: record.Номенклатура,
+          quantity: record.Количество,
+          clientRequestNumber: record.НомерЗаявкиКлиента || null,
+          clientRequestDate: record.ДатаЗаявкиКлиента || null,
+          createdAt: Date.now(),
+        });
         insertedCount++;
       }
     }
