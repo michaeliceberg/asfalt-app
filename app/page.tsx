@@ -83,19 +83,56 @@ const getPercentClass = (percent: number) => {
   if (percent >= 60) return 'orange';    // оранжевый — хорошо
   return 'red';                          // красный — мало
 };
+
+
+
 // Определяем завод по номеру (для поступлений) или подразделению (для отгрузок)
-const detectFactory = (item: IncomingItem | ShipmentItem, type: string): string => {
+// const detectFactory = (item: IncomingItem | ShipmentItem, type: string): string => {
+//   if (type === 'incoming') {
+//     const incoming = item as IncomingItem;
+//     if (incoming.number.startsWith('ЛХ')) return 'ЛХ';
+//     if (incoming.number.startsWith('ЛЮ')) return 'ЛЮ';
+//   } else {
+//     const shipment = item as ShipmentItem;
+//     if (shipment.division === 'Луховицы') return 'ЛХ';
+//     if (shipment.division === 'Люберцы') return 'ЛЮ';
+//   }
+//   return 'Другой';
+// };
+
+type FactoryItem = IncomingItem | ShipmentItem | { factory: string };
+
+const detectFactory = (item: FactoryItem, type: string): string => {
   if (type === 'incoming') {
     const incoming = item as IncomingItem;
-    if (incoming.number.startsWith('ЛХ')) return 'ЛХ';
-    if (incoming.number.startsWith('ЛЮ')) return 'ЛЮ';
-  } else {
+    if (incoming.number?.startsWith('ЛХ')) return 'ЛХ';
+    if (incoming.number?.startsWith('ЛЮ')) return 'ЛЮ';
+  } else if (type === 'shipment') {
     const shipment = item as ShipmentItem;
     if (shipment.division === 'Луховицы') return 'ЛХ';
     if (shipment.division === 'Люберцы') return 'ЛЮ';
+  } else if (type === 'factory') {
+    const factoryItem = item as { factory: string };
+    if (factoryItem.factory === 'Щ') return 'Щ';
+    if (factoryItem.factory === 'П') return 'П';
   }
   return 'Другой';
 };
+
+// // Обновите detectFactory для новых заводов
+// const detectFactory = (item: any, type: string): string => {
+//   if (type === 'incoming') {
+//     if (item.number?.startsWith('ЛХ')) return 'ЛХ';
+//     if (item.number?.startsWith('ЛЮ')) return 'ЛЮ';
+//   } else if (type === 'shipment') {
+//     if (item.division === 'Луховицы') return 'ЛХ';
+//     if (item.division === 'Люберцы') return 'ЛЮ';
+//   } else if (type === 'factory') {
+//     return item.factory; // Щ или П
+//   }
+//   return 'Другой';
+// };
+
 
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
@@ -457,13 +494,28 @@ const formatTimeAgo = (dateString: string): string => {
     });
   };
 
-  const getFactoryName = (code: string): string => {
-    switch (code) {
-      case 'ЛХ': return '🏭 Луховицкий';
-      case 'ЛЮ': return '🏭 Люберецкий';
-      default: return '📦 Все заводы';
-    }
-  };
+  // const getFactoryName = (code: string): string => {
+  //   switch (code) {
+  //     case 'ЛХ': return '🏭 Луховицкий';
+  //     case 'ЛЮ': return '🏭 Люберецкий';
+  //     default: return '📦 Все заводы';
+  //   }
+  // };
+
+
+// Обновите getFactoryName
+const getFactoryName = (code: string): string => {
+  switch (code) {
+    case 'ЛХ': return '🏭 Луховицкий';
+    case 'ЛЮ': return '🏭 Люберецкий';
+    case 'Щ': return '🏭 Щелково';
+    case 'П': return '🏭 Сергиев Посад';
+    default: return '📦 Все заводы';
+  }
+};
+
+
+
 
   const currentSyncInfo = activeMainTab === 'incoming' ? cronInfo : shipmentCronInfo;
   const currentTitle = activeMainTab === 'incoming' ? '📦 Поступление материалов' : '🚛 Отгрузка асфальта';
