@@ -74,6 +74,9 @@ interface CronInfo {
 
 type MainTab = 'incoming' | 'shipment' | 'summary';
 
+
+
+
 const getPercentClass = (percent: number) => {
   if (percent >= 95) return 'gold';      // золотой — почти выполнено
   if (percent >= 100) return 'green';    // зелёный — выполнено/перевыполнено
@@ -111,6 +114,35 @@ export default function Home() {
   const [showNotification, setShowNotification] = useState<boolean>(false);
   const [notificationMessage, setNotificationMessage] = useState<string>('');
   const [shouldShake, setShouldShake] = useState<boolean>(false);
+
+
+const formatTimeAgo = (dateString: string): string => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  
+  // Точное время (часы:минуты)
+  const exactTime = date.toLocaleTimeString('ru-RU', {
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+  
+  // Если не сегодня — возвращаем дату + точное время
+  if (!isToday(dateString)) {
+    return `${formatDate(dateString)} в ${exactTime}`;
+  }
+  
+  // Если сегодня — относительное время + точное время
+  if (diffMins < 1) return `только что (${exactTime})`;
+  if (diffMins < 60) return `${diffMins} мин назад (${exactTime})`;
+  if (diffHours < 24) return `${diffHours} ч назад (${exactTime})`;
+  
+  return `${formatDate(dateString)} в ${exactTime}`;
+};
+
+
 
   // Загрузка данных
   const loadIncomingData = async () => {
@@ -393,21 +425,21 @@ export default function Home() {
     return today === recordDate;
   };
 
-  const formatDate = (dateString?: string): string => {
-    if (!dateString) return 'Нет даты';
-    const date = new Date(dateString);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    const dateOnly = date.toLocaleDateString('ru-RU');
-    const todayStr = today.toLocaleDateString('ru-RU');
-    const yesterdayStr = yesterday.toLocaleDateString('ru-RU');
-    
-    if (dateOnly === todayStr) return 'СЕГОДНЯ';
-    if (dateOnly === yesterdayStr) return 'ВЧЕРА';
-    return dateOnly;
-  };
+ const formatDate = (dateString?: string): string => {
+  if (!dateString) return 'Нет даты';
+  const date = new Date(dateString);
+  const today = new Date();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  const dateOnly = date.toLocaleDateString('ru-RU');
+  const todayStr = today.toLocaleDateString('ru-RU');
+  const yesterdayStr = yesterday.toLocaleDateString('ru-RU');
+  
+  if (dateOnly === todayStr) return 'СЕГОДНЯ';
+  if (dateOnly === yesterdayStr) return 'ВЧЕРА';
+  return dateOnly;
+};
 
   const formatWeight = (weight?: number | null): string => {
     if (!weight && weight !== 0) return '—';
@@ -665,12 +697,12 @@ export default function Home() {
                   
                   return (
                     <div key={item.id} className={`card ${isToday(item.date) ? 'today-card' : ''}`}>
-                      <div className="card-header">
-                        <span className="number">№{item.number}</span>
-                        <span className={`date ${isToday(item.date) ? 'today-date' : ''}`}>
-                          {formatDate(item.date)}
-                        </span>
-                      </div>
+<div className="card-header">
+  <span className="number">№{item.number}</span>
+  <span className={`date ${isToday(item.date) ? 'today-date' : ''}`}>
+    {formatTimeAgo(item.date)}
+  </span>
+</div>
                       
                       <div className="card-content">
                         <div className="supplier">
