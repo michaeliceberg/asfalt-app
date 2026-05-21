@@ -1423,7 +1423,6 @@ body {
 
 
 
-
 /* Компактный вид - стили */
 .compact-table {
   overflow-x: auto;
@@ -1445,15 +1444,32 @@ body {
   color: #495057;
 }
 
-/* Колонки */
+/* Заголовки колонок - стандартный цвет и размер */
 .col-time { width: 50px; flex-shrink: 0; text-align: left; }
-.col-fact { width: 45px; text-align: right; flex-shrink: 0; font-weight: 800; font-size: 13px; color: #28a745; }
-.col-slash { width: 12px; text-align: center; flex-shrink: 0; color: #6c757d; font-weight: 600; }
-.col-plan { width: 60px; text-align: left; flex-shrink: 0; color: #6c757d; font-family: monospace; font-weight: 700; font-size: 13px; }
+.col-fact { width: 45px; text-align: right; flex-shrink: 0; }
+.col-slash { width: 12px; text-align: center; flex-shrink: 0; color: #6c757d; }
+.col-plan { width: 60px; text-align: left; flex-shrink: 0; }
 .col-consignee { flex: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; text-align: left; min-width: 80px; }
 .col-factory { width: 50px; text-align: center; flex-shrink: 0; }
-.col-trucks { width: 45px; text-align: center; flex-shrink: 0; font-weight: 800; font-size: 13px; color: #007bff; }
+.col-trucks { width: 45px; text-align: center; flex-shrink: 0; font-weight: 600; color: #495057; font-size: 11px; }
 .col-material { flex: 2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 0 4px; color: #495057; text-align: left; min-width: 70px; }
+
+/* Цифры в строках - крупные и жирные */
+.compact-row .col-fact {
+  font-weight: 800;
+  font-size: 13px;
+  color: #28a745;
+}
+.compact-row .col-plan {
+  font-weight: 700;
+  font-size: 13px;
+  color: #6c757d;
+}
+.compact-row .col-trucks {
+  font-weight: 800;
+  font-size: 13px;
+  color: #007bff;
+}
 
 /* Бейджи заводов в компактном виде */
 .compact-row .factory-badge-small {
@@ -1470,43 +1486,12 @@ body {
   flex-wrap: wrap;
 }
 
-/* Для очень маленьких экранов */
-@media (max-width: 550px) {
-  .compact-header,
-  .compact-row {
-    padding: 6px 8px;
-    font-size: 10px;
-    gap: 3px;
-  }
-  
-  .col-time { width: 42px; }
-  .col-fact { width: 38px; font-size: 12px; }
-  .col-plan { width: 52px; font-size: 12px; }
-  .col-consignee { min-width: 60px; }
-  .col-factory { width: 42px; }
-  .col-trucks { width: 38px; font-size: 12px; }
-  .col-material { min-width: 60px; }
-  
-  .compact-row .factory-badge-small {
-    width: 20px;
-    height: 20px;
-    font-size: 9px;
-  }
-}
 
-/* Для совсем маленьких телефонов (iPhone SE) */
-@media (max-width: 400px) {
-  .col-consignee { min-width: 50px; }
-  .col-material { min-width: 50px; }
-  .col-fact { width: 35px; font-size: 11px; }
-  .col-plan { width: 48px; font-size: 11px; }
-  .col-trucks { width: 35px; font-size: 11px; }
-  .compact-row .factory-badge-small {
-    width: 18px;
-    height: 18px;
-    font-size: 8px;
-  }
-}
+
+
+
+
+
 
 
 
