@@ -65,55 +65,63 @@ export default function CompactView({ data, mainTab, getRequestCompletion }: Com
         }
       }
       
-    } else {
-      // ========== ОТГРУЗКИ ==========
-      const shipment = item as ShipmentItem;
-      
-      let factory = '—';
-      if (shipment.division === 'Луховицы') factory = 'ЛХ';
-      else if (shipment.division === 'Люберцы') factory = 'ЛЮ';
-      
-      // Группируем по дате + заводу + грузополучателю + материалу
-      const groupKey = `${date}_${factory}_${shipment.consignee || shipment.customer}_${shipment.material}`;
-      
-      let planQuantity = 0;
-      if (getRequestCompletion && shipment.clientRequestNumber) {
-        const completion = getRequestCompletion(shipment.clientRequestNumber);
-        if (completion && completion.plan > 0) {
-          planQuantity = completion.plan;
-        }
-      }
-      
-      if (!acc[date]) {
-        acc[date] = new Map<string, GroupedItem>();
-      }
-      
-      if (!acc[date].has(groupKey)) {
-        acc[date].set(groupKey, {
-          time: new Date(shipment.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-          factQuantity: shipment.quantity,
-          planQuantity: planQuantity,
-          consignee: shipment.consignee || shipment.customer || '—',
-          factories: [factory],
-          truckCount: 1,
-          material: shipment.material,
-        });
-      } else {
-        const existing = acc[date].get(groupKey)!;
-        existing.factQuantity += shipment.quantity;
-        existing.truckCount += 1;
-        if (planQuantity > existing.planQuantity) {
-          existing.planQuantity = planQuantity;
-        }
-        if (!existing.factories.includes(factory) && factory !== '—') {
-          existing.factories.push(factory);
-        }
-        const currentTime = new Date(shipment.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        if (currentTime > existing.time) {
-          existing.time = currentTime;
-        }
-      }
+   // components/CompactView.tsx - исправленный блок для отгрузок
+} else {
+  // ========== ОТГРУЗКИ ==========
+  const shipment = item as ShipmentItem;
+  
+  let factory = '—';
+  if (shipment.division === 'Луховицы') factory = 'ЛХ';
+  else if (shipment.division === 'Люберцы') factory = 'ЛЮ';
+  
+  // Группировка по грузополучателю + материалу
+  const consigneeKey = shipment.consignee || shipment.customer || '—';
+  const groupKey = `${date}_${consigneeKey}_${shipment.material}`;
+  
+  let planQuantity = 0;
+  if (getRequestCompletion && shipment.clientRequestNumber) {
+    const completion = getRequestCompletion(shipment.clientRequestNumber);
+    if (completion && completion.plan > 0) {
+      planQuantity = completion.plan;
     }
+  }
+  
+  if (!acc[date]) {
+    acc[date] = new Map<string, GroupedItem>();
+  }
+  
+  if (!acc[date].has(groupKey)) {
+    acc[date].set(groupKey, {
+      time: new Date(shipment.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      factQuantity: shipment.quantity,
+      planQuantity: planQuantity,
+      consignee: consigneeKey,
+      factories: [factory],
+      truckCount: 1,
+      material: shipment.material,
+    });
+  } else {
+    const existing = acc[date].get(groupKey)!;
+    existing.factQuantity += shipment.quantity;
+    existing.truckCount += 1;
+    if (planQuantity > existing.planQuantity) {
+      existing.planQuantity = planQuantity;
+    }
+    if (!existing.factories.includes(factory) && factory !== '—') {
+      existing.factories.push(factory);
+    }
+    const currentTime = new Date(shipment.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+    if (currentTime > existing.time) {
+      existing.time = currentTime;
+    }
+  }
+}
+
+
+
+
+
+
     
     return acc;
   }, {} as Record<string, Map<string, GroupedItem>>);
