@@ -21,6 +21,7 @@ interface ShipmentItem {
   Грузополучатель: string;
   ЗаявкаНаОтгрузкуНомер: string | null;   // ← добавить
   ЗаявкаНаОтгрузкуДата: string | null;    // ← добавить
+
 }
 
 export async function GET(request: Request) {
@@ -72,6 +73,8 @@ await db.insert(shipments).values({
   clientRequestNumber: record.ЗаявкаНаОтгрузкуНомер || null,
   clientRequestDate: record.ЗаявкаНаОтгрузкуДата || null,
   createdAt: Date.now(),
+  // clientRequestNumber: record.ЗаявкаНаОтгрузкуНомер || null,
+  // clientRequestDate: record.ЗаявкаНаОтгрузкуДата || null,
 });
         insertedCount++;
       }

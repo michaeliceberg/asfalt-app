@@ -15,19 +15,35 @@ import GroupedView from './components/GroupedView';
 import CompactView from './components/CompactView';
 import Header from './components/header';
 
+// export interface OutgoingRequest {
+//   id: number;
+//   number: string;           // Номер заявки (ЛХ0000034)
+//   date: string;
+//   division: string;
+//   customer: string;
+//   consignee: string | null;
+//   material: string;
+//   quantity: number;         // План
+//   clientRequestNumber: string;  // Номер заявки клиента (16)
+//   clientRequestDate: string;
+//   createdAt: number;
+// }
+
+
 export interface OutgoingRequest {
   id: number;
-  number: string;           // Номер заявки (ЛХ0000034)
+  number: string;
   date: string;
   division: string;
   customer: string;
-  consignee: string | null;
+  consignee: string | null;  // ← оставляем null
   material: string;
-  quantity: number;         // План
-  clientRequestNumber: string;  // Номер заявки клиента (16)
-  clientRequestDate: string;
+  quantity: number;
+  clientRequestNumber: string | null;
+  clientRequestDate: string | null;
   createdAt: number;
 }
+
 
 export interface IncomingItem {
   id: number;
@@ -43,6 +59,26 @@ export interface IncomingItem {
   createdAt: number;
 }
 
+// export interface ShipmentItem {
+//   id: number;
+//   number: string;
+//   date: string;
+//   division: string;
+//   customer: string;
+//   consignee: string | null;
+//   material: string;
+//   gross: number | null;
+//   tara: number | null;
+//   quantity: number;
+//   driver: string | null;
+//   licensePlate: string | null;
+//   clientRequestNumber: string | null;
+//   clientRequestDate: string | null;
+//   createdAt: number;
+  
+// }
+
+
 export interface ShipmentItem {
   id: number;
   number: string;
@@ -56,10 +92,17 @@ export interface ShipmentItem {
   quantity: number;
   driver: string | null;
   licensePlate: string | null;
+  // clientRequestNumber: string | null;
+  // clientRequestDate: string | null;
+  createdAt: number;
+  // Поля из 1С (русские названия)
+  ЗаявкаНаОтгрузкуНомер?: string;
+  ЗаявкаНаОтгрузкуДата?: string;
   clientRequestNumber: string | null;
   clientRequestDate: string | null;
-  createdAt: number;
 }
+
+
 
 export interface FactoryRequest {
   id: number;
@@ -619,6 +662,22 @@ const getRequestCompletion = useCallback((clientRequestNumber: string | null) =>
     return dateB.getTime() - dateA.getTime();
   });
 
+
+
+const outgoingRequestsForCompact = outgoingRequests.map(req => ({
+  number: req.number,
+  date: req.date,
+  quantity: req.quantity,
+  consignee: req.consignee || '',  // ← null заменяем на пустую строку
+  material: req.material,
+}));
+
+
+// console.log('outgoingRequestsForCompact length:', outgoingRequestsForCompact.length);
+// console.log('Sample:', outgoingRequestsForCompact[0]);
+
+
+
   const currentSyncInfo = activeMainTab === 'incoming' ? cronInfo : shipmentCronInfo;
 
   if (!isAuthenticated) {
@@ -705,13 +764,13 @@ const getRequestCompletion = useCallback((clientRequestNumber: string | null) =>
             />
           )}
 
-          {activeMainTab !== 'summary' && activeViewTab === 'compact' && (
-            <CompactView 
-              data={filteredData}
-              mainTab={activeMainTab}
-              getRequestCompletion={getRequestCompletion}
-            />
-          )}
+{activeMainTab !== 'summary' && activeViewTab === 'compact' && (
+  <CompactView 
+    data={filteredData}
+    mainTab={activeMainTab}
+    outgoingRequests={outgoingRequestsForCompact}
+  />
+)}
         </motion.div>
       </div>
     </>
@@ -3309,6 +3368,5 @@ const getRequestCompletion = useCallback((clientRequestNumber: string | null) =>
 //     </>
 //   );
 // }
-
 
 

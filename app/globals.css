@@ -1757,3 +1757,108 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+
+
+
+
+
+
+
+
+
+
+/* Детали развёрнутой строки */
+.compact-details {
+  padding: 12px;
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+  margin: 0;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+}
+
+.detail-label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.detail-label-right {
+  font-weight: 600;
+  color: #6c757d;
+}
+
+.detail-value {
+  color: #212529;
+  font-family: monospace;
+}
+
+.detail-shipment {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  padding: 6px 0;
+  border-bottom: 1px solid #e9ecef;
+  gap: 8px;
+}
+
+.ship-time {
+  width: 50px;
+  color: #6c757d;
+}
+
+.ship-license {
+  flex: 1;
+  font-family: monospace;
+  color: #495057;
+}
+
+.ship-factory-badge {
+  width: 35px;
+  text-align: center;
+}
+
+.factory-badge-mini {
+  display: inline-block;
+  width: 24px;
+  height: 20px;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 4px;
+  text-align: center;
+  line-height: 20px;
+}
+
+.factory-badge-mini.ЛХ {
+  background: #6c757d;
+  color: white;
+}
+
+.factory-badge-mini.ЛЮ {
+  background: #17a2b8;
+  color: white;
+}
+
+.ship-quantity {
+  width: 60px;
+  text-align: right;
+  font-weight: 700;
+  color: #28a745;
+}
+
+.detail-total {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #dee2e6;
+  font-size: 12px;
+  font-weight: 700;
+  color: #212529;
+}
