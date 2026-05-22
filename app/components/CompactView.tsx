@@ -274,7 +274,11 @@ export default function CompactView({ data, mainTab, outgoingRequests = [] }: Co
                         onClick={() => setExpandedId(isExpanded ? null : itemKey)}
                       >
                         <span className="col-time">{item.time}</span>
-                        <span className="col-fact">{item.factQuantity.toFixed(1)}</span>
+                        {/* <span className="col-fact">{item.factQuantity.toFixed(1)}</span> */}
+                        <span className={`col-fact ${item.factQuantity < item.planQuantity ? 'warning' : ''}`}>
+                          {item.factQuantity.toFixed(1)}
+                        </span>
+                        
                         <span className="col-slash">/</span>
                         <span className="col-plan">
                           {item.planQuantity > 0 ? item.planQuantity.toFixed(0) : '—'}

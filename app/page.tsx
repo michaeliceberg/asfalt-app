@@ -743,7 +743,7 @@ const outgoingRequestsForCompact = outgoingRequests.map(req => ({
         >
           {activeMainTab === 'summary' && <SummaryView />}
 
-          {activeMainTab !== 'summary' && activeViewTab === 'list' && (
+          {/* {activeMainTab !== 'summary' && activeViewTab === 'list' && (
             <ListView 
               data={filteredData}
               mainTab={activeMainTab}
@@ -752,9 +752,17 @@ const outgoingRequestsForCompact = outgoingRequests.map(req => ({
               formatWeight={formatWeight}
               getFactoryBadge={getFactoryBadge}
             />
-          )}
+          )} */}
 
-          {activeMainTab !== 'summary' && activeViewTab === 'grouped' && (
+
+          {activeMainTab !== 'summary' && activeViewTab === 'list' && (
+  <ListView 
+    data={filteredData}
+    mainTab={activeMainTab}
+  />
+)}
+
+          {/* {activeMainTab !== 'summary' && activeViewTab === 'grouped' && (
             <GroupedView 
               groupedData={groupedData}
               dates={sortedDates}
@@ -762,7 +770,7 @@ const outgoingRequestsForCompact = outgoingRequests.map(req => ({
               formatWeight={formatWeight}
               getUniqueFactories={getUniqueFactories}
             />
-          )}
+          )} */}
 
 {activeMainTab !== 'summary' && activeViewTab === 'compact' && (
   <CompactView 

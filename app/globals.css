@@ -1862,3 +1862,115 @@ body {
   font-weight: 700;
   color: #212529;
 }
+
+
+
+
+
+
+
+
+
+/* Ёмкий вид (список) */
+.list-table {
+  background: white;
+  overflow: hidden;
+}
+
+.list-header {
+  display: flex;
+  background: #f8f9fa;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 600;
+  color: #495057;
+  border-bottom: 1px solid #e9ecef;
+  gap: 8px;
+}
+
+.list-rows {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+}
+
+.list-row {
+  display: flex;
+  padding: 8px 12px;
+  font-size: 12px;
+  border-bottom: 1px solid #f0f0f0;
+  gap: 8px;
+  transition: background 0.2s;
+}
+
+.list-row:hover {
+  background: #f8f9fa;
+}
+
+/* Колонки */
+.list-time { width: 85px; flex-shrink: 0; font-family: monospace; color: #6c757d; }
+.list-material { flex: 2; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #212529; font-weight: 500; }
+.list-quantity { width: 45px; text-align: right; flex-shrink: 0; font-weight: 600; color: #28a745; }
+.list-customer { flex: 1.5; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #495057; }
+.list-factory { width: 45px; text-align: center; flex-shrink: 0; }
+.list-license { width: 95px; flex-shrink: 0; font-family: monospace; color: #6c757d; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.factory-badge-mini {
+  display: inline-block;
+  width: 28px;
+  height: 24px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  text-align: center;
+  line-height: 24px;
+}
+
+.factory-badge-mini.ЛХ {
+  background: #6c757d;
+  color: white;
+}
+
+.factory-badge-mini.ЛЮ {
+  background: #17a2b8;
+  color: white;
+}
+
+/* Адаптив для маленьких экранов */
+@media (max-width: 550px) {
+  .list-customer { display: none; }
+  .list-material { flex: 3; }
+  .list-time { width: 70px; }
+  .list-license { width: 80px; }
+}
+
+@media (max-width: 450px) {
+  .list-license { width: 70px; }
+  .list-quantity { width: 40px; }
+}
+
+
+
+
+/* Цветовая индикация для Вып */
+.compact-row .col-fact {
+  font-weight: 800;
+  font-size: 13px;
+  color: #28a745;
+}
+
+.compact-row .col-fact.warning {
+  color: #dc3545;
+}
+
+
+
+
+/* Список (ёмкий вид) - цифры жирные и зелёные */
+.list-row .list-quantity {
+  width: 45px;
+  text-align: right;
+  flex-shrink: 0;
+  font-weight: 800;
+  font-size: 13px;
+  color: #28a745;
+}

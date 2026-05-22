@@ -1,6 +1,7 @@
 // components/ViewTabs.tsx
 
-type ViewTab = 'grouped' | 'list' | 'compact';
+// type ViewTab = 'grouped' | 'list' | 'compact';
+type ViewTab = 'compact' | 'grouped' | 'list';
 
 interface ViewTabsProps {
   activeTab: ViewTab;
@@ -16,18 +17,27 @@ export default function ViewTabs({ activeTab, onTabChange }: ViewTabsProps) {
       >
         📋 Компактно
       </button>
+
       <button 
+  className={`tab ${activeTab === 'list' ? 'active' : ''}`}
+  onClick={() => onTabChange('list')}
+>
+  📋 Список
+</button>
+
+
+      {/* <button 
         className={`tab ${activeTab === 'list' ? 'active' : ''}`}
         onClick={() => onTabChange('list')}
       >
         📋 Список
-      </button>
-      <button 
+      </button> */}
+      {/* <button 
         className={`tab ${activeTab === 'grouped' ? 'active' : ''}`}
         onClick={() => onTabChange('grouped')}
       >
         📊 Итоги по дням
-      </button>
+      </button> */}
     </div>
   );
 }
