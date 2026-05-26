@@ -18,7 +18,9 @@ interface OutgoingRequestItem {
   Количество: number;
   НомерЗаявкиКлиента: string;
   ДатаЗаявкиКлиента: string;
+  Закрыта: boolean;  // ← измените на boolean
 }
+
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
@@ -54,18 +56,19 @@ export async function GET(request: Request) {
         .limit(1);
       
       if (existing.length === 0) {
-        await db.insert(outgoingRequests).values({
-          number: record.Номер,
-          date: record.Дата,
-          division: record.Подразделение,
-          customer: record.Покупатель,
-          consignee: record.Грузополучатель || null,
-          material: record.Номенклатура,
-          quantity: record.Количество,
-          clientRequestNumber: record.НомерЗаявкиКлиента || null,
-          clientRequestDate: record.ДатаЗаявкиКлиента || null,
-          createdAt: Date.now(),
-        });
+await db.insert(outgoingRequests).values({
+  number: record.Номер,
+  date: record.Дата,
+  division: record.Подразделение,
+  customer: record.Покупатель,
+  consignee: record.Грузополучатель || null,
+  material: record.Номенклатура,
+  quantity: record.Количество,
+  clientRequestNumber: record.НомерЗаявкиКлиента || null,
+  clientRequestDate: record.ДатаЗаявкиКлиента || null,
+  closed: record.Закрыта === true, // || record.Закрыта === 'true',  // ← добавить
+  createdAt: Date.now(),
+});
         insertedCount++;
       }
     }

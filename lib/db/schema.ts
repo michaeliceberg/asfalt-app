@@ -38,15 +38,16 @@ export const shipments = sqliteTable('shipments', {
 // Новая таблица: заявки на отгрузку
 export const outgoingRequests = sqliteTable('outgoing_requests', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  number: text('number').notNull().unique(),           // Номер заявки
-  date: text('date').notNull(),                       // Дата создания заявки
-  division: text('division').notNull(),               // Подразделение (завод)
-  customer: text('customer').notNull(),               // Покупатель
-  consignee: text('consignee'),                       // Грузополучатель
-  material: text('material').notNull(),               // Номенклатура
-  quantity: real('quantity').notNull(),               // Плановое количество
-  clientRequestNumber: text('client_request_number'), // Номер заявки клиента (для связи)
-  clientRequestDate: text('client_request_date'),     // Дата заявки клиента
+  number: text('number').notNull().unique(),
+  date: text('date').notNull(),
+  division: text('division').notNull(),
+  customer: text('customer').notNull(),
+  consignee: text('consignee'),
+  material: text('material').notNull(),
+  quantity: real('quantity').notNull(),
+  clientRequestNumber: text('client_request_number'),
+  clientRequestDate: text('client_request_date'),
+  closed: integer('closed', { mode: 'boolean' }).default(false),  // ← ДОБАВИТЬ
   createdAt: integer('created_at').notNull(),
 });
 

@@ -686,6 +686,30 @@ const outgoingRequestsForCompact = outgoingRequests.map(req => ({
 
 
 
+
+
+const sendPlan = async () => {
+  setRefreshing(true);
+  try {
+    const response = await fetch('/api/send-plan', {
+      headers: { 'Authorization': 'Bearer icg72xf3b1' }
+    });
+    const data = await response.json();
+    setNotificationMessage(`✅ План отправлен! ${data.planCount} заказов`);
+    setShowNotification(true);
+    setTimeout(() => setShowNotification(false), 3000);
+  } catch (err) {
+    setNotificationMessage('⚠️ Ошибка отправки');
+    setShowNotification(true);
+    setTimeout(() => setShowNotification(false), 3000);
+  } finally {
+    setRefreshing(false);
+  }
+};
+
+
+
+
   const currentSyncInfo = activeMainTab === 'incoming' ? cronInfo : shipmentCronInfo;
 
   if (!isAuthenticated) {
@@ -716,8 +740,15 @@ const outgoingRequestsForCompact = outgoingRequests.map(req => ({
 
       <div className="container">
         <header className="header">
-          <Header refreshing={refreshing} onRefresh={handleRefresh} />
+          {/* <Header refreshing={refreshing} onRefresh={handleRefresh} /> */}
           
+          <Header 
+            refreshing={refreshing} 
+            onRefresh={handleRefresh}
+            onSendPlan={sendPlan}
+          />
+          
+
           <MainTabs activeTab={activeMainTab} onTabChange={setActiveMainTab} />
           
           <div className="sync-info">
