@@ -14,6 +14,7 @@ import ListView from './components/ListView';
 import GroupedView from './components/GroupedView';
 import CompactView from './components/CompactView';
 import Header from './components/header';
+import ChartsView from './components/ChartsView';
 
 // export interface OutgoingRequest {
 //   id: number;
@@ -132,8 +133,10 @@ interface CronInfo {
 }
 
 type MainTab = 'incoming' | 'shipment' | 'summary';
-type ViewTab = 'grouped' | 'list' | 'compact';
+// type ViewTab = 'grouped' | 'list' | 'compact';
+type ViewTab = 'compact' | 'grouped' | 'list' | 'charts';
 type UnifiedDataItem = IncomingItem | ShipmentItem;
+
 
 // Парсинг даты из формата "DD.MM.YYYY HH:MM:SS" или "DD.MM.YYYY"
 const parseDate = (dateString: string): Date => {
@@ -667,6 +670,7 @@ const getRequestCompletion = useCallback((clientRequestNumber: string | null) =>
 const outgoingRequestsForCompact = outgoingRequests.map(req => ({
   number: req.number,
   date: req.date,
+  division: req.division,     // ← ДОБАВИТЬ подразделение (завод)
   quantity: req.quantity,
   consignee: req.consignee || '',  // ← null заменяем на пустую строку
   material: req.material,
@@ -779,6 +783,12 @@ const outgoingRequestsForCompact = outgoingRequests.map(req => ({
     outgoingRequests={outgoingRequestsForCompact}
   />
 )}
+
+
+{activeMainTab !== 'summary' && activeViewTab === 'charts' && (
+  <ChartsView data={shipmentData} />
+)}
+
         </motion.div>
       </div>
     </>

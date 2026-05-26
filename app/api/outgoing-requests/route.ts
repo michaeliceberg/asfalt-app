@@ -1,3 +1,5 @@
+// api/outgoing-requests/route.ts
+
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { outgoingRequests } from '@/lib/db/schema';
