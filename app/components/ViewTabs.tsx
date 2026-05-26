@@ -3,7 +3,8 @@
 // type ViewTab = 'grouped' | 'list' | 'compact';
 // type ViewTab = 'compact' | 'grouped' | 'list';
 
-type ViewTab = 'compact' | 'grouped' | 'list' | 'charts';
+// type ViewTab = 'compact' | 'grouped' | 'list' | 'charts';
+type ViewTab = 'compact' | 'grouped' | 'list' | 'charts' | 'topCustomers';
 
 interface ViewTabsProps {
   activeTab: ViewTab;
@@ -34,6 +35,16 @@ export default function ViewTabs({ activeTab, onTabChange }: ViewTabsProps) {
 >
   📊 Графики
 </button>
+
+
+
+<button 
+  className={`tab ${activeTab === 'topCustomers' ? 'active' : ''}`}
+  onClick={() => onTabChange('topCustomers')}
+>
+  🏆 Топ-10
+</button>
+
 
 
       {/* <button 

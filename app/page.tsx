@@ -15,6 +15,7 @@ import GroupedView from './components/GroupedView';
 import CompactView from './components/CompactView';
 import Header from './components/header';
 import ChartsView from './components/ChartsView';
+import TopCustomersView from './components/TopCustomersView';
 
 // export interface OutgoingRequest {
 //   id: number;
@@ -134,7 +135,10 @@ interface CronInfo {
 
 type MainTab = 'incoming' | 'shipment' | 'summary';
 // type ViewTab = 'grouped' | 'list' | 'compact';
-type ViewTab = 'compact' | 'grouped' | 'list' | 'charts';
+// type ViewTab = 'compact' | 'grouped' | 'list' | 'charts';
+type ViewTab = 'compact' | 'grouped' | 'list' | 'charts' | 'topCustomers';
+
+
 type UnifiedDataItem = IncomingItem | ShipmentItem;
 
 
@@ -788,6 +792,16 @@ const outgoingRequestsForCompact = outgoingRequests.map(req => ({
 {activeMainTab !== 'summary' && activeViewTab === 'charts' && (
   <ChartsView data={shipmentData} />
 )}
+
+
+
+{activeMainTab !== 'summary' && activeViewTab === 'topCustomers' && (
+  <TopCustomersView data={shipmentData} />
+)}
+
+
+
+
 
         </motion.div>
       </div>
