@@ -114,3 +114,16 @@ export const factoryRequests = sqliteTable('factory_requests', {
   factory: text('factory').notNull(),           // Щ, П
   createdAt: integer('created_at').notNull(),
 });
+
+
+
+// Новая таблица для отслеживания отправленных уведомлений
+export const sentNotifications = sqliteTable('sent_notifications', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  requestNumber: text('request_number').notNull().unique(),
+  sentAt: integer('sent_at').notNull(),
+});
+
+
+export type SentNotification = typeof sentNotifications.$inferSelect;
+export type NewSentNotification = typeof sentNotifications.$inferInsert;
