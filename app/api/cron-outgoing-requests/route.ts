@@ -19,6 +19,7 @@ interface OutgoingRequestItem {
   НомерЗаявкиКлиента: string;
   ДатаЗаявкиКлиента: string;
   Закрыта: boolean;  // ← измените на boolean
+  ДатаОтгрузки: string;  // ← Добавить
 }
 
 
@@ -67,6 +68,7 @@ await db.insert(outgoingRequests).values({
   clientRequestNumber: record.НомерЗаявкиКлиента || null,
   clientRequestDate: record.ДатаЗаявкиКлиента || null,
   closed: record.Закрыта === true, // || record.Закрыта === 'true',  // ← добавить
+  deliveryDate: record.ДатаОтгрузки || null,
   createdAt: Date.now(),
 });
         insertedCount++;

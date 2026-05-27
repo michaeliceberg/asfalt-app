@@ -36,6 +36,23 @@ export const shipments = sqliteTable('shipments', {
 });
 
 // Новая таблица: заявки на отгрузку
+// export const outgoingRequests = sqliteTable('outgoing_requests', {
+//   id: integer('id').primaryKey({ autoIncrement: true }),
+//   number: text('number').notNull().unique(),
+//   date: text('date').notNull(),
+//   division: text('division').notNull(),
+//   customer: text('customer').notNull(),
+//   consignee: text('consignee'),
+//   material: text('material').notNull(),
+//   quantity: real('quantity').notNull(),
+//   clientRequestNumber: text('client_request_number'),
+//   clientRequestDate: text('client_request_date'),
+//   closed: integer('closed', { mode: 'boolean' }).default(false),  // ← ДОБАВИТЬ
+//   createdAt: integer('created_at').notNull(),
+//   deliveryDate: text('delivery_date'),  // ← Добавить (ДатаОтгрузки)
+// });
+
+
 export const outgoingRequests = sqliteTable('outgoing_requests', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   number: text('number').notNull().unique(),
@@ -47,9 +64,13 @@ export const outgoingRequests = sqliteTable('outgoing_requests', {
   quantity: real('quantity').notNull(),
   clientRequestNumber: text('client_request_number'),
   clientRequestDate: text('client_request_date'),
-  closed: integer('closed', { mode: 'boolean' }).default(false),  // ← ДОБАВИТЬ
+  closed: integer('closed', { mode: 'boolean' }).default(false),
+  deliveryDate: text('delivery_date'),  // ← Добавить
   createdAt: integer('created_at').notNull(),
 });
+
+// export type OutgoingRequest = typeof outgoingRequests.$inferSelect;
+
 
 // Типы
 export type IncomingMaterial = typeof incomingMaterials.$inferSelect;
