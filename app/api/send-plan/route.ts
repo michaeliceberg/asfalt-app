@@ -97,26 +97,33 @@ export async function GET(request: Request) {
             group.items.push({ material: req.material, quantity: req.quantity });
         }
         
-        let message = `📋 *ПЛАН ОТГРУЗОК НА ${tomorrowDisplay}*\n\n`;
-        
-        if (planRequests.length === 0) {
-            message += '✅ Нет запланированных отгрузок на завтра.';
-        } else {
-            for (const [division, byConsignee] of byDivision) {
-                const divisionName = division === 'Люберцы' ? '🏭 Люберецкий завод' : '🏭 Луховицкий завод';
-                message += `*${divisionName}*\n`;
-                for (const [consignee, data] of byConsignee) {
-                    message += `▫️ *${consignee}* — ${data.total} т\n`;
-                    for (const item of data.items) {
-                        message += `   • ${item.material} — ${item.quantity} т\n`;
-                    }
-                }
-                message += `\n`;
-            }
+       // Формируем сообщение (новая версия — компактная)
+let message = `📋 *ПЛАН ОТГРУЗОК НА ${tomorrowDisplay}*\n\n`;
+
+if (planRequests.length === 0) {
+    message += '✅ Нет запланированных отгрузок на завтра.';
+} else {
+    for (const [division, byConsignee] of byDivision) {
+        let divisionTotal = 0;
+        for (const [, data] of byConsignee) {
+            divisionTotal += data.total;
         }
         
-        message += `📌 Всего заявок: ${planRequests.length}\n`;
-        message += `🕐 ${new Date().toLocaleTimeString('ru-RU')}`;
+        const divisionName = division === 'Люберцы' ? '🏭 Люберецкий' : '🏭 Луховицкий';
+        message += `*${divisionName}* 🟢${divisionTotal} т\n`;
+        
+        for (const [consignee, data] of byConsignee) {
+            message += `▫️ ${consignee} — ${data.total} т\n`;
+            if (data.items.length === 1 && data.items[0].material) {
+                message += `   • ${data.items[0].material}\n`;
+            }
+        }
+        message += `\n`;
+    }
+}
+
+message += `📌 Всего заявок: ${planRequests.length}\n`;
+message += `🕐 ${new Date().toLocaleTimeString('ru-RU')}`;
         
         let successCount = 0;
         
