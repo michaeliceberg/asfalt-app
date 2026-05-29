@@ -176,7 +176,17 @@ function formatNewRequestsMessage(newRequests: NewRequestForNotify[]): string {
         message += '\n';
     }
     message += `📌 Всего новых: ${newRequests.length}\n`;
-    message += `🕐 ${new Date().toLocaleTimeString('ru-RU')}`;
+    // message += `🕐 ${new Date().toLocaleTimeString('ru-RU')}`;
+
+    // Стало:
+const mskTime = new Date().toLocaleTimeString('ru-RU', { 
+    timeZone: 'Europe/Moscow',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
+});
+message += `🕐 ${mskTime}`;
+
     
     // Добавляем подсказку в конце
     message += `\n\n---\n💡 *Быстрый доступ:* /today - план на сегодня, /tomorrow - план на завтра`;

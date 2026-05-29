@@ -63,6 +63,59 @@ async function sendMessage(chatId: string, message: string): Promise<boolean> {
     }
 }
 
+
+
+
+// // Формирование сообщения с планом
+// async function getPlanMessage(requests: OutgoingRequest[], title: string): Promise<string> {
+//     let message = `📋 *${title}*\n\n`;
+    
+//     if (requests.length === 0) {
+//         message += '✅ Нет запланированных отгрузок.';
+//     } else {
+//         const byDivision = new Map();
+        
+//         for (const req of requests) {
+//             const division = req.division || 'Другие';
+//             if (!byDivision.has(division)) {
+//                 byDivision.set(division, new Map());
+//             }
+//             const byConsignee = byDivision.get(division);
+//             const consignee = req.consignee || req.customer || 'Неизвестно';
+            
+//             if (!byConsignee.has(consignee)) {
+//                 byConsignee.set(consignee, { total: 0, items: [] });
+//             }
+//             const group = byConsignee.get(consignee);
+//             group.total += req.quantity;
+//             group.items.push({ material: req.material, quantity: req.quantity });
+//         }
+        
+//         for (const [division, byConsignee] of byDivision) {
+//             let divisionTotal = 0;
+//             for (const [, data] of byConsignee) {
+//                 divisionTotal += data.total;
+//             }
+//             const divisionName = division === 'Люберцы' ? '🏭 Люберецкий' : '🏭 Луховицкий';
+//             message += `*${divisionName}* 🟢${divisionTotal} т\n`;
+            
+//             for (const [consignee, data] of byConsignee) {
+//                 message += `▫️ ${consignee} — ${data.total} т\n`;
+//                 if (data.items.length === 1 && data.items[0].material) {
+//                     message += `   • ${data.items[0].material}\n`;
+//                 }
+//             }
+//             message += `\n`;
+//         }
+//     }
+    
+//     message += `🕐 ${new Date().toLocaleTimeString('ru-RU')}`;
+//     return message;
+// }
+
+
+// app/api/send-plan/route.ts
+
 // Формирование сообщения с планом
 async function getPlanMessage(requests: OutgoingRequest[], title: string): Promise<string> {
     let message = `📋 *${title}*\n\n`;
@@ -70,20 +123,22 @@ async function getPlanMessage(requests: OutgoingRequest[], title: string): Promi
     if (requests.length === 0) {
         message += '✅ Нет запланированных отгрузок.';
     } else {
-        const byDivision = new Map();
+        const byDivision = new Map<string, Map<string, { total: number; items: { material: string; quantity: number }[] }>>();
         
         for (const req of requests) {
             const division = req.division || 'Другие';
             if (!byDivision.has(division)) {
                 byDivision.set(division, new Map());
             }
-            const byConsignee = byDivision.get(division);
+            const byConsignee = byDivision.get(division)!;
             const consignee = req.consignee || req.customer || 'Неизвестно';
             
-            if (!byConsignee.has(consignee)) {
-                byConsignee.set(consignee, { total: 0, items: [] });
+            // КЛЮЧ: объединяем division + consignee
+            const key = `${division}_${consignee}`;
+            if (!byConsignee.has(key)) {
+                byConsignee.set(key, { total: 0, items: [] });
             }
-            const group = byConsignee.get(consignee);
+            const group = byConsignee.get(key)!;
             group.total += req.quantity;
             group.items.push({ material: req.material, quantity: req.quantity });
         }
@@ -96,19 +151,47 @@ async function getPlanMessage(requests: OutgoingRequest[], title: string): Promi
             const divisionName = division === 'Люберцы' ? '🏭 Люберецкий' : '🏭 Луховицкий';
             message += `*${divisionName}* 🟢${divisionTotal} т\n`;
             
-            for (const [consignee, data] of byConsignee) {
-                message += `▫️ ${consignee} — ${data.total} т\n`;
+            for (const [key, data] of byConsignee) {
+                // Разбираем ключ на division и consignee
+                const [divCode, consignee] = key.split('_');
+                const divisionIcon = divCode === 'Люберцы' ? '🏭 ЛЮ' : '🏭 ЛХ';
+                message += `▫️ ${divisionIcon} ${consignee} — ${data.total} т\n`;
+                
                 if (data.items.length === 1 && data.items[0].material) {
                     message += `   • ${data.items[0].material}\n`;
+                } else if (data.items.length > 1) {
+                    const materials = new Map<string, number>();
+                    for (const item of data.items) {
+                        materials.set(item.material, (materials.get(item.material) || 0) + item.quantity);
+                    }
+                    for (const [material, qty] of materials) {
+                        message += `   • ${material} — ${qty} т\n`;
+                    }
                 }
             }
             message += `\n`;
         }
     }
     
-    message += `🕐 ${new Date().toLocaleTimeString('ru-RU')}`;
+    // Московское время
+    const mskTime = new Date().toLocaleTimeString('ru-RU', { 
+        timeZone: 'Europe/Moscow',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+    message += `🕐 ${mskTime}`;
+    
+    message += `\n\n---\n💡 *Быстрый доступ:* /today - план на сегодня, /tomorrow - план на завтра`;
+    
     return message;
 }
+
+
+
+
+
+
 
 // Получение плана по дате
 async function getPlanByDate(dateStr: string | null, dateLabel: string): Promise<string> {

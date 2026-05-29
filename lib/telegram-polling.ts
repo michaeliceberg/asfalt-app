@@ -388,13 +388,91 @@ if (text === '/start') {
     //     return message;
     // }
 
+// private formatPlanMessage(requests: OutgoingRequest[], title: string): string {
+//     let message = `📋 *${title}*\n\n`;
+    
+//     if (requests.length === 0) {
+//         message += '✅ Нет запланированных отгрузок.';
+//     } else {
+//         const byDivision = new Map<string, Map<string, GroupData>>();
+        
+//         // for (const req of requests) {
+//         //     const division = req.division || 'Другие';
+//         //     if (!byDivision.has(division)) {
+//         //         byDivision.set(division, new Map());
+//         //     }
+//         //     const byConsignee = byDivision.get(division)!;
+//         //     const consignee = req.consignee || req.customer || 'Неизвестно';
+//         //     if (!byConsignee.has(consignee)) {
+//         //         byConsignee.set(consignee, { total: 0, items: [] });
+//         //     }
+//         //     const group = byConsignee.get(consignee)!;
+//         //     group.total += req.quantity;
+//         //     group.items.push({ material: req.material, quantity: req.quantity });
+//         // }
+        
+
+//         for (const req of requests) {
+//     const division = req.division || 'Другие';
+//     if (!byDivision.has(division)) {
+//         byDivision.set(division, new Map());
+//     }
+//     const byConsignee = byDivision.get(division)!;
+//     const consignee = req.consignee || req.customer || 'Неизвестно';
+//     // Добавляем завод в ключ группировки
+//     const key = `${division}_${consignee}`;  // <-- вот это изменение
+//     if (!byConsignee.has(key)) {
+//         byConsignee.set(key, { total: 0, items: [] });
+//     }
+//     const group = byConsignee.get(key)!;
+//     group.total += req.quantity;
+//     group.items.push({ material: req.material, quantity: req.quantity });
+// }
+
+
+//         for (const [division, byConsignee] of byDivision) {
+//             let divisionTotal = 0;
+//             for (const [, data] of byConsignee) {
+//                 divisionTotal += data.total;
+//             }
+//             const divisionName = division === 'Люберцы' ? '🏭 Люберецкий' : '🏭 Луховицкий';
+//             message += `*${divisionName}* 🟢${divisionTotal} т\n`;
+            
+//             for (const [consignee, data] of byConsignee) {
+//                 message += `▫️ ${consignee} — ${data.total} т\n`;
+//                 if (data.items.length === 1 && data.items[0].material) {
+//                     message += `   • ${data.items[0].material}\n`;
+//                 } else if (data.items.length > 1) {
+//                     const materials = new Map<string, number>();
+//                     for (const item of data.items) {
+//                         materials.set(item.material, (materials.get(item.material) || 0) + item.quantity);
+//                     }
+//                     for (const [material, qty] of materials) {
+//                         message += `   • ${material} — ${qty} т\n`;
+//                     }
+//                 }
+//             }
+//             message += `\n`;
+//         }
+        
+//         message += `📌 Всего заявок: ${requests.length}\n`;
+//         message += `🕐 ${new Date().toLocaleTimeString('ru-RU')}`;
+//     }
+    
+//     // Добавляем подсказку в конце
+//     message += `\n\n---\n💡 *Быстрый доступ:* /today - план на сегодня, /tomorrow - план на завтра`;
+    
+//     return message;
+// }
+
+
 private formatPlanMessage(requests: OutgoingRequest[], title: string): string {
     let message = `📋 *${title}*\n\n`;
     
     if (requests.length === 0) {
         message += '✅ Нет запланированных отгрузок.';
     } else {
-        const byDivision = new Map<string, Map<string, GroupData>>();
+        const byDivision = new Map<string, Map<string, { total: number; items: { material: string; quantity: number }[] }>>();
         
         for (const req of requests) {
             const division = req.division || 'Другие';
@@ -403,10 +481,13 @@ private formatPlanMessage(requests: OutgoingRequest[], title: string): string {
             }
             const byConsignee = byDivision.get(division)!;
             const consignee = req.consignee || req.customer || 'Неизвестно';
-            if (!byConsignee.has(consignee)) {
-                byConsignee.set(consignee, { total: 0, items: [] });
+            
+            // КЛЮЧ: объединяем division + consignee
+            const key = `${division}_${consignee}`;
+            if (!byConsignee.has(key)) {
+                byConsignee.set(key, { total: 0, items: [] });
             }
-            const group = byConsignee.get(consignee)!;
+            const group = byConsignee.get(key)!;
             group.total += req.quantity;
             group.items.push({ material: req.material, quantity: req.quantity });
         }
@@ -419,8 +500,12 @@ private formatPlanMessage(requests: OutgoingRequest[], title: string): string {
             const divisionName = division === 'Люберцы' ? '🏭 Люберецкий' : '🏭 Луховицкий';
             message += `*${divisionName}* 🟢${divisionTotal} т\n`;
             
-            for (const [consignee, data] of byConsignee) {
-                message += `▫️ ${consignee} — ${data.total} т\n`;
+            for (const [key, data] of byConsignee) {
+                // Разбираем ключ на division и consignee
+                const [divCode, consignee] = key.split('_');
+                const divisionIcon = divCode === 'Люберцы' ? '🏭 ЛЮ' : '🏭 ЛХ';
+                message += `▫️ ${divisionIcon} ${consignee} — ${data.total} т\n`;
+                
                 if (data.items.length === 1 && data.items[0].material) {
                     message += `   • ${data.items[0].material}\n`;
                 } else if (data.items.length > 1) {
@@ -437,16 +522,21 @@ private formatPlanMessage(requests: OutgoingRequest[], title: string): string {
         }
         
         message += `📌 Всего заявок: ${requests.length}\n`;
-        message += `🕐 ${new Date().toLocaleTimeString('ru-RU')}`;
+        
+        // Московское время
+        const mskTime = new Date().toLocaleTimeString('ru-RU', { 
+            timeZone: 'Europe/Moscow',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
+        message += `🕐 ${mskTime}`;
     }
     
-    // Добавляем подсказку в конце
     message += `\n\n---\n💡 *Быстрый доступ:* /today - план на сегодня, /tomorrow - план на завтра`;
     
     return message;
 }
-
-
 
 
 
