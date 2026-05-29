@@ -58,6 +58,70 @@ async function sendTelegramMessage(message: string): Promise<boolean> {
     return successCount > 0;
 }
 
+
+
+
+
+
+
+// function formatNewRequestsMessage(newRequests: NewRequestForNotify[]): string {
+//     const today = new Date();
+//     const todayStr = today.toISOString().split('T')[0];
+//     const tomorrow = new Date();
+//     tomorrow.setDate(tomorrow.getDate() + 1);
+//     const tomorrowStr = tomorrow.toISOString().split('T')[0];
+    
+//     const byDivision = new Map<string, Map<string, { total: number; items: { material: string; quantity: number }[]; deliveryDate: string }>>();
+    
+//     for (const req of newRequests) {
+//         const division = req.division || 'Другие';
+//         if (!byDivision.has(division)) {
+//             byDivision.set(division, new Map());
+//         }
+//         const byConsignee = byDivision.get(division)!;
+//         const consignee = req.consignee || req.customer || 'Неизвестно';
+//         if (!byConsignee.has(consignee)) {
+//             byConsignee.set(consignee, { total: 0, items: [], deliveryDate: req.deliveryDate });
+//         }
+//         const group = byConsignee.get(consignee)!;
+//         group.total += req.quantity;
+//         group.items.push({ material: req.material, quantity: req.quantity });
+//     }
+    
+//     let message = `🆕 *НОВЫЕ ЗАЯВКИ*\n\n`;
+//     for (const [division, byConsignee] of byDivision) {
+//         const divisionName = division === 'Люберцы' ? '🏭 Люберецкий' : '🏭 Луховицкий';
+//         message += `*${divisionName}*\n`;
+//         for (const [consignee, data] of byConsignee) {
+//             let dateLabel = '';
+//             const deliveryDateStr = data.deliveryDate?.split('T')[0];
+//             if (deliveryDateStr === todayStr) {
+//                 dateLabel = '🚨 СЕГОДНЯ 🚨';
+//             } else if (deliveryDateStr === tomorrowStr) {
+//                 dateLabel = '⏰ НА ЗАВТРА';
+//             } else {
+//                 dateLabel = `📅 ${deliveryDateStr}`;
+//             }
+//             message += `▫️ ${consignee} — ${data.total} т ${dateLabel}\n`;
+//             if (data.items.length === 1 && data.items[0].material) {
+//                 message += `   • ${data.items[0].material}\n`;
+//             } else if (data.items.length > 1) {
+//                 const materials = new Map<string, number>();
+//                 for (const item of data.items) {
+//                     materials.set(item.material, (materials.get(item.material) || 0) + item.quantity);
+//                 }
+//                 for (const [material, qty] of materials) {
+//                     message += `   • ${material} — ${qty} т\n`;
+//                 }
+//             }
+//         }
+//         message += '\n';
+//     }
+//     message += `📌 Всего новых: ${newRequests.length}\n`;
+//     message += `🕐 ${new Date().toLocaleTimeString('ru-RU')}`;
+//     return message;
+// }
+
 function formatNewRequestsMessage(newRequests: NewRequestForNotify[]): string {
     const today = new Date();
     const todayStr = today.toISOString().split('T')[0];
@@ -113,8 +177,18 @@ function formatNewRequestsMessage(newRequests: NewRequestForNotify[]): string {
     }
     message += `📌 Всего новых: ${newRequests.length}\n`;
     message += `🕐 ${new Date().toLocaleTimeString('ru-RU')}`;
+    
+    // Добавляем подсказку в конце
+    message += `\n\n---\n💡 *Быстрый доступ:* /today - план на сегодня, /tomorrow - план на завтра`;
+    
     return message;
 }
+
+
+
+
+
+
 
 export async function GET(request: Request) {
     const authHeader = request.headers.get('authorization');

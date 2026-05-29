@@ -239,8 +239,30 @@ class TelegramPollingService {
         
         logger.info(`Message from ${chatId}: ${text}`);
 
-        if (text === '/start') {
-            const welcomeMessage = `🤖 *Добро пожаловать в бот АБЗ!*
+
+
+//         if (text === '/start') {
+//             const welcomeMessage = `🤖 *Добро пожаловать в бот АБЗ!*
+
+// Я помогаю отслеживать отгрузки асфальта.
+
+// 📊 *Доступные команды:*
+// • Нажмите кнопку "Сегодня" - план на текущий день
+// • Нажмите кнопку "Завтра" - план на следующий день
+// • /help - показать это сообщение
+
+// 📅 *Данные обновляются:* автоматически каждые 10 мин
+
+// 🏭 *Доступные заводы:*
+// • Люберецкий АБЗ
+// • Луховицкий АБЗ`;
+
+//             await this.sendMessage(chatId, welcomeMessage, this.getMainKeyboard());
+//         } 
+
+
+if (text === '/start') {
+    const welcomeMessage = `🤖 *Добро пожаловать в бот АБЗ!*
 
 Я помогаю отслеживать отгрузки асфальта.
 
@@ -249,14 +271,20 @@ class TelegramPollingService {
 • Нажмите кнопку "Завтра" - план на следующий день
 • /help - показать это сообщение
 
-📅 *Данные обновляются:* автоматически каждый час
+📅 *Данные обновляются:* автоматически каждые 10 мин
 
 🏭 *Доступные заводы:*
 • Люберецкий АБЗ
-• Луховицкий АБЗ`;
+• Луховицкий АБЗ
 
-            await this.sendMessage(chatId, welcomeMessage, this.getMainKeyboard());
-        } 
+---
+💡 *Быстрый доступ:* /today - план на сегодня, /tomorrow - план на завтра`;
+
+    await this.sendMessage(chatId, welcomeMessage, this.getMainKeyboard());
+}
+
+
+
         else if (text === '/help') {
             const helpMessage = `🔍 *Справка по командам*
 
@@ -301,14 +329,71 @@ class TelegramPollingService {
         return this.formatPlanMessage(filtered, title);
     }
 
-    private formatPlanMessage(requests: OutgoingRequest[], title: string): string {
-        let message = `📋 *${title}*\n\n`;
+    
+    
+    
+    
+    // private formatPlanMessage(requests: OutgoingRequest[], title: string): string {
+    //     let message = `📋 *${title}*\n\n`;
         
-        if (requests.length === 0) {
-            message += '✅ Нет запланированных отгрузок.';
-            return message;
-        }
+    //     if (requests.length === 0) {
+    //         message += '✅ Нет запланированных отгрузок.';
+    //         return message;
+    //     }
         
+    //     const byDivision = new Map<string, Map<string, GroupData>>();
+        
+    //     for (const req of requests) {
+    //         const division = req.division || 'Другие';
+    //         if (!byDivision.has(division)) {
+    //             byDivision.set(division, new Map());
+    //         }
+    //         const byConsignee = byDivision.get(division)!;
+    //         const consignee = req.consignee || req.customer || 'Неизвестно';
+    //         if (!byConsignee.has(consignee)) {
+    //             byConsignee.set(consignee, { total: 0, items: [] });
+    //         }
+    //         const group = byConsignee.get(consignee)!;
+    //         group.total += req.quantity;
+    //         group.items.push({ material: req.material, quantity: req.quantity });
+    //     }
+        
+    //     for (const [division, byConsignee] of byDivision) {
+    //         let divisionTotal = 0;
+    //         for (const [, data] of byConsignee) {
+    //             divisionTotal += data.total;
+    //         }
+    //         const divisionName = division === 'Люберцы' ? '🏭 Люберецкий' : '🏭 Луховицкий';
+    //         message += `*${divisionName}* 🟢${divisionTotal} т\n`;
+            
+    //         for (const [consignee, data] of byConsignee) {
+    //             message += `▫️ ${consignee} — ${data.total} т\n`;
+    //             if (data.items.length === 1 && data.items[0].material) {
+    //                 message += `   • ${data.items[0].material}\n`;
+    //             } else if (data.items.length > 1) {
+    //                 const materials = new Map<string, number>();
+    //                 for (const item of data.items) {
+    //                     materials.set(item.material, (materials.get(item.material) || 0) + item.quantity);
+    //                 }
+    //                 for (const [material, qty] of materials) {
+    //                     message += `   • ${material} — ${qty} т\n`;
+    //                 }
+    //             }
+    //         }
+    //         message += `\n`;
+    //     }
+        
+    //     message += `📌 Всего заявок: ${requests.length}\n`;
+    //     message += `🕐 ${new Date().toLocaleTimeString('ru-RU')}`;
+    //     return message;
+    // }
+
+private formatPlanMessage(requests: OutgoingRequest[], title: string): string {
+    let message = `📋 *${title}*\n\n`;
+    
+    if (requests.length === 0) {
+        message += '✅ Нет запланированных отгрузок.';
+    } else {
         const byDivision = new Map<string, Map<string, GroupData>>();
         
         for (const req of requests) {
@@ -353,8 +438,18 @@ class TelegramPollingService {
         
         message += `📌 Всего заявок: ${requests.length}\n`;
         message += `🕐 ${new Date().toLocaleTimeString('ru-RU')}`;
-        return message;
     }
+    
+    // Добавляем подсказку в конце
+    message += `\n\n---\n💡 *Быстрый доступ:* /today - план на сегодня, /tomorrow - план на завтра`;
+    
+    return message;
+}
+
+
+
+
+
 
     private getMainKeyboard(): TelegramKeyboard {
         return {
