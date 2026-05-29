@@ -1,3 +1,4 @@
+// app/api/cron-info-factory/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { factoryOperations } from '@/lib/db/schema';

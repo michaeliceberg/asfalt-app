@@ -1,3 +1,4 @@
+// app/api/factory-request/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { factoryRequests } from '@/lib/db/schema';

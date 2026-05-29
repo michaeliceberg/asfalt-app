@@ -1,3 +1,4 @@
+// app/api/summary/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { outgoingRequests, shipments } from '@/lib/db/schema';

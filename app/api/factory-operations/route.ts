@@ -1,3 +1,5 @@
+// app/api/factory-operations/route.ts
+
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { sql } from 'drizzle-orm';

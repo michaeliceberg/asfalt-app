@@ -1,0 +1,4 @@
+# .eslintignore
+scripts/**/*.js
+scripts/**/*.mjs
+*.js

@@ -42,6 +42,19 @@ next-env.d.ts
 
 
 
+# echo "# Telegram polling state" >> .gitignore
+# echo "data/last-telegram-update.json" >> .gitignore
+# echo "" >> .gitignore
+# echo "# Sync state" >> .gitignore  
+# echo "data/last-sync-*.json" >> .gitignore
+# Но если вы хотите сохранять состояние синхронизации между деплоями, то эти файлы лучше не игнорировать.
+
+
+
+
+
+
+
 # # See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
 
 # # dependencies
