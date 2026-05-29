@@ -193,21 +193,42 @@ async function getPlanMessage(requests: OutgoingRequest[], title: string): Promi
 
 
 
+// // Получение плана по дате
+// async function getPlanByDate(dateStr: string | null, dateLabel: string): Promise<string> {
+//     const allRequests: OutgoingRequest[] = await db.select().from(outgoingRequests);
+    
+//     const planRequests = allRequests.filter(req => {
+//         const isNotClosed = req.closed === false || req.closed === null || req.closed === undefined;
+//         if (dateStr) {
+//             const deliveryDate = req.deliveryDate ? req.deliveryDate.split('T')[0] : null;
+//             return isNotClosed && deliveryDate === dateStr;
+//         }
+//         return isNotClosed;
+//     });
+
+    
+    
+//     return getPlanMessage(planRequests, dateLabel);
+// }
+
+
 // Получение плана по дате
 async function getPlanByDate(dateStr: string | null, dateLabel: string): Promise<string> {
     const allRequests: OutgoingRequest[] = await db.select().from(outgoingRequests);
     
+    // Убираем фильтр по closed, показываем все заявки (и закрытые, и открытые)
     const planRequests = allRequests.filter(req => {
-        const isNotClosed = req.closed === false || req.closed === null || req.closed === undefined;
         if (dateStr) {
             const deliveryDate = req.deliveryDate ? req.deliveryDate.split('T')[0] : null;
-            return isNotClosed && deliveryDate === dateStr;
+            return deliveryDate === dateStr;
         }
-        return isNotClosed;
+        return true; // если нет даты, возвращаем все заявки
     });
     
     return getPlanMessage(planRequests, dateLabel);
 }
+
+
 
 // Получение новых заявок (которых не было в рассылке)
 async function getNewRequests(): Promise<OutgoingRequest[]> {
