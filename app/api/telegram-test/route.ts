@@ -14,7 +14,8 @@ interface TestResults {
             number: string;
             material: string;
             quantity: number;
-            deliveryDate: string | null;
+            // deliveryDate: string | null;
+            delivery_date: string | null;
             closed: boolean | null;
         }>;
     };
@@ -44,7 +45,7 @@ export async function GET() {
                 number: r.number,
                 material: r.material,
                 quantity: r.quantity,
-                deliveryDate: r.deliveryDate,
+                delivery_date: r.delivery_date,
                 closed: r.closed
             }))
         };
@@ -59,7 +60,7 @@ export async function GET() {
 • Всего заявок в БД: ${requestsCount.length}
 • Заявок на сегодня: ${requestsCount.filter(r => {
     const today = new Date().toISOString().split('T')[0];
-    return !r.closed && r.deliveryDate?.split('T')[0] === today;
+    return !r.closed && r.delivery_date?.split('T')[0] === today;
 }).length}
 
 🕐 ${new Date().toLocaleString('ru-RU')}`;

@@ -48,7 +48,7 @@ export const outgoingRequests = sqliteTable('outgoing_requests', {
   clientRequestNumber: text('client_request_number'),
   clientRequestDate: text('client_request_date'),
   closed: integer('closed', { mode: 'boolean' }).default(false),
-  deliveryDate: text('delivery_date'),  // ← Добавить
+  delivery_date: text('delivery_date'),
   createdAt: integer('created_at').notNull(),
 });
 
