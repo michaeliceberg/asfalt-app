@@ -1,11 +1,10 @@
-// drizzle.config.ts
-import { defineConfig } from 'drizzle-kit';
+import type { Config } from 'drizzle-kit';
 
-export default defineConfig({
+export default {
   schema: './lib/db/schema.ts',
   out: './drizzle',
   dialect: 'sqlite',
   dbCredentials: {
     url: './data/sqlite.db',
   },
-});
+} satisfies Config;

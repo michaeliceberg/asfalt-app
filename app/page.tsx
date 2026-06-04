@@ -1,8 +1,9 @@
+// app/page.tsx
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-import PinModal from './components/PinModal';
+// import PinModal from './components/PinModal';
 import MainTabs from './components/MainTabs';
 import FactoryFilter from './components/FactoryFilter';
 import ViewTabs from './components/ViewTabs';
@@ -158,6 +159,21 @@ const parseDateForSort = (dateString: string): Date => {
   return new Date(year, month, day, hour, minute, second);
 };
 
+// const detectFactory = (item: UnifiedDataItem, type: 'incoming' | 'shipment'): string => {
+//   if (type === 'incoming') {
+//     const incoming = item as IncomingItem;
+//     if (incoming.number?.startsWith('ЛХ')) return 'ЛХ';
+//     if (incoming.number?.startsWith('ЛЮ')) return 'ЛЮ';
+//   } else if (type === 'shipment') {
+//     const shipment = item as ShipmentItem;
+//     if (shipment.division === 'Луховицы') return 'ЛХ';
+//     if (shipment.division === 'Люберцы') return 'ЛЮ';
+//   }
+//   return 'Другой';
+// };
+
+
+
 const detectFactory = (item: UnifiedDataItem, type: 'incoming' | 'shipment'): string => {
   if (type === 'incoming') {
     const incoming = item as IncomingItem;
@@ -165,11 +181,13 @@ const detectFactory = (item: UnifiedDataItem, type: 'incoming' | 'shipment'): st
     if (incoming.number?.startsWith('ЛЮ')) return 'ЛЮ';
   } else if (type === 'shipment') {
     const shipment = item as ShipmentItem;
-    if (shipment.division === 'Луховицы') return 'ЛХ';
-    if (shipment.division === 'Люберцы') return 'ЛЮ';
+    if (shipment.division === 'ЛХ') return 'ЛХ';
+    if (shipment.division === 'ЛЮ') return 'ЛЮ';
   }
   return 'Другой';
 };
+
+
 
 const getFactoryName = (code: string): string => {
   switch (code) {
@@ -180,10 +198,10 @@ const getFactoryName = (code: string): string => {
 };
 
 export default function Home() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  // const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [incomingData, setIncomingData] = useState<IncomingItem[]>([]);
   const [shipmentData, setShipmentData] = useState<ShipmentItem[]>([]);
-  const [factoryRequests, setFactoryRequests] = useState<FactoryRequest[]>([]);
+  // const [factoryRequests, setFactoryRequests] = useState<FactoryRequest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -488,6 +506,11 @@ const loadShipmentData = async () => {
   try {
     const response = await fetch('/api/shipments');
     const data: ShipmentItem[] = await response.json();
+
+    console.log('📦 Shipments loaded:', data.length);
+    console.log('📦 First shipment:', data[0]);
+
+    
     if (Array.isArray(data)) {
       setShipmentData(data);
       // Обновляем счётчик новых отгрузок
@@ -510,17 +533,17 @@ const loadShipmentData = async () => {
 };
 
 
-  const loadFactoryRequests = async () => {
-    try {
-      const response = await fetch('/api/factory-requests');
-      const data = await response.json();
-      if (Array.isArray(data)) {
-        setFactoryRequests(data);
-      }
-    } catch (err) {
-      console.error('Error loading factory requests:', err);
-    }
-  };
+  // const loadFactoryRequests = async () => {
+  //   try {
+  //     const response = await fetch('/api/factory-requests');
+  //     const data = await response.json();
+  //     if (Array.isArray(data)) {
+  //       setFactoryRequests(data);
+  //     }
+  //   } catch (err) {
+  //     console.error('Error loading factory requests:', err);
+  //   }
+  // };
 
   const loadCronInfo = async () => {
     try {
@@ -555,7 +578,7 @@ const loadShipmentData = async () => {
       ]);
       
       await Promise.all([
-        loadFactoryRequests(),
+        // loadFactoryRequests(),
         loadCronInfo(),
         loadShipmentCronInfo(),
       ]);
@@ -676,34 +699,37 @@ const loadShipmentData = async () => {
   //   return () => clearInterval(interval);
   // }, [isAuthenticated, activeMainTab]);
 
-  useEffect(() => {
-  if (!isAuthenticated) return;
+//   useEffect(() => {
+//   if (!isAuthenticated) return;
   
-  let isMounted = true;
+//   let isMounted = true;
   
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      await loadAllData();
-      await loadFutureRequestsCount();
-      await loadNewShipmentsCount();  // ← добавить
-      if (isMounted) {
-        setLoading(false);
-      }
-    } catch (err) {
-      if (isMounted) {
-        setError(err instanceof Error ? err.message : 'Ошибка');
-        setLoading(false);
-      }
-    }
-  };
+//   const fetchData = async () => {
+//     try {
+//       setLoading(true);
+//       await loadAllData();
+//       await loadFutureRequestsCount();
+//       await loadNewShipmentsCount();  // ← добавить
+//       if (isMounted) {
+//         setLoading(false);
+//       }
+//     } catch (err) {
+//       if (isMounted) {
+//         setError(err instanceof Error ? err.message : 'Ошибка');
+//         setLoading(false);
+//       }
+//     }
+//   };
   
-  fetchData();
+//   fetchData();
   
-  return () => {
-    isMounted = false;
-  };
-}, [isAuthenticated]);
+//   return () => {
+//     isMounted = false;
+//   };
+// }, [isAuthenticated]);
+
+
+
 
 // Также обновляем при автообновлении
 // useEffect(() => {
@@ -729,7 +755,7 @@ const loadShipmentData = async () => {
 // }, [isAuthenticated, activeMainTab]);
 
 useEffect(() => {
-  if (!isAuthenticated) return;
+  // if (!isAuthenticated) return;
   
   const interval = setInterval(() => {
     console.log('🔄 Автообновление...');
@@ -748,7 +774,7 @@ useEffect(() => {
   }, 30000);
   
   return () => clearInterval(interval);
-}, [isAuthenticated, activeMainTab]);
+}, [activeMainTab]);
 
 
   const getCurrentData = (): UnifiedDataItem[] => {
@@ -758,15 +784,38 @@ useEffect(() => {
     return shipmentData;
   };
 
-  const getFilteredData = (): UnifiedDataItem[] => {
-    const data = getCurrentData();
-    if (activeFactory === 'all') return data;
+  // const getFilteredData = (): UnifiedDataItem[] => {
+  //   const data = getCurrentData();
+  //   if (activeFactory === 'all') return data;
     
-    return data.filter(item => {
-      const factory = detectFactory(item, activeMainTab as 'incoming' | 'shipment');
-      return factory === activeFactory;
-    });
-  };
+  //   return data.filter(item => {
+  //     const factory = detectFactory(item, activeMainTab as 'incoming' | 'shipment');
+  //     return factory === activeFactory;
+  //   });
+  // };
+
+
+
+
+  const getFilteredData = (): UnifiedDataItem[] => {
+  const data = getCurrentData();
+  console.log('Active factory filter:', activeFactory);
+  
+  if (activeFactory === 'all') return data;
+  
+  const filtered = data.filter(item => {
+    const factory = detectFactory(item, activeMainTab as 'incoming' | 'shipment');
+    console.log('Item factory:', factory, 'Filter:', activeFactory, 'Match:', factory === activeFactory);
+    return factory === activeFactory;
+  });
+  
+  console.log('Filtered count:', filtered.length);
+  return filtered;
+};
+
+
+
+
 
   const groupDataByDay = (data: UnifiedDataItem[]) => {
     const groupedMap = new Map<string, Map<string, GroupedRecord>>();
@@ -855,9 +904,80 @@ useEffect(() => {
 
   const currentSyncInfo = activeMainTab === 'incoming' ? cronInfo : shipmentCronInfo;
 
-  if (!isAuthenticated) {
-    return <PinModal onSuccess={() => setIsAuthenticated(true)} />;
-  }
+  // if (!isAuthenticated) {
+  //   return <PinModal onSuccess={() => setIsAuthenticated(true)} />;
+  // }
+
+
+
+
+
+
+
+
+
+
+
+  // Загрузка данных при монтировании компонента
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        await loadAllData();
+        await loadFutureRequestsCount();
+        await loadNewShipmentsCount();
+        if (isMounted) {
+          setLoading(false);
+        }
+      } catch (err) {
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Ошибка');
+          setLoading(false);
+        }
+      }
+    };
+    
+    fetchData();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // Автообновление раз в 30 секунд
+  useEffect(() => {
+    const interval = setInterval(() => {
+      console.log('🔄 Автообновление...');
+      if (activeMainTab === 'incoming') {
+        loadIncomingData();
+        loadCronInfo();
+      } else if (activeMainTab === 'shipment') {
+        loadShipmentData();
+        loadShipmentCronInfo();
+        loadNewShipmentsCount();
+      } else if (activeMainTab === 'summary') {
+        loadAllData();
+        loadFutureRequestsCount();
+        loadNewShipmentsCount();
+      }
+    }, 30000);
+    
+    return () => clearInterval(interval);
+  }, [activeMainTab]);
+
+
+
+
+
+
+
+
+
+
+
+
 
   if (loading) {
     return (
@@ -876,6 +996,34 @@ useEffect(() => {
       </div>
     );
   }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   return (
     <>

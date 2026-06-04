@@ -1,3 +1,5 @@
+// app/components/FactoryFilter.tsx
+
 const getFactoryName = (code: string): string => {
   switch (code) {
     case 'ЛХ': return '🏭 Луховицкий';
@@ -22,6 +24,7 @@ export default function FactoryFilter({ factories, activeFactory, onFactoryChang
         📦 Все заводы
       </button>
       {factories.map(factory => (
+        
         <button
           key={factory}
           className={`factory-btn ${activeFactory === factory ? 'active' : ''}`}
@@ -29,6 +32,9 @@ export default function FactoryFilter({ factories, activeFactory, onFactoryChang
         >
           {getFactoryName(factory)}
         </button>
+
+
+
       ))}
     </div>
   );

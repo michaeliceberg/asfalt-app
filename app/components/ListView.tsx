@@ -118,7 +118,38 @@ export default function ListView({ data, mainTab }: ListViewProps) {
                 <span className="list-license">Машина</span>
               </div>
               <div className="list-rows">
-                {items.map((item, idx) => {
+                
+                
+
+                {[...items].sort((a, b) => {
+  // Сортируем по дате и времени от новых к старым
+  const dateA = new Date(a.date);
+  const dateB = new Date(b.date);
+  return dateB.getTime() - dateA.getTime();
+}).map((item, idx) => {
+  const factory = getFactory(item);
+  const time = formatTime(item.date);
+  const dayMonth = formatDateForRow(item.date);
+  const displayTime = time;
+  
+  return (
+    <div key={idx} className="list-row">
+      <span className="list-time">{displayTime}</span>
+      <span className="list-material" title={item.material}>{getMaterial(item)}</span>
+      <span className="list-quantity">{item.quantity.toFixed(1)}</span>
+      <span className="list-customer" title={getCustomer(item)}>{getCustomer(item)}</span>
+      <span className="list-factory">
+        <span className={getFactoryBadgeClass(factory)}>{factory}</span>
+      </span>
+      <span className="list-license" title={item.licensePlate || '—'}>{getLicensePlate(item)}</span>
+    </div>
+  );
+})}
+
+
+                {/* {items.map((item, idx) => {
+
+
                   const factory = getFactory(item);
                   const time = formatTime(item.date);
                   const dayMonth = formatDateForRow(item.date);
@@ -137,7 +168,7 @@ export default function ListView({ data, mainTab }: ListViewProps) {
                       <span className="list-license" title={item.licensePlate || '—'}>{getLicensePlate(item)}</span>
                     </div>
                   );
-                })}
+                })} */}
               </div>
             </div>
           </div>

@@ -135,10 +135,15 @@ export default function CompactView({
       const division = shipment.division || '';
       const requestKey = `${requestNumber}_${requestDate}_${division}`;
       
-      let factory = '—';
-      if (shipment.division === 'Луховицы') factory = 'ЛХ';
-      else if (shipment.division === 'Люберцы') factory = 'ЛЮ';
+      // let factory = '—';
+      // if (shipment.division === 'Луховицы') factory = 'ЛХ';
+      // else if (shipment.division === 'Люберцы') factory = 'ЛЮ';
       
+      let factory = '—';
+      if (shipment.division === 'ЛХ') factory = 'ЛХ';
+      else if (shipment.division === 'ЛЮ') factory = 'ЛЮ';
+
+
       const consigneeKey = shipment.consignee || shipment.customer || '—';
       const groupKey = `${date}_${requestKey}_${consigneeKey}_${shipment.material}`;
       
@@ -289,7 +294,18 @@ export default function CompactView({
                 </div>
               )}
               
-              {items.map((item, idx) => {
+              {/* {items.map((item, idx) => { TODO: */}
+
+{[...items].sort((a, b) => {
+  // Сравниваем время
+  const timeA = a.time.split(':').map(Number);
+  const timeB = b.time.split(':').map(Number);
+  const minutesA = timeA[0] * 60 + timeA[1];
+  const minutesB = timeB[0] * 60 + timeB[1];
+  return minutesB - minutesA;
+}).map((item, idx) => {
+
+
                 const itemKey = `${date}_${idx}`;
                 const isExpanded = expandedId === itemKey;
                 const percentComplete = item.planQuantity > 0 ? (item.factQuantity / item.planQuantity) * 100 : 0;
@@ -330,25 +346,25 @@ export default function CompactView({
                         </span> */}
 
                         <span className="col-plan">
-  {item.planQuantity > 0 ? (
-    <span style={{ whiteSpace: 'nowrap' }}>
-      {item.planQuantity.toFixed(0)}
-      {item.closed ? (
-        <span className="closed-lock"> 🔒</span>
-      ) : (
-        (() => {
-          const hasTodayShipments = allShipments.some(ship => {
-            const shipDate = new Date(ship.date).toLocaleDateString('ru-RU');
-            const today = new Date().toLocaleDateString('ru-RU');
-            return ship.clientRequestNumber === item.requestNumber && shipDate === today;
-          });
-          const showActiveDot = hasTodayShipments && percentComplete < 94;
-          return showActiveDot ? <span className="active-dot" title="Идут отгрузки"></span> : null;
-        })()
-      )}
-    </span>
-  ) : '—'}
-</span>
+                          {item.planQuantity > 0 ? (
+                            <span style={{ whiteSpace: 'nowrap' }}>
+                              {item.planQuantity.toFixed(0)}
+                              {item.closed ? (
+                                <span className="closed-lock"> 🔒</span>
+                              ) : (
+                                (() => {
+                                  const hasTodayShipments = allShipments.some(ship => {
+                                    const shipDate = new Date(ship.date).toLocaleDateString('ru-RU');
+                                    const today = new Date().toLocaleDateString('ru-RU');
+                                    return ship.clientRequestNumber === item.requestNumber && shipDate === today;
+                                  });
+                                  const showActiveDot = hasTodayShipments && percentComplete < 94;
+                                  return showActiveDot ? <span className="active-dot" title="Идут отгрузки"></span> : null;
+                                })()
+                              )}
+                            </span>
+                          ) : '—'}
+                        </span>
 
                         <span className="col-consignee">{item.consignee}</span>
                         <span className="col-factory">
