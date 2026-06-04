@@ -66,56 +66,6 @@ async function sendMessage(chatId: string, message: string): Promise<boolean> {
 
 
 
-// // Формирование сообщения с планом
-// async function getPlanMessage(requests: OutgoingRequest[], title: string): Promise<string> {
-//     let message = `📋 *${title}*\n\n`;
-    
-//     if (requests.length === 0) {
-//         message += '✅ Нет запланированных отгрузок.';
-//     } else {
-//         const byDivision = new Map();
-        
-//         for (const req of requests) {
-//             const division = req.division || 'Другие';
-//             if (!byDivision.has(division)) {
-//                 byDivision.set(division, new Map());
-//             }
-//             const byConsignee = byDivision.get(division);
-//             const consignee = req.consignee || req.customer || 'Неизвестно';
-            
-//             if (!byConsignee.has(consignee)) {
-//                 byConsignee.set(consignee, { total: 0, items: [] });
-//             }
-//             const group = byConsignee.get(consignee);
-//             group.total += req.quantity;
-//             group.items.push({ material: req.material, quantity: req.quantity });
-//         }
-        
-//         for (const [division, byConsignee] of byDivision) {
-//             let divisionTotal = 0;
-//             for (const [, data] of byConsignee) {
-//                 divisionTotal += data.total;
-//             }
-//             const divisionName = division === 'Люберцы' ? '🏭 Люберецкий' : '🏭 Луховицкий';
-//             message += `*${divisionName}* 🟢${divisionTotal} т\n`;
-            
-//             for (const [consignee, data] of byConsignee) {
-//                 message += `▫️ ${consignee} — ${data.total} т\n`;
-//                 if (data.items.length === 1 && data.items[0].material) {
-//                     message += `   • ${data.items[0].material}\n`;
-//                 }
-//             }
-//             message += `\n`;
-//         }
-//     }
-    
-//     message += `🕐 ${new Date().toLocaleTimeString('ru-RU')}`;
-//     return message;
-// }
-
-
-// app/api/send-plan/route.ts
-
 // Формирование сообщения с планом
 async function getPlanMessage(requests: OutgoingRequest[], title: string): Promise<string> {
     let message = `📋 *${title}*\n\n`;
@@ -197,17 +147,19 @@ async function getPlanMessage(requests: OutgoingRequest[], title: string): Promi
 async function getPlanByDate(dateStr: string | null, dateLabel: string): Promise<string> {
     const allRequests: OutgoingRequest[] = await db.select().from(outgoingRequests);
     
+    // Убираем фильтр по closed, показываем все заявки (и закрытые, и открытые)
     const planRequests = allRequests.filter(req => {
-        const isNotClosed = req.closed === false || req.closed === null || req.closed === undefined;
         if (dateStr) {
-            const deliveryDate = req.deliveryDate ? req.deliveryDate.split('T')[0] : null;
-            return isNotClosed && deliveryDate === dateStr;
+            const deliveryDate = req.delivery_date ? req.delivery_date.split('T')[0] : null;            
+            return deliveryDate === dateStr;
         }
-        return isNotClosed;
+        return true; // если нет даты, возвращаем все заявки
     });
     
     return getPlanMessage(planRequests, dateLabel);
 }
+
+
 
 // Получение новых заявок (которых не было в рассылке)
 async function getNewRequests(): Promise<OutgoingRequest[]> {
@@ -215,15 +167,24 @@ async function getNewRequests(): Promise<OutgoingRequest[]> {
     const sentRecords = await db.select().from(sentNotifications);
     const sentNumbers = new Set(sentRecords.map(r => r.requestNumber));
     
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const tomorrowStr = tomorrow.toISOString().split('T')[0];
-    
+    // Стало (московское время):
+    const getMoscowDate = (daysOffset: number = 0): string => {
+        const now = new Date();
+        // Прибавляем 3 часа для московского времени
+        const mskTime = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+        mskTime.setDate(mskTime.getDate() + daysOffset);
+        return mskTime.toISOString().split('T')[0];
+    };
+
+    const todayStr = getMoscowDate(0);
+    const tomorrowStr = getMoscowDate(1);
+
+
+
+
     return allRequests.filter(req => {
         const isNotClosed = req.closed === false || req.closed === null || req.closed === undefined;
-        const deliveryDate = req.deliveryDate ? req.deliveryDate.split('T')[0] : null;
+        const deliveryDate = req.delivery_date ? req.delivery_date.split('T')[0] : null;
         const isForTodayOrTomorrow = deliveryDate === todayStr || deliveryDate === tomorrowStr;
         return isNotClosed && isForTodayOrTomorrow && !sentNumbers.has(req.number);
     });
@@ -246,7 +207,7 @@ async function sendNewRequests(): Promise<number> {
         if (!byDivision.has(division)) byDivision.set(division, new Map());
         const byConsignee = byDivision.get(division);
         const consignee = req.consignee || req.customer || 'Неизвестно';
-        if (!byConsignee.has(consignee)) byConsignee.set(consignee, { total: 0, items: [], deliveryDate: req.deliveryDate });
+        if (!byConsignee.has(consignee)) byConsignee.set(consignee, { total: 0, items: [], deliveryDate: req.delivery_date });
         const group = byConsignee.get(consignee);
         group.total += req.quantity;
         group.items.push({ material: req.material, quantity: req.quantity });
@@ -298,12 +259,19 @@ export async function POST(request: Request) {
             return NextResponse.json({ ok: true });
         }
         
-        const today = new Date();
-        const todayStr = today.toISOString().split('T')[0];
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowStr = tomorrow.toISOString().split('T')[0];
-        
+        // Стало (московское время):
+        const getMoscowDate = (daysOffset: number = 0): string => {
+            const now = new Date();
+            // Прибавляем 3 часа для московского времени
+            const mskTime = new Date(now.getTime() + 3 * 60 * 60 * 1000);
+            mskTime.setDate(mskTime.getDate() + daysOffset);
+            return mskTime.toISOString().split('T')[0];
+        };
+
+        const todayStr = getMoscowDate(0);
+        const tomorrowStr = getMoscowDate(1);
+
+
         let message = '';
         
         switch (callbackData) {
@@ -369,168 +337,4 @@ export async function GET(request: Request) {
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }
-
-
-
-// // app/api/send-plan/route.ts
-// import { NextResponse } from 'next/server';
-// import { db } from '@/lib/db';
-// import { outgoingRequests, OutgoingRequest } from '@/lib/db/schema';
-
-// const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
-// const TELEGRAM_CHAT_IDS = (process.env.TELEGRAM_CHAT_IDS || '').split(',').filter(Boolean);
-
-// const TELEGRAM_PROXY_URLS = [
-//     'https://tg-proxy.p.rapidapi.com/bot',
-//     'https://telegram-bot-api-proxy.herokuapp.com/bot',
-//     'https://tg-bot-proxy.deno.dev/bot',
-// ];
-
-// async function sendDirect(chatId: string, message: string): Promise<boolean> {
-//     try {
-//         const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
-//         const response = await fetch(url, {
-//             method: 'POST',
-//             headers: { 'Content-Type': 'application/json' },
-//             body: JSON.stringify({
-//                 chat_id: chatId,
-//                 text: message,
-//                 parse_mode: 'Markdown'
-//             })
-//         });
-//         return response.ok;
-//     } catch (error) {
-//         console.error('Direct send error:', error);
-//         return false;
-//     }
-// }
-
-// async function sendViaProxy(proxyUrl: string, chatId: string, message: string): Promise<boolean> {
-//     try {
-//         const url = `${proxyUrl}${TELEGRAM_BOT_TOKEN}/sendMessage`;
-//         const response = await fetch(url, {
-//             method: 'POST',
-//             headers: { 'Content-Type': 'application/json' },
-//             body: JSON.stringify({
-//                 chat_id: chatId,
-//                 text: message,
-//                 parse_mode: 'Markdown'
-//             })
-//         });
-//         return response.ok;
-//     } catch (error) {
-//         console.error(`Proxy send error (${proxyUrl}):`, error);
-//         return false;
-//     }
-// }
-
-// export async function GET(request: Request) {
-//     const authHeader = request.headers.get('authorization');
-//     const cronSecret = process.env.CRON_SECRET;
-    
-//     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-//         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-//     }
-
-//     try {
-//         const tomorrow = new Date();
-//         tomorrow.setDate(tomorrow.getDate() + 1);
-//         const tomorrowStr = tomorrow.toISOString().split('T')[0];
-//         const tomorrowDisplay = tomorrow.toLocaleDateString('ru-RU', {
-//             day: '2-digit',
-//             month: '2-digit',
-//             year: 'numeric'
-//         });
-        
-//         const allRequests: OutgoingRequest[] = await db.select().from(outgoingRequests);
-        
-//         // Фильтруем незакрытые заявки, у которых deliveryDate = завтра
-//         const planRequests = allRequests.filter(req => {
-//             const isNotClosed = req.closed === false || req.closed === null || req.closed === undefined;
-//             const deliveryDate = req.deliveryDate ? req.deliveryDate.split('T')[0] : null;
-//             const isForTomorrow = deliveryDate === tomorrowStr;
-            
-//             return isNotClosed && isForTomorrow;
-//         });
-        
-//         // Группируем по подразделению и грузополучателю
-//         const byDivision = new Map();
-        
-//         for (const req of planRequests) {
-//             const division = req.division || 'Другие';
-//             if (!byDivision.has(division)) {
-//                 byDivision.set(division, new Map());
-//             }
-//             const byConsignee = byDivision.get(division);
-//             const consignee = req.consignee || req.customer || 'Неизвестно';
-//             if (!byConsignee.has(consignee)) {
-//                 byConsignee.set(consignee, { total: 0, items: [] });
-//             }
-//             const group = byConsignee.get(consignee);
-//             group.total += req.quantity;
-//             group.items.push({ material: req.material, quantity: req.quantity });
-//         }
-        
-//        // Формируем сообщение (новая версия — компактная)
-// let message = `📋 *ПЛАН ОТГРУЗОК НА ${tomorrowDisplay}*\n\n`;
-
-// if (planRequests.length === 0) {
-//     message += '✅ Нет запланированных отгрузок на завтра.';
-// } else {
-//     for (const [division, byConsignee] of byDivision) {
-//         let divisionTotal = 0;
-//         for (const [, data] of byConsignee) {
-//             divisionTotal += data.total;
-//         }
-        
-//         const divisionName = division === 'Люберцы' ? '🏭 Люберецкий' : '🏭 Луховицкий';
-//         message += `*${divisionName}* 🟢${divisionTotal} т\n`;
-        
-//         for (const [consignee, data] of byConsignee) {
-//             message += `▫️ ${consignee} — ${data.total} т\n`;
-//             if (data.items.length === 1 && data.items[0].material) {
-//                 message += `   • ${data.items[0].material}\n`;
-//             }
-//         }
-//         message += `\n`;
-//     }
-// }
-
-// message += `📌 Всего заявок: ${planRequests.length}\n`;
-// message += `🕐 ${new Date().toLocaleTimeString('ru-RU')}`;
-        
-//         let successCount = 0;
-        
-//         if (TELEGRAM_BOT_TOKEN && TELEGRAM_CHAT_IDS.length > 0) {
-//             for (const chatId of TELEGRAM_CHAT_IDS) {
-//                 let sent = false;
-//                 sent = await sendDirect(chatId.trim(), message);
-//                 if (!sent) {
-//                     for (const proxyUrl of TELEGRAM_PROXY_URLS) {
-//                         sent = await sendViaProxy(proxyUrl, chatId.trim(), message);
-//                         if (sent) break;
-//                     }
-//                 }
-//                 if (sent) successCount++;
-//             }
-//         }
-        
-//         return NextResponse.json({
-//             success: true,
-//             planCount: planRequests.length,
-//             telegramSent: successCount,
-//             totalChats: TELEGRAM_CHAT_IDS.length,
-//             message
-//         });
-        
-//     } catch (error) {
-//         console.error('Send plan error:', error);
-//         return NextResponse.json(
-//             { error: 'Internal server error' },
-//             { status: 500 }
-//         );
-//     }
-// }
-
-
 

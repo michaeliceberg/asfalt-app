@@ -1,31 +1,164 @@
-type MainTab = 'incoming' | 'shipment' | 'summary';
+'use client';
 
 interface MainTabsProps {
-  activeTab: MainTab;
-  onTabChange: (tab: MainTab) => void;
+  activeTab: 'incoming' | 'shipment' | 'summary';
+  onTabChange: (tab: 'incoming' | 'shipment' | 'summary') => void;
+  futureRequestsCount?: number;
+  newShipmentsCount?: number;
+  onShipmentClick?: () => void;
 }
 
-export default function MainTabs({ activeTab, onTabChange }: MainTabsProps) {
+export default function MainTabs({ 
+  activeTab, 
+  onTabChange, 
+  futureRequestsCount = 0,
+  newShipmentsCount = 0,
+  onShipmentClick 
+}: MainTabsProps) {
+  const hasFutureRequests = futureRequestsCount > 0;
+  const hasNewShipments = newShipmentsCount > 0;
+  
+  const handleShipmentClick = () => {
+    onTabChange('shipment');
+    if (hasNewShipments && onShipmentClick) {
+      onShipmentClick();
+    }
+  };
+  
   return (
     <div className="main-tabs">
+      {/* Поступление */}
       <button
         className={`main-tab ${activeTab === 'incoming' ? 'active' : ''}`}
         onClick={() => onTabChange('incoming')}
       >
-        📦 Поступление
+        <span className="tab-icon">🚢</span>
+        <span className="tab-label">Поступление</span>
       </button>
+      
+      {/* Отгрузка */}
       <button
-        className={`main-tab ${activeTab === 'shipment' ? 'active' : ''}`}
-        onClick={() => onTabChange('shipment')}
+        className={`main-tab ${activeTab === 'shipment' ? 'active' : ''} ${hasNewShipments ? 'has-new' : ''}`}
+        onClick={handleShipmentClick}
       >
-        🚛 Отгрузка
+        <span className="tab-icon">🚛</span>
+        <span className="tab-label">Отгрузка</span>
+        {hasNewShipments && (
+          <div className="tab-badge">
+            <span className="badge-dot"></span>
+            <span className="badge-number">{newShipmentsCount}</span>
+          </div>
+        )}
       </button>
-      <button
-        className={`main-tab ${activeTab === 'summary' ? 'active' : ''}`}
+      
+      {/* План-факт */}
+      
+      
+      
+      {/* <button
+        className={`main-tab ${activeTab === 'summary' ? 'active' : ''} ${hasFutureRequests ? 'has-future' : ''}`}
         onClick={() => onTabChange('summary')}
       >
-        📊 План-факт
-      </button>
+        <span className="tab-icon">📋</span>
+        <span className="tab-label">План-факт</span>
+        {hasFutureRequests && (
+          <div className="tab-badge">
+            <span className="badge-dot"></span>
+            <span className="badge-number">{futureRequestsCount}</span>
+          </div>
+        )}
+      </button> */}
+
+      {/* План на будущее */}
+<button
+  className={`main-tab ${activeTab === 'summary' ? 'active' : ''} ${hasFutureRequests ? 'has-future' : ''}`}
+  onClick={() => onTabChange('summary')}
+>
+  <span className="tab-icon">📋</span>
+  <span className="tab-label">На будущее</span>
+  {hasFutureRequests && (
+    <div className="tab-badge">
+      <span className="badge-dot"></span>
+      <span className="badge-number">{futureRequestsCount}</span>
+    </div>
+  )}
+</button>
+
+
+
+
+
     </div>
   );
 }
+
+
+
+
+
+
+
+
+// // app/components/MainTabs.tsx
+
+// 'use client';
+
+// import { motion } from 'framer-motion';
+
+// interface MainTabsProps {
+//   activeTab: 'incoming' | 'shipment' | 'summary';
+//   onTabChange: (tab: 'incoming' | 'shipment' | 'summary') => void;
+//   futureRequestsCount?: number;
+//   newShipmentsCount?: number;
+// }
+
+// export default function MainTabs({ 
+//   activeTab, 
+//   onTabChange, 
+//   futureRequestsCount = 0,
+//   newShipmentsCount = 0 
+// }: MainTabsProps) {
+//   const hasFutureRequests = futureRequestsCount > 0;
+//   const hasNewShipments = newShipmentsCount > 0;
+  
+//   return (
+//     <div className="main-tabs">
+//       <button
+//         className={`main-tab ${activeTab === 'incoming' ? 'active' : ''}`}
+//         onClick={() => onTabChange('incoming')}
+//       >
+//         📥 Поступление
+//       </button>
+//       <button
+//         className={`main-tab ${activeTab === 'shipment' ? 'active' : ''} ${hasNewShipments ? 'has-new' : ''}`}
+//         onClick={() => onTabChange('shipment')}
+//       >
+//         <span className="tab-content">
+//           🚛 Отгрузка
+//           {hasNewShipments && (
+//             <span className="new-badge">
+//               <span className="new-dot"></span>
+//               {newShipmentsCount}
+//             </span>
+//           )}
+//         </span>
+//       </button>
+//       <button
+//         className={`main-tab ${activeTab === 'summary' ? 'active' : ''} ${hasFutureRequests ? 'has-future' : ''}`}
+//         onClick={() => onTabChange('summary')}
+//       >
+//         <span className="tab-content">
+//           📊 План-факт
+//           {hasFutureRequests && (
+//             <span className="future-badge">
+//               <span className="future-dot"></span>
+//               {futureRequestsCount}
+//             </span>
+//           )}
+//         </span>
+//       </button>
+//     </div>
+//   );
+// }
+
+

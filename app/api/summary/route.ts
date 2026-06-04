@@ -1,22 +1,29 @@
 // app/api/summary/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { outgoingRequests, shipments } from '@/lib/db/schema';
+import { outgoingRequests, shipments, type OutgoingRequest, type Shipment } from '@/lib/db/schema';
 
 export async function GET() {
   try {
     const requests = await db.select().from(outgoingRequests);
     const allShipments = await db.select().from(shipments);
     
-    const summary = requests.map(request => {
-      // Связываем по номеру заявки (request.number) с client_request_number в отгрузках
-      const relatedShipments = allShipments.filter(s => 
-        s.clientRequestNumber === request.number
-      );
-      
-      const factQuantity = relatedShipments.reduce((sum, s) => sum + s.quantity, 0);
+    const shipmentsByRequest = new Map<string, Shipment[]>();
+    for (const shipment of allShipments) {
+      const requestNumber = shipment.clientRequestNumber;
+      if (requestNumber) {
+        if (!shipmentsByRequest.has(requestNumber)) {
+          shipmentsByRequest.set(requestNumber, []);
+        }
+        shipmentsByRequest.get(requestNumber)!.push(shipment);
+      }
+    }
+    
+    const result = requests.map((request: OutgoingRequest) => {
+      const requestShipments = shipmentsByRequest.get(request.number) || [];
+      const factQuantity = requestShipments.reduce((sum: number, s: Shipment) => sum + s.quantity, 0);
       const remaining = request.quantity - factQuantity;
-      const percent = request.quantity > 0 ? (factQuantity / request.quantity) * 100 : 0;
+      const percentCompleted = request.quantity > 0 ? (factQuantity / request.quantity) * 100 : 0;
       
       return {
         request: {
@@ -29,11 +36,12 @@ export async function GET() {
           planQuantity: request.quantity,
           clientRequestNumber: request.clientRequestNumber,
           clientRequestDate: request.clientRequestDate,
+          delivery_date: request.delivery_date,  // ← теперь без any
         },
         factQuantity,
         remaining,
-        percentCompleted: Math.round(percent * 100) / 100,
-        shipments: relatedShipments.map(s => ({
+        percentCompleted: Math.round(percentCompleted),
+        shipments: requestShipments.map((s: Shipment) => ({
           number: s.number,
           date: s.date,
           quantity: s.quantity,
@@ -43,12 +51,66 @@ export async function GET() {
       };
     });
     
-    return NextResponse.json(summary);
+    return NextResponse.json(result);
   } catch (error) {
     console.error('Summary error:', error);
-    return NextResponse.json({ error: 'Failed to load summary' }, { status: 500 });
+    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
 }
+
+
+
+// // app/api/summary/route.ts
+// import { NextResponse } from 'next/server';
+// import { db } from '@/lib/db';
+// import { outgoingRequests, shipments } from '@/lib/db/schema';
+
+// export async function GET() {
+//   try {
+//     const requests = await db.select().from(outgoingRequests);
+//     const allShipments = await db.select().from(shipments);
+    
+//     const summary = requests.map(request => {
+//       // Связываем по номеру заявки (request.number) с client_request_number в отгрузках
+//       const relatedShipments = allShipments.filter(s => 
+//         s.clientRequestNumber === request.number
+//       );
+      
+//       const factQuantity = relatedShipments.reduce((sum, s) => sum + s.quantity, 0);
+//       const remaining = request.quantity - factQuantity;
+//       const percent = request.quantity > 0 ? (factQuantity / request.quantity) * 100 : 0;
+      
+//       return {
+//         request: {
+//           number: request.number,
+//           date: request.date,
+//           division: request.division,
+//           customer: request.customer,
+//           consignee: request.consignee,
+//           material: request.material,
+//           planQuantity: request.quantity,
+//           clientRequestNumber: request.clientRequestNumber,
+//           clientRequestDate: request.clientRequestDate,
+//         },
+//         factQuantity,
+//         remaining,
+//         percentCompleted: Math.round(percent * 100) / 100,
+//         shipments: relatedShipments.map(s => ({
+//           number: s.number,
+//           date: s.date,
+//           quantity: s.quantity,
+//           driver: s.driver,
+//           licensePlate: s.licensePlate,
+//         })),
+//       };
+//     });
+    
+//     return NextResponse.json(summary);
+//   } catch (error) {
+//     console.error('Summary error:', error);
+//     return NextResponse.json({ error: 'Failed to load summary' }, { status: 500 });
+//   }
+// }
 
 
 
