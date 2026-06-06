@@ -193,11 +193,11 @@ body {
   animation: gentlePulse 0.3s ease;
 }
 
-@keyframes gentlePulse {
+/* @keyframes gentlePulse {
   0% { transform: scale(1); }
   50% { transform: scale(1.02); }
   100% { transform: scale(1); }
-}
+} */
 
 /* Уведомление */
 .notification {
@@ -4701,38 +4701,582 @@ body {
 
 
 
+/* ============================================
+   ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМОВ
+   ============================================ */
 
-/* 
+.mode-switch {
+  margin-bottom: 16px;
+}
 
-.activity-chart-bars-stack {
+.mode-switch-container {
   display: flex;
-  flex-direction: column-reverse;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  border-radius: 60px;
+  padding: 4px;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.mode-option {
+  flex: 1;
+  display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 2px;
-  width: 100%;
-}
-
-.activity-chart-bar.today {
-  background: #667eea;
-}
-
-.activity-chart-bar.yesterday {
-  background: #cbd5e1;
-}
-
-.activity-chart-legend {
-  display: flex;
   justify-content: center;
-  gap: 16px;
-  margin-top: 8px;
-  font-size: 10px;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 40px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: rgba(255, 255, 255, 0.8);
 }
 
-.legend-today {
+/* .mode-option.active {
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+} */
+
+/* Режим ЛХ/ЛЮ (активный) */
+.mode-option.active .mode-icon {
   color: #667eea;
 }
 
-.legend-yesterday {
-  color: #cbd5e1;
+.mode-option.active .mode-label {
+  color: #667eea;
+  font-weight: 700;
+}
+
+.mode-option.active .mode-location {
+  color: #764ba2;
+}
+
+/* Режим Айсберг (активный) */
+.mode-option.active.mode-iceberg .mode-icon {
+  color: #2e7d32;
+}
+
+.mode-option.active.mode-iceberg .mode-label {
+  color: #2e7d32;
+}
+
+.mode-option.active.mode-iceberg .mode-location {
+  color: #f57c00;
+}
+
+.mode-icon {
+  font-size: 20px;
+}
+
+.mode-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mode-location {
+  font-size: 10px;
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+@media (max-width: 550px) {
+  .mode-option {
+    padding: 8px 12px;
+    gap: 4px;
+  }
+  .mode-label {
+    font-size: 12px;
+  }
+  .mode-location {
+    display: none;
+  }
+  .mode-icon {
+    font-size: 16px;
+  }
+}
+
+
+
+
+/* ============================================
+   ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМОВ СО СЛАЙДЕРОМ
+   ============================================ */
+
+.mode-switch-wrapper {
+  margin-bottom: 16px;
+}
+
+.mode-switch-container {
+  position: relative;
+  display: flex;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  border-radius: 60px;
+  padding: 4px;
+  gap: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+}
+
+.mode-switch-slider {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  width: calc(50% - 4px);
+  background: white;
+  border-radius: 40px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  z-index: 0;
+}
+
+.mode-option {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 10px 16px;
+  transition: color 0.2s ease;
+}
+
+.mode-icon {
+  font-size: 20px;
+  transition: transform 0.2s ease;
+}
+
+.mode-option.active .mode-icon {
+  transform: scale(1.1);
+}
+
+.mode-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mode-location {
+  font-size: 10px;
+  opacity: 0.7;
+  margin-left: 4px;
+}
+
+/* Цвет текста для активной/неактивной кнопки */
+.mode-option.active {
+  color: #4a5568;
+}
+
+.mode-option:not(.active) {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+@media (max-width: 550px) {
+  .mode-option {
+    padding: 8px 12px;
+    gap: 4px;
+  }
+  .mode-label {
+    font-size: 12px;
+  }
+  .mode-location {
+    display: none;
+  }
+  .mode-icon {
+    font-size: 16px;
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+/* ============================================
+   ТЕМА "АЙСБЕРГ" (ТЁМНО-ГРАФИТОВАЯ, ПРЕМИУМ) 
+   С БЕЛЫМ ФОНОМ КАК В TAS
+   ============================================ */
+
+/* Основной фон - белый как в TAS */
+body.iceberg-mode {
+  background: #f5f7fa;
+  min-height: 100vh;
+}
+
+/* Хедер - благородный тёмно-серый с лёгким металлическим отливом */
+body.iceberg-mode .header {
+  background: linear-gradient(135deg, #3a3a44 0%, #252530 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Текст в хедере */
+body.iceberg-mode .header,
+body.iceberg-mode .header .mode-label,
+body.iceberg-mode .header .mode-location {
+  color: #e8e8ec;
+}
+
+body.iceberg-mode .header .sync-info {
+  background: rgba(255, 255, 255, 0.08);
+  color: #c0c0cc;
+}
+
+body.iceberg-mode .header .sync-label {
+  color: #a0a0b0;
+}
+
+/* Кнопки управления */
+body.iceberg-mode .refresh-btn,
+body.iceberg-mode .logout-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.15);
+  color: #e8e8ec;
+}
+
+body.iceberg-mode .refresh-btn:active,
+body.iceberg-mode .logout-btn:active {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Переключатель режимов */
+body.iceberg-mode .mode-switch-container {
+  background: rgba(30, 30, 38, 0.8);
+  border-color: rgba(255, 255, 255, 0.12);
+}
+
+body.iceberg-mode .mode-switch-slider {
+  background: #4a4a55;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+body.iceberg-mode .mode-option.active {
+  color: #e0e0e8;
+}
+
+body.iceberg-mode .mode-option:not(.active) {
+  color: rgba(200, 200, 210, 0.6);
+}
+
+/* Кнопки фильтра заводов */
+body.iceberg-mode .factory-switch .factory-btn {
+  background: rgba(30, 30, 38, 0.8);
+  color: #c0c0cc;
+  border-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+}
+
+body.iceberg-mode .factory-switch .factory-btn.active {
+  background: #4a4a55;
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Вкладки (Компактно, Список, Графики, Топ-10) */
+body.iceberg-mode .tabs .tab {
+  background: rgba(30, 30, 38, 0.8);
+  color: #c0c0cc;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+}
+
+body.iceberg-mode .tabs .tab.active {
+  background: #4a4a55;
+  color: #ffffff;
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Основные вкладки (Поступление, Отгрузка, На будущее) */
+body.iceberg-mode .main-tab {
+  background: rgba(30, 30, 38, 0.8);
+  color: #c0c0cc;
+  border-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(4px);
+}
+
+body.iceberg-mode .main-tab.active {
+  background: #4a4a55;
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+body.iceberg-mode .main-tab.has-new:not(.active) {
+  background: rgba(74, 74, 85, 0.9);
+  border: 2px solid #e8a030;
+  color: #ffffff;
+}
+
+/* Заголовки дат - благородный тёмно-серый */
+body.iceberg-mode .compact-date-header {
+  background: linear-gradient(135deg, #4a4a55 0%, #3a3a44 100%);
+  color: #e8e8ec;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Бейджи заводов - графитовые оттенки с различиями */
+/* body.iceberg-mode .factory-badge-small.Щ, */
+/* body.iceberg-mode .factory-badge-mini.Щ {
+  background: linear-gradient(135deg, #5a6a6a, #3a4a4a);
+  color: #e0e8e8;
 } */
+
+/* body.iceberg-mode .factory-badge-small.СП,
+body.iceberg-mode .factory-badge-mini.СП {
+  background: linear-gradient(135deg, #6a5a6a, #4a3a4a);
+  color: #e8e0e8;
+} */
+
+/* body.iceberg-mode .factory-badge-small.ЛХ,
+body.iceberg-mode .factory-badge-mini.ЛХ {
+  background: #4a4a55;
+  color: #e0e0e8;
+} */
+
+/* body.iceberg-mode .factory-badge-small.ЛЮ,
+body.iceberg-mode .factory-badge-mini.ЛЮ {
+  background: #3a3a44;
+  color: #e0e0e8;
+} */
+
+/* Прогресс-бар */
+body.iceberg-mode .percent-fill {
+  background: linear-gradient(90deg, #6a6a78, #4a4a55);
+}
+
+/* Активная точка */
+body.iceberg-mode .active-dot {
+  background-color: #6a6a78;
+  box-shadow: 0 0 6px #6a6a78;
+}
+
+/* Цифры Вып - стальной зелёный (строгий) */
+body.iceberg-mode .compact-row .col-fact {
+  color: #6a9e7a;
+}
+
+/* Цифры Заяв - приглушённо-серые */
+body.iceberg-mode .compact-row .col-plan {
+  color: #80808c;
+}
+
+/* Цифры Машин */
+body.iceberg-mode .compact-row .col-trucks {
+  color: #8a8a98;
+  font-weight: 600;
+}
+
+/* Карточки - белые как в TAS */
+body.iceberg-mode .compact-date-group {
+  background: white;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+body.iceberg-mode .compact-row {
+  border-bottom-color: #e9ecef;
+  color: #212529;
+}
+
+body.iceberg-mode .compact-details {
+  background: #f8f9fa;
+  border-top-color: #e9ecef;
+  color: #212529;
+}
+
+/* Текст в карточках */
+body.iceberg-mode .detail-label {
+  color: #495057;
+}
+
+body.iceberg-mode .detail-value {
+  color: #212529;
+}
+
+/* Статистика (Всего записей) */
+body.iceberg-mode .stats {
+  color: #495057;
+  background: rgba(0, 0, 0, 0.05);
+  padding: 6px 12px;
+  border-radius: 20px;
+  display: inline-block;
+}
+
+/* Синхронизация */
+body.iceberg-mode .sync-info {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Карточки с сегодняшней датой */
+body.iceberg-mode .summary-card-compact.today-card,
+body.iceberg-mode .future-request-card.today-card {
+  border-left-color: #6a6a78;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+}
+
+/* Универсальное правило для неактивных кнопок */
+body.iceberg-mode button:not(.active):not(.refresh-btn):not(.logout-btn):not(.mode-option.active) {
+  background: rgba(30, 30, 38, 0.8);
+  color: #c0c0cc;
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.iceberg-mode button:not(.active):not(.refresh-btn):not(.logout-btn):not(.mode-option.active):active {
+  background: rgba(50, 50, 60, 0.9);
+}
+
+/* Бейджи в компактном виде */
+/* body.iceberg-mode .factory-badges-group .factory-badge-small {
+  font-weight: 600;
+  letter-spacing: 0.5px;
+} */
+
+/* body.iceberg-mode .factory-badges-group .factory-badge-small.Щ {
+  background: linear-gradient(135deg, #5a6a6a, #3a4a4a);
+  color: #e0e8e8;
+} */
+
+/* body.iceberg-mode .factory-badges-group .factory-badge-small.СП {
+  background: linear-gradient(135deg, #6a5a6a, #4a3a4a);
+  color: #e8e0e8;
+} */
+
+/* Переключатель в Айсберг-режиме */
+body.iceberg-mode .mode-option {
+  color: #a0a0ac;
+}
+
+body.iceberg-mode .mode-option.active {
+  background: #4a4a55;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+}
+
+body.iceberg-mode .mode-option.active .mode-label {
+  color: #ffffff;
+}
+
+body.iceberg-mode .mode-option.active .mode-icon {
+  color: #ffffff;
+}
+
+/* Анимация для фона */
+body.iceberg-mode {
+  transition: background 0.3s ease;
+}
+
+
+
+
+
+
+
+
+
+
+/* Бейджи заводов - яркие и сочные */
+body.iceberg-mode .factory-badge-small.Щ,
+body.iceberg-mode .factory-badge-mini.Щ {
+  background: #34a853;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+body.iceberg-mode .factory-badge-small.СП,
+body.iceberg-mode .factory-badge-mini.СП {
+  background: #4285f4;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+body.iceberg-mode .factory-badge-small.ЛХ,
+body.iceberg-mode .factory-badge-mini.ЛХ {
+  background: #5a5a68;
+  color: #ffffff;
+}
+
+body.iceberg-mode .factory-badge-small.ЛЮ,
+body.iceberg-mode .factory-badge-mini.ЛЮ {
+  background: #4a4a58;
+  color: #ffffff;
+}
+
+/* Бейджи в компактном виде - яркие */
+body.iceberg-mode .factory-badges-group .factory-badge-small {
+  font-weight: 700;
+}
+
+body.iceberg-mode .factory-badges-group .factory-badge-small.Щ {
+  background: #34a853;
+  color: #ffffff;
+}
+
+body.iceberg-mode .factory-badges-group .factory-badge-small.СП {
+  background: #4285f4;
+  color: #ffffff;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Ripple эффект для переключателя */
+.mode-option {
+  position: relative;
+  overflow: hidden;
+}
+
+.mode-ripple {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  height: 100%;
+  background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0) 80%);
+  border-radius: 40px;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+}
+
+/* Улучшенная анимация для активной кнопки */
+.mode-option.active {
+  background: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  animation: gentlePulse 0.3s ease;
+}
+
+@keyframes gentlePulse {
+  0% { transform: scale(1); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  50% { transform: scale(1.02); box-shadow: 0 6px 16px rgba(0,0,0,0.2); }
+  100% { transform: scale(1); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+}
+
+/* Bounce анимация для иконки */
+@keyframes bounceIcon {
+  0% { transform: scale(1) rotate(0deg); }
+  30% { transform: scale(1.3) rotate(10deg); }
+  60% { transform: scale(0.9) rotate(-5deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.mode-option.active .mode-icon {
+  animation: bounceIcon 0.4s ease-out;
+}

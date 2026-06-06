@@ -1,11 +1,31 @@
 'use client';
 
 import { IncomingItem, ShipmentItem } from '@/app/page';
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ActivityChart from './ActivityChart';
 
 type UnifiedDataItem = IncomingItem | ShipmentItem;
+
+interface CombinedRequest {
+  requestNumber: string;
+  requestDate: string;
+  material: string;
+  planQuantity: number;
+  factQuantity: number;
+  consignee: string;
+  division: string;
+  closed: boolean | null;
+  delivery_date: string | null;
+  lastShipmentTime: string | null;
+  truckCount: number;
+  vehicles: Array<{
+    time: string;
+    licensePlate: string;
+    driver: string;
+    quantity: number;
+  }>;
+}
 
 interface CompactViewProps {
   data: UnifiedDataItem[];
@@ -22,6 +42,7 @@ interface CompactViewProps {
   allShipments?: ShipmentItem[];
   allShipmentsForChart?: ShipmentItem[];
   selectedFactory?: string;
+  mode?: 'tas' | 'iceberg';
 }
 
 interface GroupedItem {
@@ -47,16 +68,160 @@ interface GroupedItem {
   }>;
 }
 
+// ============================================
+// ФУНКЦИИ ДЛЯ РАБОТЫ С ДАТАМИ
+// ============================================
+
+const parseRussianDate = (dateString: string): Date => {
+  if (!dateString) return new Date();
+  
+  if (dateString.includes('T') && !dateString.includes('.')) {
+    const date = new Date(dateString);
+    if (!isNaN(date.getTime())) return date;
+  }
+  
+  const parts = dateString.split(' ');
+  const dateParts = parts[0].split('.');
+  
+  let hour = 0, minute = 0;
+  if (parts[1]) {
+    const timeParts = parts[1].split(':');
+    hour = parseInt(timeParts[0], 10);
+    minute = parseInt(timeParts[1], 10);
+  }
+  
+  const day = parseInt(dateParts[0], 10);
+  const month = parseInt(dateParts[1], 10) - 1;
+  const year = parseInt(dateParts[2], 10);
+  
+  return new Date(year, month, day, hour, minute);
+};
+
+const formatTime = (dateString: string): string => {
+  const date = parseRussianDate(dateString);
+  if (isNaN(date.getTime())) return '—';
+  return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+};
+
+const getDateKey = (dateString: string): string => {
+  const date = parseRussianDate(dateString);
+  if (isNaN(date.getTime())) return dateString;
+  
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}.${month}.${year}`;
+};
+
+const compareDatesDesc = (dateA: string, dateB: string): number => {
+  const a = parseRussianDate(dateA);
+  const b = parseRussianDate(dateB);
+  return b.getTime() - a.getTime();
+};
+
+const getDayLabel = (dateStr: string): string => {
+  const today = new Date();
+  const todayStr = `${today.getDate().toString().padStart(2, '0')}.${(today.getMonth() + 1).toString().padStart(2, '0')}.${today.getFullYear()}`;
+  
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = `${yesterday.getDate().toString().padStart(2, '0')}.${(yesterday.getMonth() + 1).toString().padStart(2, '0')}.${yesterday.getFullYear()}`;
+  
+  if (dateStr === todayStr) return 'СЕГОДНЯ';
+  if (dateStr === yesterdayStr) return 'ВЧЕРА';
+  return dateStr;
+};
+
+const getFactoryBadgeClass = (factory: string): string => {
+  switch (factory) {
+    case 'ЛХ': return 'factory-badge-small ЛХ';
+    case 'ЛЮ': return 'factory-badge-small ЛЮ';
+    case 'СП': return 'factory-badge-small СП';
+    case 'Щ': return 'factory-badge-small Щ';
+    default: return 'factory-badge-small Другой';
+  }
+};
+
 export default function CompactView({ 
   data, 
   mainTab, 
   outgoingRequests = [], 
   allShipments = [],
   allShipmentsForChart = [],
-  selectedFactory = 'all'
+  selectedFactory = 'all',
+  mode = 'tas'
 }: CompactViewProps) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [combinedData, setCombinedData] = useState<CombinedRequest[]>([]);
+  const [combinedLoading, setCombinedLoading] = useState(false);
   const isShipment = mainTab === 'shipment';
+  const isMountedRef = useRef(true);
+  
+  const shouldUseCombined = mode === 'iceberg' && isShipment;
+  const effectiveData = shouldUseCombined ? [] : data;
+  
+  // Загрузка объединённых данных для Айсберг
+  useEffect(() => {
+    isMountedRef.current = true;
+    
+    const fetchCombinedData = async () => {
+      if (!shouldUseCombined) {
+        if (isMountedRef.current) {
+          setCombinedData([]);
+          setCombinedLoading(false);
+        }
+        return;
+      }
+      
+      if (isMountedRef.current) {
+        setCombinedLoading(true);
+      }
+      
+      try {
+        // Определяем, какие заводы загружать
+        let factoriesToLoad: string[] = [];
+        if (selectedFactory === 'all') {
+          factoriesToLoad = ['СП', 'Щ'];
+        } else {
+          factoriesToLoad = [selectedFactory];
+        }
+        
+        const allResults: CombinedRequest[] = [];
+        
+        for (const factory of factoriesToLoad) {
+          const encodedFactory = encodeURIComponent(factory);
+          const response = await fetch(`/api/combined-requests?factory=${encodedFactory}`);
+          const result = await response.json();
+          
+          if (isMountedRef.current && !result.error && Array.isArray(result)) {
+            allResults.push(...result);
+          }
+        }
+        
+        if (isMountedRef.current) {
+          setCombinedData(allResults);
+          setCombinedLoading(false);
+        }
+      } catch (err) {
+        console.error('Error loading combined data:', err);
+        if (isMountedRef.current) {
+          setCombinedData([]);
+          setCombinedLoading(false);
+        }
+      }
+    };
+    
+    fetchCombinedData();
+    
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, [shouldUseCombined, selectedFactory]);
+  
+  // ============================================
+  // ЛОГИКА ДЛЯ ТАС (ЛХ, ЛЮ) - старая группировка
+  // ============================================
   
   const requestsMap = new Map<string, { quantity: number; closed: boolean | null }>();
   outgoingRequests.forEach(req => {
@@ -64,26 +229,33 @@ export default function CompactView({
     requestsMap.set(key, { quantity: req.quantity, closed: req.closed || false });
   });
   
-  const groupedByDateAndRequest = data.reduce((acc, item) => {
-    const date = new Date(item.date).toLocaleDateString('ru-RU');
+  const groupedByDateAndRequest = !shouldUseCombined ? data.reduce((acc, item) => {
+    const dateKey = getDateKey(item.date);
     
     if (mainTab === 'incoming') {
-      // ========== ПОСТУПЛЕНИЯ ==========
       const incoming = item as IncomingItem;
       
       let factory = '—';
       if (incoming.number?.startsWith('ЛХ')) factory = 'ЛХ';
       else if (incoming.number?.startsWith('ЛЮ')) factory = 'ЛЮ';
+      else if (incoming.number?.startsWith('СП')) factory = 'СП';
+      else if (incoming.number?.startsWith('Щ')) factory = 'Щ';
+      else if (incoming.division === 'ЛХ') factory = 'ЛХ';
+      else if (incoming.division === 'ЛЮ') factory = 'ЛЮ';
+      else if (incoming.division === 'СП') factory = 'СП';
+      else if (incoming.division === 'Щ') factory = 'Щ';
       
-      const groupKey = `${date}_${factory}_${incoming.material}_${incoming.supplier}`;
+      const groupKey = `${dateKey}_${factory}_${incoming.material}_${incoming.supplier}`;
       
-      if (!acc[date]) {
-        acc[date] = new Map<string, GroupedItem>();
+      if (!acc[dateKey]) {
+        acc[dateKey] = new Map<string, GroupedItem>();
       }
       
-      if (!acc[date].has(groupKey)) {
-        acc[date].set(groupKey, {
-          time: new Date(incoming.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      const itemTime = formatTime(incoming.date);
+      
+      if (!acc[dateKey].has(groupKey)) {
+        acc[dateKey].set(groupKey, {
+          time: itemTime,
           factQuantity: incoming.quantity,
           planQuantity: 0,
           consignee: incoming.supplier,
@@ -98,14 +270,14 @@ export default function CompactView({
             licensePlate: incoming.licensePlate || '—',
             factory: factory,
             quantity: incoming.quantity,
-            time: new Date(incoming.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+            time: itemTime,
             driver: incoming.driver || '—',
             material: incoming.material,
             supplier: incoming.supplier,
           }],
         });
       } else {
-        const existing = acc[date].get(groupKey)!;
+        const existing = acc[dateKey].get(groupKey)!;
         existing.factQuantity += incoming.quantity;
         existing.truckCount += 1;
         if (!existing.factories.includes(factory) && factory !== '—') {
@@ -115,19 +287,17 @@ export default function CompactView({
           licensePlate: incoming.licensePlate || '—',
           factory: factory,
           quantity: incoming.quantity,
-          time: new Date(incoming.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+          time: itemTime,
           driver: incoming.driver || '—',
           material: incoming.material,
           supplier: incoming.supplier,
         });
-        const currentTime = new Date(incoming.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        if (currentTime > existing.time) {
-          existing.time = currentTime;
+        if (itemTime > existing.time) {
+          existing.time = itemTime;
         }
       }
       
     } else {
-      // ========== ОТГРУЗКИ ==========
       const shipment = item as ShipmentItem;
       
       const requestNumber = shipment.clientRequestNumber || '';
@@ -135,17 +305,14 @@ export default function CompactView({
       const division = shipment.division || '';
       const requestKey = `${requestNumber}_${requestDate}_${division}`;
       
-      // let factory = '—';
-      // if (shipment.division === 'Луховицы') factory = 'ЛХ';
-      // else if (shipment.division === 'Люберцы') factory = 'ЛЮ';
-      
       let factory = '—';
       if (shipment.division === 'ЛХ') factory = 'ЛХ';
       else if (shipment.division === 'ЛЮ') factory = 'ЛЮ';
-
+      else if (shipment.division === 'СП') factory = 'СП';
+      else if (shipment.division === 'Щ') factory = 'Щ';
 
       const consigneeKey = shipment.consignee || shipment.customer || '—';
-      const groupKey = `${date}_${requestKey}_${consigneeKey}_${shipment.material}`;
+      const groupKey = `${dateKey}_${requestKey}_${consigneeKey}_${shipment.material}`;
       
       let planQuantity = 0;
       let requestClosed = false;
@@ -155,13 +322,15 @@ export default function CompactView({
         requestClosed = request.closed || false;
       }
       
-      if (!acc[date]) {
-        acc[date] = new Map<string, GroupedItem>();
+      if (!acc[dateKey]) {
+        acc[dateKey] = new Map<string, GroupedItem>();
       }
       
-      if (!acc[date].has(groupKey)) {
-        acc[date].set(groupKey, {
-          time: new Date(shipment.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+      const itemTime = formatTime(shipment.date);
+      
+      if (!acc[dateKey].has(groupKey)) {
+        acc[dateKey].set(groupKey, {
+          time: itemTime,
           factQuantity: shipment.quantity,
           planQuantity: planQuantity,
           consignee: consigneeKey,
@@ -175,12 +344,12 @@ export default function CompactView({
             licensePlate: shipment.licensePlate || '—',
             factory: factory,
             quantity: shipment.quantity,
-            time: new Date(shipment.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+            time: itemTime,
             driver: shipment.driver || '—',
           }],
         });
       } else {
-        const existing = acc[date].get(groupKey)!;
+        const existing = acc[dateKey].get(groupKey)!;
         existing.factQuantity += shipment.quantity;
         existing.truckCount += 1;
         if (planQuantity > existing.planQuantity) {
@@ -193,60 +362,197 @@ export default function CompactView({
           licensePlate: shipment.licensePlate || '—',
           factory: factory,
           quantity: shipment.quantity,
-          time: new Date(shipment.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+          time: itemTime,
           driver: shipment.driver || '—',
         });
-        const currentTime = new Date(shipment.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        if (currentTime > existing.time) {
-          existing.time = currentTime;
+        if (itemTime > existing.time) {
+          existing.time = itemTime;
         }
       }
     }
     
     return acc;
-  }, {} as Record<string, Map<string, GroupedItem>>);
-
-  const sortedDates = Object.keys(groupedByDateAndRequest).sort((a, b) => {
-    const dateA = new Date(a.split('.').reverse().join('-'));
-    const dateB = new Date(b.split('.').reverse().join('-'));
-    return dateB.getTime() - dateA.getTime();
-  });
-
-  const getDayLabel = (dateStr: string): string => {
-    const today = new Date().toLocaleDateString('ru-RU');
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = yesterday.toLocaleDateString('ru-RU');
-    if (dateStr === today) return 'СЕГОДНЯ';
-    if (dateStr === yesterdayStr) return 'ВЧЕРА';
-    return dateStr;
-  };
-
-  const getFactoryBadgeClass = (factory: string): string => {
-    switch (factory) {
-      case 'ЛХ': return 'factory-badge-small ЛХ';
-      case 'ЛЮ': return 'factory-badge-small ЛЮ';
-      default: return 'factory-badge-small Другой';
-    }
-  };
-
-  const formatDateTime = (dateStr: string): string => {
-    if (!dateStr) return '—';
-    const date = new Date(dateStr);
-    return `${date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })} ${date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' })}`;
-  };
-
-  if (data.length === 0) {
+  }, {} as Record<string, Map<string, GroupedItem>>) : {};
+  
+  const sortedDates = !shouldUseCombined 
+    ? Object.keys(groupedByDateAndRequest).sort(compareDatesDesc)
+    : [];
+  
+  if (!shouldUseCombined && effectiveData.length === 0) {
     return (
       <div className="empty">
         <p>Нет данных</p>
       </div>
     );
   }
-
+  
+  if (shouldUseCombined && combinedLoading) {
+    return (
+      <div className="loading">
+        <div className="spinner"></div>
+        <p>Загрузка данных...</p>
+      </div>
+    );
+  }
+  
+  if (shouldUseCombined && combinedData.length === 0) {
+    return (
+      <div className="empty">
+        <p>Нет данных по заявкам</p>
+      </div>
+    );
+  }
+  
+  // ============================================
+  // РЕНДЕР ДЛЯ АЙСБЕРГ (СП, Щ)
+  // ============================================
+  
+  if (shouldUseCombined) {
+    // Группируем по дате доставки
+    const groupedByDate = combinedData.reduce((acc, item) => {
+      if (!item.delivery_date) return acc;
+      const dateKey = getDateKey(item.delivery_date);
+      if (!acc[dateKey]) {
+        acc[dateKey] = [];
+      }
+      acc[dateKey].push(item);
+      return acc;
+    }, {} as Record<string, CombinedRequest[]>);
+    
+    const combinedSortedDates = Object.keys(groupedByDate).sort(compareDatesDesc);
+    
+    return (
+      <div className="compact-view">
+        {allShipmentsForChart && allShipmentsForChart.length > 0 && (
+          <ActivityChart 
+            shipments={allShipmentsForChart} 
+            selectedFactory={selectedFactory}
+          />
+        )}
+        
+        {combinedSortedDates.map(date => {
+          const items = groupedByDate[date];
+          const dayTotal = items.reduce((sum, item) => sum + item.factQuantity, 0);
+          
+          return (
+            <div key={date} className="compact-date-group">
+              <div className="compact-date-header">
+                <span className="date-text">{getDayLabel(date)}</span>
+                <span className="date-total">{dayTotal.toFixed(0)} т</span>
+              </div>
+              
+              <div className="compact-table">
+                <div className="compact-header">
+                  <span className="col-time">Время</span>
+                  <span className="col-fact">Вып</span>
+                  <span className="col-slash"></span>
+                  <span className="col-plan">Заяв</span>
+                  <span className="col-consignee">Грузополучатель</span>
+                  <span className="col-factory">Завод</span>
+                  <span className="col-trucks">Машин</span>
+                  <span className="col-expand"></span>
+                </div>
+                
+                {items.map((item, idx) => {
+                  const itemKey = `${date}_${idx}`;
+                  const isExpanded = expandedId === itemKey;
+                  const percentComplete = item.planQuantity > 0 
+                    ? (item.factQuantity / item.planQuantity) * 100 
+                    : 0;
+                  const isWarning = percentComplete < 94 && percentComplete > 0;
+                  const displayTime = item.lastShipmentTime || '—';
+                  
+                  return (
+                    <div key={idx}>
+                      <div 
+                        className="compact-row compact-clickable"
+                        onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+                      >
+                        <span className="col-time">{displayTime}</span>
+                        <span className={`col-fact ${isWarning ? 'warning' : ''}`}>
+                          {item.factQuantity.toFixed(1)}
+                        </span>
+                        <span className="col-slash">/</span>
+                        <span className="col-plan">
+                          {item.planQuantity > 0 ? (
+                            <span style={{ whiteSpace: 'nowrap' }}>
+                              {item.planQuantity.toFixed(0)}
+                              {item.closed ? (
+                                <span className="closed-lock"> 🔒</span>
+                              ) : (
+                                item.factQuantity > 0 && percentComplete < 94 && (
+                                  <span className="active-dot" title="Идут отгрузки"></span>
+                                )
+                              )}
+                            </span>
+                          ) : '—'}
+                        </span>
+                        <span className="col-consignee">{item.consignee}</span>
+                        <span className="col-factory">
+                          <div className="factory-badges-group">
+                            <div className={getFactoryBadgeClass(item.division)}>
+                              {item.division}
+                            </div>
+                          </div>
+                        </span>
+                        <span className="col-trucks">{item.truckCount}</span>
+                        <span className="col-expand">{isExpanded ? '▲' : '▼'}</span>
+                      </div>
+                      
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            className="compact-details"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <div className="detail-row">
+                              <span className="detail-label">📦 Материал:</span>
+                              <span className="detail-value">{item.material}</span>
+                            </div>
+                            <div className="detail-row">
+                              <span className="detail-label">🏭 Завод:</span>
+                              <span className="detail-value">{item.division}</span>
+                            </div>
+                            <div className="detail-row">
+                              <span className="detail-label">🚛 Машин:</span>
+                              <span className="detail-value">{item.truckCount}</span>
+                            </div>
+                            {item.vehicles.length > 0 && (
+                              <div className="vehicles-list">
+                                <div className="vehicles-title">🚛 Транспорт:</div>
+                                {item.vehicles.map((vehicle, i) => (
+                                  <div key={i} className="vehicle-item">
+                                    <span className="vehicle-time">{vehicle.time}</span>
+                                    <span className="vehicle-license">{vehicle.licensePlate}</span>
+                                    <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
+                                    <span className="vehicle-quantity">{vehicle.quantity.toFixed(1)} т</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  }
+  
+  // ============================================
+  // РЕНДЕР ДЛЯ ТАС (ЛХ, ЛЮ)
+  // ============================================
+  
   return (
     <div className="compact-view">
-      {/* Гистограмма */}
       {isShipment && allShipmentsForChart && allShipmentsForChart.length > 0 && (
         <ActivityChart 
           shipments={allShipmentsForChart} 
@@ -268,7 +574,6 @@ export default function CompactView({
             </div>
             
             <div className="compact-table">
-              {/* Заголовки для ОТГРУЗОК */}
               {isShipment && (
                 <div className="compact-header">
                   <span className="col-time">Время</span>
@@ -282,7 +587,6 @@ export default function CompactView({
                 </div>
               )}
               
-              {/* Заголовки для ПОСТУПЛЕНИЙ */}
               {!isShipment && (
                 <div className="compact-header">
                   <span className="col-time">Время</span>
@@ -294,24 +598,18 @@ export default function CompactView({
                 </div>
               )}
               
-              {/* {items.map((item, idx) => { TODO: */}
-
-{[...items].sort((a, b) => {
-  // Сравниваем время
-  const timeA = a.time.split(':').map(Number);
-  const timeB = b.time.split(':').map(Number);
-  const minutesA = timeA[0] * 60 + timeA[1];
-  const minutesB = timeB[0] * 60 + timeB[1];
-  return minutesB - minutesA;
-}).map((item, idx) => {
-
-
+              {[...items].sort((a, b) => {
+                const timeA = a.time.split(':').map(Number);
+                const timeB = b.time.split(':').map(Number);
+                const minutesA = timeA[0] * 60 + timeA[1];
+                const minutesB = timeB[0] * 60 + timeB[1];
+                return minutesB - minutesA;
+              }).map((item, idx) => {
                 const itemKey = `${date}_${idx}`;
                 const isExpanded = expandedId === itemKey;
                 const percentComplete = item.planQuantity > 0 ? (item.factQuantity / item.planQuantity) * 100 : 0;
                 const isWarning = percentComplete < 94;
                 
-                // ОТГРУЗКИ
                 if (isShipment) {
                   return (
                     <div key={idx}>
@@ -324,27 +622,6 @@ export default function CompactView({
                           {item.factQuantity.toFixed(1)}
                         </span>
                         <span className="col-slash">/</span>
-                        {/* <span className="col-plan">
-                          {item.planQuantity > 0 ? (
-                            <>
-                              {item.planQuantity.toFixed(0)}
-                              {item.closed ? (
-                                <span className="closed-lock"> 🔒</span>
-                              ) : (
-                                (() => {
-                                  const hasTodayShipments = allShipments.some(ship => {
-                                    const shipDate = new Date(ship.date).toLocaleDateString('ru-RU');
-                                    const today = new Date().toLocaleDateString('ru-RU');
-                                    return ship.clientRequestNumber === item.requestNumber && shipDate === today;
-                                  });
-                                  const showActiveDot = hasTodayShipments && percentComplete < 94;
-                                  return showActiveDot ? <span className="active-dot" title="Идут отгрузки"></span> : null;
-                                })()
-                              )}
-                            </>
-                          ) : '—'}
-                        </span> */}
-
                         <span className="col-plan">
                           {item.planQuantity > 0 ? (
                             <span style={{ whiteSpace: 'nowrap' }}>
@@ -354,9 +631,9 @@ export default function CompactView({
                               ) : (
                                 (() => {
                                   const hasTodayShipments = allShipments.some(ship => {
-                                    const shipDate = new Date(ship.date).toLocaleDateString('ru-RU');
-                                    const today = new Date().toLocaleDateString('ru-RU');
-                                    return ship.clientRequestNumber === item.requestNumber && shipDate === today;
+                                    const shipDateKey = getDateKey(ship.date);
+                                    const todayKey = getDateKey(new Date().toISOString());
+                                    return ship.clientRequestNumber === item.requestNumber && shipDateKey === todayKey;
                                   });
                                   const showActiveDot = hasTodayShipments && percentComplete < 94;
                                   return showActiveDot ? <span className="active-dot" title="Идут отгрузки"></span> : null;
@@ -365,7 +642,6 @@ export default function CompactView({
                             </span>
                           ) : '—'}
                         </span>
-
                         <span className="col-consignee">{item.consignee}</span>
                         <span className="col-factory">
                           <div className="factory-badges-group">
@@ -401,20 +677,19 @@ export default function CompactView({
                               <span className="detail-label">🚛 Машин:</span>
                               <span className="detail-value">{item.truckCount}</span>
                             </div>
-                            {/* Транспорт */}
-{item.vehicles.length > 0 && (
-  <div className="vehicles-list">
-    <div className="vehicles-title">🚛 Транспорт:</div>
-    {item.vehicles.map((vehicle, i) => (
-      <div key={i} className="vehicle-item">
-        <span className="vehicle-time">{vehicle.time}</span>
-        <span className="vehicle-license">{vehicle.licensePlate}</span>
-        <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
-        <span className="vehicle-quantity">{vehicle.quantity.toFixed(1)} т</span>
-      </div>
-    ))}
-  </div>
-)}
+                            {item.vehicles.length > 0 && (
+                              <div className="vehicles-list">
+                                <div className="vehicles-title">🚛 Транспорт:</div>
+                                {item.vehicles.map((vehicle, i) => (
+                                  <div key={i} className="vehicle-item">
+                                    <span className="vehicle-time">{vehicle.time}</span>
+                                    <span className="vehicle-license">{vehicle.licensePlate}</span>
+                                    <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
+                                    <span className="vehicle-quantity">{vehicle.quantity.toFixed(1)} т</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </motion.div>
                         )}
                       </AnimatePresence>
@@ -422,7 +697,6 @@ export default function CompactView({
                   );
                 }
                 
-                // ПОСТУПЛЕНИЯ
                 return (
                   <div key={idx}>
                     <div 
@@ -466,20 +740,19 @@ export default function CompactView({
                             <span className="detail-label">🚛 Машин:</span>
                             <span className="detail-value">{item.truckCount}</span>
                           </div>
-                          {/* Транспорт */}
-{item.vehicles.length > 0 && (
-  <div className="vehicles-list">
-    <div className="vehicles-title">🚛 Транспорт:</div>
-    {item.vehicles.map((vehicle, i) => (
-      <div key={i} className="vehicle-item">
-        <span className="vehicle-time">{vehicle.time}</span>
-        <span className="vehicle-license">{vehicle.licensePlate}</span>
-        <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
-        <span className="vehicle-quantity">{vehicle.quantity.toFixed(1)} т</span>
-      </div>
-    ))}
-  </div>
-)}
+                          {item.vehicles.length > 0 && (
+                            <div className="vehicles-list">
+                              <div className="vehicles-title">🚛 Транспорт:</div>
+                              {item.vehicles.map((vehicle, i) => (
+                                <div key={i} className="vehicle-item">
+                                  <span className="vehicle-time">{vehicle.time}</span>
+                                  <span className="vehicle-license">{vehicle.licensePlate}</span>
+                                  <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
+                                  <span className="vehicle-quantity">{vehicle.quantity.toFixed(1)} т</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -499,14 +772,39 @@ export default function CompactView({
 
 
 
+
+
+
+// // app/components/CompactView.tsx
+
 // 'use client';
 
 // import { IncomingItem, ShipmentItem } from '@/app/page';
-// import { useState } from 'react';
+// import { useState, useEffect, useCallback, useRef } from 'react';
 // import { motion, AnimatePresence } from 'framer-motion';
 // import ActivityChart from './ActivityChart';
 
 // type UnifiedDataItem = IncomingItem | ShipmentItem;
+
+// interface CombinedRequest {
+//   requestNumber: string;
+//   requestDate: string;
+//   material: string;
+//   planQuantity: number;
+//   factQuantity: number;
+//   consignee: string;
+//   division: string;
+//   closed: boolean | null;
+//   delivery_date: string | null;
+//   lastShipmentTime: string | null;
+//   truckCount: number;
+//   vehicles: Array<{
+//     time: string;
+//     licensePlate: string;
+//     driver: string;
+//     quantity: number;
+//   }>;
+// }
 
 // interface CompactViewProps {
 //   data: UnifiedDataItem[];
@@ -522,7 +820,8 @@ export default function CompactView({
 //   }>;
 //   allShipments?: ShipmentItem[];
 //   allShipmentsForChart?: ShipmentItem[];
-//   selectedFactory?: string;  // ← добавить
+//   selectedFactory?: string;
+//   mode?: 'lhl' | 'iceberg';
 // }
 
 // interface GroupedItem {
@@ -536,13 +835,96 @@ export default function CompactView({
 //   requestNumber: string;
 //   requestDate: string;
 //   closed: boolean | null;
-//   shipments: Array<{
+//   supplier?: string;
+//   vehicles: Array<{
 //     licensePlate: string;
 //     factory: string;
 //     quantity: number;
 //     time: string;
+//     driver?: string;
+//     material?: string;
+//     supplier?: string;
 //   }>;
 // }
+
+// // ============================================
+// // ФУНКЦИИ ДЛЯ РАБОТЫ С ДАТАМИ
+// // ============================================
+
+// const parseRussianDate = (dateString: string): Date => {
+//   if (!dateString) return new Date();
+  
+//   if (dateString.includes('T') && !dateString.includes('.')) {
+//     const date = new Date(dateString);
+//     if (!isNaN(date.getTime())) return date;
+//   }
+  
+//   const parts = dateString.split(' ');
+//   const dateParts = parts[0].split('.');
+  
+//   let hour = 0, minute = 0;
+//   if (parts[1]) {
+//     const timeParts = parts[1].split(':');
+//     hour = parseInt(timeParts[0], 10);
+//     minute = parseInt(timeParts[1], 10);
+//   }
+  
+//   const day = parseInt(dateParts[0], 10);
+//   const month = parseInt(dateParts[1], 10) - 1;
+//   const year = parseInt(dateParts[2], 10);
+  
+//   return new Date(year, month, day, hour, minute);
+// };
+
+// const formatTime = (dateString: string): string => {
+//   const date = parseRussianDate(dateString);
+//   if (isNaN(date.getTime())) return '—';
+//   return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+// };
+
+// const getDateKey = (dateString: string): string => {
+//   const date = parseRussianDate(dateString);
+//   if (isNaN(date.getTime())) return dateString;
+  
+//   const day = date.getDate().toString().padStart(2, '0');
+//   const month = (date.getMonth() + 1).toString().padStart(2, '0');
+//   const year = date.getFullYear();
+  
+//   return `${day}.${month}.${year}`;
+// };
+
+// const compareDatesDesc = (dateA: string, dateB: string): number => {
+//   const a = parseRussianDate(dateA);
+//   const b = parseRussianDate(dateB);
+//   return b.getTime() - a.getTime(); // новые сверху
+// };
+
+// const getDayLabel = (dateStr: string): string => {
+//   const today = new Date();
+//   const todayStr = `${today.getDate().toString().padStart(2, '0')}.${(today.getMonth() + 1).toString().padStart(2, '0')}.${today.getFullYear()}`;
+  
+//   const yesterday = new Date(today);
+//   yesterday.setDate(yesterday.getDate() - 1);
+//   const yesterdayStr = `${yesterday.getDate().toString().padStart(2, '0')}.${(yesterday.getMonth() + 1).toString().padStart(2, '0')}.${yesterday.getFullYear()}`;
+  
+//   if (dateStr === todayStr) return 'СЕГОДНЯ';
+//   if (dateStr === yesterdayStr) return 'ВЧЕРА';
+//   return dateStr;
+// };
+
+// const getFactoryBadgeClass = (factory: string): string => {
+//   switch (factory) {
+//     case 'ЛХ': return 'factory-badge-small ЛХ';
+//     case 'ЛЮ': return 'factory-badge-small ЛЮ';
+//     case 'СП': return 'factory-badge-small СП';
+//     case 'Щ': return 'factory-badge-small Щ';
+//     default: return 'factory-badge-small Другой';
+//   }
+// };
+
+// const useCombinedData = (factory: string): boolean => {
+//   return factory === 'СП' || factory === 'Щ';
+// };
 
 // export default function CompactView({ 
 //   data, 
@@ -550,39 +932,100 @@ export default function CompactView({
 //   outgoingRequests = [], 
 //   allShipments = [],
 //   allShipmentsForChart = [],
-//   selectedFactory = 'all'  // ← добавить с значением по умолчанию
-
+//   selectedFactory = 'all',
+//   mode
 // }: CompactViewProps) {
 //   const [expandedId, setExpandedId] = useState<string | null>(null);
+//   const [combinedData, setCombinedData] = useState<CombinedRequest[]>([]);
+//   const [combinedLoading, setCombinedLoading] = useState(false);
 //   const isShipment = mainTab === 'shipment';
+//   const isMountedRef = useRef(true);
   
-//   // Создаём карту заявок с количеством и статусом closed
+//   // const shouldUseCombined = useCombinedData(selectedFactory) && isShipment;
+//   const shouldUseCombined = mode === 'iceberg' && isShipment;
+//   const effectiveData = shouldUseCombined ? [] : data;
+  
+//   useEffect(() => {
+//     isMountedRef.current = true;
+    
+//     const fetchCombinedData = async () => {
+//       if (!shouldUseCombined || selectedFactory === 'all') {
+//         if (isMountedRef.current) {
+//           setCombinedData([]);
+//           setCombinedLoading(false);
+//         }
+//         return;
+//       }
+      
+//       if (isMountedRef.current) {
+//         setCombinedLoading(true);
+//       }
+      
+//       try {
+//         const encodedFactory = encodeURIComponent(selectedFactory);
+//         const response = await fetch(`/api/combined-requests?factory=${encodedFactory}`);
+//         const result = await response.json();
+        
+//         if (isMountedRef.current && !result.error) {
+//           setCombinedData(result);
+//           setCombinedLoading(false);
+//         } else if (isMountedRef.current) {
+//           setCombinedData([]);
+//           setCombinedLoading(false);
+//         }
+//       } catch (err) {
+//         console.error('Error loading combined data:', err);
+//         if (isMountedRef.current) {
+//           setCombinedData([]);
+//           setCombinedLoading(false);
+//         }
+//       }
+//     };
+    
+//     fetchCombinedData();
+    
+//     return () => {
+//       isMountedRef.current = false;
+//     };
+//   }, [shouldUseCombined, selectedFactory]);
+  
+//   // ============================================
+//   // ЛОГИКА ДЛЯ СТАРЫХ ЗАВОДОВ (ЛХ, ЛЮ)
+//   // ============================================
+  
 //   const requestsMap = new Map<string, { quantity: number; closed: boolean | null }>();
 //   outgoingRequests.forEach(req => {
 //     const key = `${req.number}_${req.date}_${req.division}`;
 //     requestsMap.set(key, { quantity: req.quantity, closed: req.closed || false });
 //   });
   
-//   const groupedByDateAndRequest = data.reduce((acc, item) => {
-//     const date = new Date(item.date).toLocaleDateString('ru-RU');
+//   const groupedByDateAndRequest = !shouldUseCombined ? data.reduce((acc, item) => {
+//     const dateKey = getDateKey(item.date);
     
 //     if (mainTab === 'incoming') {
-//       // ========== ПОСТУПЛЕНИЯ ==========
 //       const incoming = item as IncomingItem;
       
 //       let factory = '—';
 //       if (incoming.number?.startsWith('ЛХ')) factory = 'ЛХ';
 //       else if (incoming.number?.startsWith('ЛЮ')) factory = 'ЛЮ';
+//       else if (incoming.number?.startsWith('СП')) factory = 'СП';
+//       else if (incoming.number?.startsWith('Щ')) factory = 'Щ';
+//       else if (incoming.division === 'ЛХ') factory = 'ЛХ';
+//       else if (incoming.division === 'ЛЮ') factory = 'ЛЮ';
+//       else if (incoming.division === 'СП') factory = 'СП';
+//       else if (incoming.division === 'Щ') factory = 'Щ';
       
-//       const groupKey = `${date}_${factory}_${incoming.material}_${incoming.supplier}`;
+//       const groupKey = `${dateKey}_${factory}_${incoming.material}_${incoming.supplier}`;
       
-//       if (!acc[date]) {
-//         acc[date] = new Map<string, GroupedItem>();
+//       if (!acc[dateKey]) {
+//         acc[dateKey] = new Map<string, GroupedItem>();
 //       }
       
-//       if (!acc[date].has(groupKey)) {
-//         acc[date].set(groupKey, {
-//           time: new Date(incoming.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+//       const itemTime = formatTime(incoming.date);
+      
+//       if (!acc[dateKey].has(groupKey)) {
+//         acc[dateKey].set(groupKey, {
+//           time: itemTime,
 //           factQuantity: incoming.quantity,
 //           planQuantity: 0,
 //           consignee: incoming.supplier,
@@ -592,38 +1035,54 @@ export default function CompactView({
 //           requestNumber: '',
 //           requestDate: '',
 //           closed: false,
-//           shipments: [],
+//           supplier: incoming.supplier,
+//           vehicles: [{
+//             licensePlate: incoming.licensePlate || '—',
+//             factory: factory,
+//             quantity: incoming.quantity,
+//             time: itemTime,
+//             driver: incoming.driver || '—',
+//             material: incoming.material,
+//             supplier: incoming.supplier,
+//           }],
 //         });
 //       } else {
-//         const existing = acc[date].get(groupKey)!;
+//         const existing = acc[dateKey].get(groupKey)!;
 //         existing.factQuantity += incoming.quantity;
 //         existing.truckCount += 1;
 //         if (!existing.factories.includes(factory) && factory !== '—') {
 //           existing.factories.push(factory);
 //         }
-//         const currentTime = new Date(incoming.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-//         if (currentTime > existing.time) {
-//           existing.time = currentTime;
+//         existing.vehicles.push({
+//           licensePlate: incoming.licensePlate || '—',
+//           factory: factory,
+//           quantity: incoming.quantity,
+//           time: itemTime,
+//           driver: incoming.driver || '—',
+//           material: incoming.material,
+//           supplier: incoming.supplier,
+//         });
+//         if (itemTime > existing.time) {
+//           existing.time = itemTime;
 //         }
 //       }
       
 //     } else {
-//       // ========== ОТГРУЗКИ ==========
 //       const shipment = item as ShipmentItem;
       
-//       // Поля для связи с заявкой
 //       const requestNumber = shipment.clientRequestNumber || '';
 //       const requestDate = shipment.clientRequestDate || '';
 //       const division = shipment.division || '';
-      
 //       const requestKey = `${requestNumber}_${requestDate}_${division}`;
       
 //       let factory = '—';
-//       if (shipment.division === 'Луховицы') factory = 'ЛХ';
-//       else if (shipment.division === 'Люберцы') factory = 'ЛЮ';
-      
+//       if (shipment.division === 'ЛХ') factory = 'ЛХ';
+//       else if (shipment.division === 'ЛЮ') factory = 'ЛЮ';
+//       else if (shipment.division === 'СП') factory = 'СП';
+//       else if (shipment.division === 'Щ') factory = 'Щ';
+
 //       const consigneeKey = shipment.consignee || shipment.customer || '—';
-//       const groupKey = `${date}_${requestKey}_${consigneeKey}_${shipment.material}`;
+//       const groupKey = `${dateKey}_${requestKey}_${consigneeKey}_${shipment.material}`;
       
 //       let planQuantity = 0;
 //       let requestClosed = false;
@@ -633,13 +1092,15 @@ export default function CompactView({
 //         requestClosed = request.closed || false;
 //       }
       
-//       if (!acc[date]) {
-//         acc[date] = new Map<string, GroupedItem>();
+//       if (!acc[dateKey]) {
+//         acc[dateKey] = new Map<string, GroupedItem>();
 //       }
       
-//       if (!acc[date].has(groupKey)) {
-//         acc[date].set(groupKey, {
-//           time: new Date(shipment.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+//       const itemTime = formatTime(shipment.date);
+      
+//       if (!acc[dateKey].has(groupKey)) {
+//         acc[dateKey].set(groupKey, {
+//           time: itemTime,
 //           factQuantity: shipment.quantity,
 //           planQuantity: planQuantity,
 //           consignee: consigneeKey,
@@ -649,15 +1110,16 @@ export default function CompactView({
 //           closed: requestClosed,
 //           requestNumber: requestNumber,
 //           requestDate: requestDate,
-//           shipments: [{
+//           vehicles: [{
 //             licensePlate: shipment.licensePlate || '—',
 //             factory: factory,
 //             quantity: shipment.quantity,
-//             time: new Date(shipment.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+//             time: itemTime,
+//             driver: shipment.driver || '—',
 //           }],
 //         });
 //       } else {
-//         const existing = acc[date].get(groupKey)!;
+//         const existing = acc[dateKey].get(groupKey)!;
 //         existing.factQuantity += shipment.quantity;
 //         existing.truckCount += 1;
 //         if (planQuantity > existing.planQuantity) {
@@ -666,79 +1128,209 @@ export default function CompactView({
 //         if (!existing.factories.includes(factory) && factory !== '—') {
 //           existing.factories.push(factory);
 //         }
-//         existing.shipments.push({
+//         existing.vehicles.push({
 //           licensePlate: shipment.licensePlate || '—',
 //           factory: factory,
 //           quantity: shipment.quantity,
-//           time: new Date(shipment.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+//           time: itemTime,
+//           driver: shipment.driver || '—',
 //         });
-//         const currentTime = new Date(shipment.date).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-//         if (currentTime > existing.time) {
-//           existing.time = currentTime;
+//         if (itemTime > existing.time) {
+//           existing.time = itemTime;
 //         }
 //       }
 //     }
     
 //     return acc;
-//   }, {} as Record<string, Map<string, GroupedItem>>);
-
-//   const sortedDates = Object.keys(groupedByDateAndRequest).sort((a, b) => {
-//     const dateA = new Date(a.split('.').reverse().join('-'));
-//     const dateB = new Date(b.split('.').reverse().join('-'));
-//     return dateB.getTime() - dateA.getTime();
-//   });
-
-//   const getDayLabel = (dateStr: string): string => {
-//     const today = new Date().toLocaleDateString('ru-RU');
-//     const yesterday = new Date();
-//     yesterday.setDate(yesterday.getDate() - 1);
-//     const yesterdayStr = yesterday.toLocaleDateString('ru-RU');
-//     if (dateStr === today) return 'СЕГОДНЯ';
-//     if (dateStr === yesterdayStr) return 'ВЧЕРА';
-//     return dateStr;
-//   };
-
-//   const getFactoryBadgeClass = (factory: string): string => {
-//     switch (factory) {
-//       case 'ЛХ': return 'factory-badge-small ЛХ';
-//       case 'ЛЮ': return 'factory-badge-small ЛЮ';
-//       default: return 'factory-badge-small Другой';
-//     }
-//   };
-
-//   const formatDateTime = (dateStr: string): string => {
-//     if (!dateStr) return '—';
-//     const date = new Date(dateStr);
-//     return date.toLocaleString('ru-RU', {
-//       day: '2-digit',
-//       month: '2-digit',
-//       hour: '2-digit',
-//       minute: '2-digit'
-//     });
-//   };
-
-//   if (data.length === 0) {
+//   }, {} as Record<string, Map<string, GroupedItem>>) : {};
+  
+//   // Сортировка дат - новые сверху
+//   const sortedDates = !shouldUseCombined 
+//     ? Object.keys(groupedByDateAndRequest).sort(compareDatesDesc)
+//     : [];
+  
+//   if (!shouldUseCombined && effectiveData.length === 0) {
 //     return (
 //       <div className="empty">
 //         <p>Нет данных</p>
 //       </div>
 //     );
 //   }
-
+  
+//   if (shouldUseCombined && combinedLoading) {
+//     return (
+//       <div className="loading">
+//         <div className="spinner"></div>
+//         <p>Загрузка данных...</p>
+//       </div>
+//     );
+//   }
+  
+//   if (shouldUseCombined && combinedData.length === 0) {
+//     return (
+//       <div className="empty">
+//         <p>Нет данных по заявкам</p>
+//       </div>
+//     );
+//   }
+  
+//   // ============================================
+//   // РЕНДЕР ДЛЯ НОВЫХ ЗАВОДОВ (СП, Щ)
+//   // ============================================
+  
+//   if (shouldUseCombined) {
+//     // Группируем по дате доставки и сортируем новые сверху
+//     const groupedByDate = combinedData.reduce((acc, item) => {
+//       if (!item.delivery_date) return acc;
+//       const dateKey = getDateKey(item.delivery_date);
+//       if (!acc[dateKey]) {
+//         acc[dateKey] = [];
+//       }
+//       acc[dateKey].push(item);
+//       return acc;
+//     }, {} as Record<string, CombinedRequest[]>);
+    
+//     // Сортируем даты от новых к старым
+//     const combinedSortedDates = Object.keys(groupedByDate).sort(compareDatesDesc);
+    
+//     return (
+//       <div className="compact-view">
+//         {allShipmentsForChart && allShipmentsForChart.length > 0 && (
+//           <ActivityChart 
+//             shipments={allShipmentsForChart} 
+//             selectedFactory={selectedFactory}
+//           />
+//         )}
+        
+//         {combinedSortedDates.map(date => {
+//           const items = groupedByDate[date];
+//           const dayTotal = items.reduce((sum, item) => sum + item.factQuantity, 0);
+          
+//           return (
+//             <div key={date} className="compact-date-group">
+//               <div className="compact-date-header">
+//                 <span className="date-text">{getDayLabel(date)}</span>
+//                 <span className="date-total">{dayTotal.toFixed(0)} т</span>
+//               </div>
+              
+//               <div className="compact-table">
+//                 <div className="compact-header">
+//                   <span className="col-time">Время</span>
+//                   <span className="col-fact">Вып</span>
+//                   <span className="col-slash"></span>
+//                   <span className="col-plan">Заяв</span>
+//                   <span className="col-consignee">Грузополучатель</span>
+//                   <span className="col-factory">Завод</span>
+//                   <span className="col-trucks">Машин</span>
+//                   <span className="col-expand"></span>
+//                 </div>
+                
+//                 {items.map((item, idx) => {
+//                   const itemKey = `${date}_${idx}`;
+//                   const isExpanded = expandedId === itemKey;
+//                   const percentComplete = item.planQuantity > 0 
+//                     ? (item.factQuantity / item.planQuantity) * 100 
+//                     : 0;
+//                   const isWarning = percentComplete < 94 && percentComplete > 0;
+//                   const displayTime = item.lastShipmentTime || '—';
+                  
+//                   return (
+//                     <div key={idx}>
+//                       <div 
+//                         className="compact-row compact-clickable"
+//                         onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+//                       >
+//                         <span className="col-time">{displayTime}</span>
+//                         <span className={`col-fact ${isWarning ? 'warning' : ''}`}>
+//                           {item.factQuantity.toFixed(1)}
+//                         </span>
+//                         <span className="col-slash">/</span>
+//                         <span className="col-plan">
+//                           {item.planQuantity > 0 ? (
+//                             <span style={{ whiteSpace: 'nowrap' }}>
+//                               {item.planQuantity.toFixed(0)}
+//                               {item.closed ? (
+//                                 <span className="closed-lock"> 🔒</span>
+//                               ) : (
+//                                 item.factQuantity > 0 && percentComplete < 94 && (
+//                                   <span className="active-dot" title="Идут отгрузки"></span>
+//                                 )
+//                               )}
+//                             </span>
+//                           ) : '—'}
+//                         </span>
+//                         <span className="col-consignee">{item.consignee}</span>
+//                         <span className="col-factory">
+//                           <div className="factory-badges-group">
+//                             <div className={getFactoryBadgeClass(item.division)}>
+//                               {item.division}
+//                             </div>
+//                           </div>
+//                         </span>
+//                         <span className="col-trucks">{item.truckCount}</span>
+//                         <span className="col-expand">{isExpanded ? '▲' : '▼'}</span>
+//                       </div>
+                      
+//                       <AnimatePresence>
+//                         {isExpanded && (
+//                           <motion.div
+//                             className="compact-details"
+//                             initial={{ opacity: 0, height: 0 }}
+//                             animate={{ opacity: 1, height: 'auto' }}
+//                             exit={{ opacity: 0, height: 0 }}
+//                             transition={{ duration: 0.2 }}
+//                           >
+//                             <div className="detail-row">
+//                               <span className="detail-label">📦 Материал:</span>
+//                               <span className="detail-value">{item.material}</span>
+//                             </div>
+//                             <div className="detail-row">
+//                               <span className="detail-label">🏭 Завод:</span>
+//                               <span className="detail-value">{item.division}</span>
+//                             </div>
+//                             <div className="detail-row">
+//                               <span className="detail-label">🚛 Машин:</span>
+//                               <span className="detail-value">{item.truckCount}</span>
+//                             </div>
+//                             {item.vehicles.length > 0 && (
+//                               <div className="vehicles-list">
+//                                 <div className="vehicles-title">🚛 Транспорт:</div>
+//                                 {item.vehicles.map((vehicle, i) => (
+//                                   <div key={i} className="vehicle-item">
+//                                     <span className="vehicle-time">{vehicle.time}</span>
+//                                     <span className="vehicle-license">{vehicle.licensePlate}</span>
+//                                     <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
+//                                     <span className="vehicle-quantity">{vehicle.quantity.toFixed(1)} т</span>
+//                                   </div>
+//                                 ))}
+//                               </div>
+//                             )}
+//                           </motion.div>
+//                         )}
+//                       </AnimatePresence>
+//                     </div>
+//                   );
+//                 })}
+//               </div>
+//             </div>
+//           );
+//         })}
+//       </div>
+//     );
+//   }
+  
+//   // ============================================
+//   // РЕНДЕР ДЛЯ СТАРЫХ ЗАВОДОВ (ЛХ, ЛЮ)
+//   // ============================================
+  
 //   return (
 //     <div className="compact-view">
-
-
-
-//     {/* Гистограмма над всеми датами */}
-//     {isShipment && allShipmentsForChart && allShipmentsForChart.length > 0 && (
-//       <ActivityChart 
-//         shipments={allShipmentsForChart} 
-//         selectedFactory={selectedFactory || 'all'}
-//       />
-//     )}
-
-
+//       {isShipment && allShipmentsForChart && allShipmentsForChart.length > 0 && (
+//         <ActivityChart 
+//           shipments={allShipmentsForChart} 
+//           selectedFactory={selectedFactory}
+//         />
+//       )}
       
 //       {sortedDates.map(date => {
 //         const items = Array.from(groupedByDateAndRequest[date].values());
@@ -753,16 +1345,7 @@ export default function CompactView({
 //               )}
 //             </div>
             
-//             {/* Гистограмма активности - только для отгрузок и для даты "СЕГОДНЯ" */}
-//             {/* {isShipment && getDayLabel(date) === 'СЕГОДНЯ' && allShipmentsForChart.length > 0 && (
-//             <ActivityChart 
-//               shipments={allShipmentsForChart} 
-//               selectedFactory={selectedFactory || 'all'}
-//             />
-//             )} */}
-            
 //             <div className="compact-table">
-//               {/* Заголовки для ОТГРУЗОК */}
 //               {isShipment && (
 //                 <div className="compact-header">
 //                   <span className="col-time">Время</span>
@@ -772,12 +1355,10 @@ export default function CompactView({
 //                   <span className="col-consignee">Грузополучатель</span>
 //                   <span className="col-factory">Завод</span>
 //                   <span className="col-trucks">Машин</span>
-//                   <span className="col-material">Материал</span>
 //                   <span className="col-expand"></span>
 //                 </div>
 //               )}
               
-//               {/* Заголовки для ПОСТУПЛЕНИЙ */}
 //               {!isShipment && (
 //                 <div className="compact-header">
 //                   <span className="col-time">Время</span>
@@ -785,17 +1366,22 @@ export default function CompactView({
 //                   <span className="col-material-header">Материал</span>
 //                   <span className="col-factory">Завод</span>
 //                   <span className="col-trucks">Машин</span>
-//                   <span className="col-supplier">Поставщик</span>
+//                   <span className="col-expand"></span>
 //                 </div>
 //               )}
               
-//               {items.map((item, idx) => {
+//               {[...items].sort((a, b) => {
+//                 const timeA = a.time.split(':').map(Number);
+//                 const timeB = b.time.split(':').map(Number);
+//                 const minutesA = timeA[0] * 60 + timeA[1];
+//                 const minutesB = timeB[0] * 60 + timeB[1];
+//                 return minutesB - minutesA;
+//               }).map((item, idx) => {
 //                 const itemKey = `${date}_${idx}`;
 //                 const isExpanded = expandedId === itemKey;
 //                 const percentComplete = item.planQuantity > 0 ? (item.factQuantity / item.planQuantity) * 100 : 0;
 //                 const isWarning = percentComplete < 94;
                 
-//                 // ОТГРУЗКИ
 //                 if (isShipment) {
 //                   return (
 //                     <div key={idx}>
@@ -808,30 +1394,26 @@ export default function CompactView({
 //                           {item.factQuantity.toFixed(1)}
 //                         </span>
 //                         <span className="col-slash">/</span>
-                        
 //                         <span className="col-plan">
 //                           {item.planQuantity > 0 ? (
-//                             <>
+//                             <span style={{ whiteSpace: 'nowrap' }}>
 //                               {item.planQuantity.toFixed(0)}
 //                               {item.closed ? (
 //                                 <span className="closed-lock"> 🔒</span>
 //                               ) : (
 //                                 (() => {
-//                                   // Проверяем, есть ли сегодня отгрузки и процент выполнения < 94%
 //                                   const hasTodayShipments = allShipments.some(ship => {
-//                                     const shipDate = new Date(ship.date).toLocaleDateString('ru-RU');
-//                                     const today = new Date().toLocaleDateString('ru-RU');
-//                                     return ship.clientRequestNumber === item.requestNumber && shipDate === today;
+//                                     const shipDateKey = getDateKey(ship.date);
+//                                     const todayKey = getDateKey(new Date().toISOString());
+//                                     return ship.clientRequestNumber === item.requestNumber && shipDateKey === todayKey;
 //                                   });
-//                                   // Точка только если есть отгрузки И процент выполнения < 94%
 //                                   const showActiveDot = hasTodayShipments && percentComplete < 94;
 //                                   return showActiveDot ? <span className="active-dot" title="Идут отгрузки"></span> : null;
 //                                 })()
 //                               )}
-//                             </>
+//                             </span>
 //                           ) : '—'}
 //                         </span>
-
 //                         <span className="col-consignee">{item.consignee}</span>
 //                         <span className="col-factory">
 //                           <div className="factory-badges-group">
@@ -843,7 +1425,6 @@ export default function CompactView({
 //                           </div>
 //                         </span>
 //                         <span className="col-trucks">{item.truckCount}</span>
-//                         <span className="col-material">{item.material?.substring(0, 25)}</span>
 //                         <span className="col-expand">{isExpanded ? '▲' : '▼'}</span>
 //                       </div>
                       
@@ -856,32 +1437,31 @@ export default function CompactView({
 //                             exit={{ opacity: 0, height: 0 }}
 //                             transition={{ duration: 0.2 }}
 //                           >
-//                             {item.requestNumber && item.requestDate && (
-//                               <div className="detail-row">
-//                                 <span className="detail-label">📅 Заявка №{item.requestNumber}:</span>
-//                                 <span className="detail-value">{formatDateTime(item.requestDate)}</span>
+//                             <div className="detail-row">
+//                               <span className="detail-label">📦 Материал:</span>
+//                               <span className="detail-value">{item.material}</span>
+//                             </div>
+//                             <div className="detail-row">
+//                               <span className="detail-label">🏭 Завод:</span>
+//                               <span className="detail-value">{item.factories.join(', ')}</span>
+//                             </div>
+//                             <div className="detail-row">
+//                               <span className="detail-label">🚛 Машин:</span>
+//                               <span className="detail-value">{item.truckCount}</span>
+//                             </div>
+//                             {item.vehicles.length > 0 && (
+//                               <div className="vehicles-list">
+//                                 <div className="vehicles-title">🚛 Транспорт:</div>
+//                                 {item.vehicles.map((vehicle, i) => (
+//                                   <div key={i} className="vehicle-item">
+//                                     <span className="vehicle-time">{vehicle.time}</span>
+//                                     <span className="vehicle-license">{vehicle.licensePlate}</span>
+//                                     <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
+//                                     <span className="vehicle-quantity">{vehicle.quantity.toFixed(1)} т</span>
+//                                   </div>
+//                                 ))}
 //                               </div>
 //                             )}
-//                             <div className="detail-row">
-//                               <span className="detail-label">🚛 Отгрузки:</span>
-//                               <span className="detail-label-right">Тонны</span>
-//                             </div>
-//                             {item.shipments.map((ship, i) => (
-//                               <div key={i} className="detail-shipment">
-//                                 <span className="ship-time">{ship.time}</span>
-//                                 <span className="ship-license">{ship.licensePlate}</span>
-//                                 <span className="ship-factory-badge">
-//                                   <span className={`factory-badge-mini ${ship.factory}`}>
-//                                     {ship.factory}
-//                                   </span>
-//                                 </span>
-//                                 <span className="ship-quantity">{ship.quantity.toFixed(1)} т</span>
-//                               </div>
-//                             ))}
-//                             <div className="detail-total">
-//                               <span>Итого:</span>
-//                               <span>{item.factQuantity.toFixed(1)} / {item.planQuantity > 0 ? item.planQuantity.toFixed(0) : '—'} т</span>
-//                             </div>
 //                           </motion.div>
 //                         )}
 //                       </AnimatePresence>
@@ -889,23 +1469,65 @@ export default function CompactView({
 //                   );
 //                 }
                 
-//                 // ПОСТУПЛЕНИЯ
 //                 return (
-//                   <div key={idx} className="compact-row">
-//                     <span className="col-time">{item.time}</span>
-//                     <span className="col-fact">{item.factQuantity.toFixed(1)}</span>
-//                     <span className="col-material">{item.material?.substring(0, 25)}</span>
-//                     <span className="col-factory">
-//                       <div className="factory-badges-group">
-//                         {item.factories.map((factory, i) => (
-//                           <div key={i} className={getFactoryBadgeClass(factory)}>
-//                             {factory}
+//                   <div key={idx}>
+//                     <div 
+//                       className="compact-row compact-clickable"
+//                       onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+//                     >
+//                       <span className="col-time">{item.time}</span>
+//                       <span className="col-fact">{item.factQuantity.toFixed(1)}</span>
+//                       <span className="col-material-header">{item.material?.substring(0, 20)}</span>
+//                       <span className="col-factory">
+//                         <div className="factory-badges-group">
+//                           {item.factories.map((factory, i) => (
+//                             <div key={i} className={getFactoryBadgeClass(factory)}>
+//                               {factory}
+//                             </div>
+//                           ))}
+//                         </div>
+//                       </span>
+//                       <span className="col-trucks">{item.truckCount}</span>
+//                       <span className="col-expand">{isExpanded ? '▲' : '▼'}</span>
+//                     </div>
+                    
+//                     <AnimatePresence>
+//                       {isExpanded && (
+//                         <motion.div
+//                           className="compact-details"
+//                           initial={{ opacity: 0, height: 0 }}
+//                           animate={{ opacity: 1, height: 'auto' }}
+//                           exit={{ opacity: 0, height: 0 }}
+//                           transition={{ duration: 0.2 }}
+//                         >
+//                           <div className="detail-row">
+//                             <span className="detail-label">📦 Поставщик:</span>
+//                             <span className="detail-value">{item.consignee}</span>
 //                           </div>
-//                         ))}
-//                       </div>
-//                     </span>
-//                     <span className="col-trucks">{item.truckCount}</span>
-//                     <span className="col-supplier">{item.consignee}</span>
+//                           <div className="detail-row">
+//                             <span className="detail-label">🏭 Завод:</span>
+//                             <span className="detail-value">{item.factories.join(', ')}</span>
+//                           </div>
+//                           <div className="detail-row">
+//                             <span className="detail-label">🚛 Машин:</span>
+//                             <span className="detail-value">{item.truckCount}</span>
+//                           </div>
+//                           {item.vehicles.length > 0 && (
+//                             <div className="vehicles-list">
+//                               <div className="vehicles-title">🚛 Транспорт:</div>
+//                               {item.vehicles.map((vehicle, i) => (
+//                                 <div key={i} className="vehicle-item">
+//                                   <span className="vehicle-time">{vehicle.time}</span>
+//                                   <span className="vehicle-license">{vehicle.licensePlate}</span>
+//                                   <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
+//                                   <span className="vehicle-quantity">{vehicle.quantity.toFixed(1)} т</span>
+//                                 </div>
+//                               ))}
+//                             </div>
+//                           )}
+//                         </motion.div>
+//                       )}
+//                     </AnimatePresence>
 //                   </div>
 //                 );
 //               })}

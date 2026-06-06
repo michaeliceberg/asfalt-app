@@ -1,9 +1,7 @@
-// app/page.tsx
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
 import { motion } from 'framer-motion';
-// import PinModal from './components/PinModal';
 import MainTabs from './components/MainTabs';
 import FactoryFilter from './components/FactoryFilter';
 import ViewTabs from './components/ViewTabs';
@@ -15,9 +13,12 @@ import CompactView from './components/CompactView';
 import Header from './components/header';
 import ChartsView from './components/ChartsView';
 import TopCustomersView from './components/TopCustomersView';
+import ModeSwitch from './components/ModeSwitch';
 
+// ============================================
+// ИНТЕРФЕЙСЫ
+// ============================================
 
-// Добавьте интерфейс после других импортов
 interface ApiOutgoingRequest {
   id: number;
   number: string;
@@ -34,7 +35,6 @@ interface ApiOutgoingRequest {
   delivery_date: string | null;
 }
 
-
 export interface OutgoingRequest {
   id: number;
   number: string;
@@ -48,13 +48,14 @@ export interface OutgoingRequest {
   clientRequestDate: string | null;
   createdAt: number;
   closed: boolean | null;
-  delivery_date: string | null;  // ← добавить
+  delivery_date: string | null;
 }
 
 export interface IncomingItem {
   id: number;
   number: string;
   date: string;
+  division: string;
   supplier: string;
   material: string;
   gross: number | null;
@@ -114,17 +115,26 @@ interface CronInfo {
 
 type MainTab = 'incoming' | 'shipment' | 'summary';
 type ViewTab = 'compact' | 'grouped' | 'list' | 'charts' | 'topCustomers';
-
 type UnifiedDataItem = IncomingItem | ShipmentItem;
 
-const parseDate = (dateString: string): Date => {
+// ============================================
+// ФУНКЦИИ ДЛЯ РАБОТЫ С ДАТАМИ (ПРАВИЛЬНЫЙ ПАРСИНГ ДД.ММ.ГГГГ)
+// ============================================
+
+/**
+ * Парсит дату в формате "ДД.ММ.ГГГГ ЧЧ:ММ:СС" или "ДД.ММ.ГГГГ"
+ * Пример: "05.06.2026 11:45:35" → 5 июня 2026 года
+ */
+const parseRussianDate = (dateString: string): Date => {
   if (!dateString) return new Date();
   
-  if (dateString.includes('T')) {
+  // Если уже ISO формат
+  if (dateString.includes('T') && !dateString.includes('.')) {
     const date = new Date(dateString);
     if (!isNaN(date.getTime())) return date;
   }
   
+  // Разделяем дату и время
   const parts = dateString.split(' ');
   const dateParts = parts[0].split('.');
   
@@ -136,72 +146,121 @@ const parseDate = (dateString: string): Date => {
     second = parseInt(timeParts[2], 10);
   }
   
+  // ВНИМАНИЕ: формат ДД.ММ.ГГГГ
   const day = parseInt(dateParts[0], 10);
-  const month = parseInt(dateParts[1], 10) - 1;
+  const month = parseInt(dateParts[1], 10) - 1; // month 0-11
   const year = parseInt(dateParts[2], 10);
   
   return new Date(year, month, day, hour, minute, second);
 };
 
-const parseDateForSort = (dateString: string): Date => {
-  if (!dateString) return new Date(0);
-  const parts = dateString.split(' ');
-  const dateParts = parts[0].split('.');
-  const timeParts = parts[1]?.split(':') || ['0', '0', '0'];
+/**
+ * Форматирует дату для отображения "ДД.ММ.ГГГГ ЧЧ:ММ"
+ */
+const formatDateForDisplay = (dateString: string): string => {
+  const date = parseRussianDate(dateString);
+  if (isNaN(date.getTime())) return dateString;
   
-  const day = parseInt(dateParts[0], 10);
-  const month = parseInt(dateParts[1], 10) - 1;
-  const year = parseInt(dateParts[2], 10);
-  const hour = parseInt(timeParts[0], 10);
-  const minute = parseInt(timeParts[1], 10);
-  const second = parseInt(timeParts[2], 10);
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  const time = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
   
-  return new Date(year, month, day, hour, minute, second);
+  return `${day}.${month}.${year} ${time}`;
 };
 
-// const detectFactory = (item: UnifiedDataItem, type: 'incoming' | 'shipment'): string => {
-//   if (type === 'incoming') {
-//     const incoming = item as IncomingItem;
-//     if (incoming.number?.startsWith('ЛХ')) return 'ЛХ';
-//     if (incoming.number?.startsWith('ЛЮ')) return 'ЛЮ';
-//   } else if (type === 'shipment') {
-//     const shipment = item as ShipmentItem;
-//     if (shipment.division === 'Луховицы') return 'ЛХ';
-//     if (shipment.division === 'Люберцы') return 'ЛЮ';
-//   }
-//   return 'Другой';
-// };
+/**
+ * Форматирует только дату "ДД.ММ.ГГГГ"
+ */
+const formatDateOnly = (dateString: string): string => {
+  const date = parseRussianDate(dateString);
+  if (isNaN(date.getTime())) return dateString;
+  
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}.${month}.${year}`;
+};
 
+/**
+ * Возвращает ключ для группировки "ДД.ММ.ГГГГ"
+ */
+const getDateKey = (dateString: string): string => {
+  const date = parseRussianDate(dateString);
+  if (isNaN(date.getTime())) return dateString;
+  
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}.${month}.${year}`;
+};
 
+/**
+ * Сравнивает две даты для сортировки (новые сначала)
+ */
+const compareDates = (dateA: string, dateB: string): number => {
+  const a = parseRussianDate(dateA);
+  const b = parseRussianDate(dateB);
+  return b.getTime() - a.getTime();
+};
+
+/**
+ * Проверяет, является ли дата сегодняшней
+ */
+const isDateToday = (dateString: string): boolean => {
+  const date = parseRussianDate(dateString);
+  if (isNaN(date.getTime())) return false;
+  
+  const today = new Date();
+  return date.getDate() === today.getDate() &&
+    date.getMonth() === today.getMonth() &&
+    date.getFullYear() === today.getFullYear();
+};
+
+// ============================================
+// ФУНКЦИИ ДЛЯ РАБОТЫ С ЗАВОДАМИ
+// ============================================
 
 const detectFactory = (item: UnifiedDataItem, type: 'incoming' | 'shipment'): string => {
   if (type === 'incoming') {
     const incoming = item as IncomingItem;
+    if (incoming.division === 'ЛХ') return 'ЛХ';
+    if (incoming.division === 'ЛЮ') return 'ЛЮ';
+    if (incoming.division === 'СП') return 'СП';
+    if (incoming.division === 'Щ') return 'Щ';
     if (incoming.number?.startsWith('ЛХ')) return 'ЛХ';
     if (incoming.number?.startsWith('ЛЮ')) return 'ЛЮ';
+    if (incoming.number?.startsWith('СП')) return 'СП';
+    if (incoming.number?.startsWith('Щ')) return 'Щ';
   } else if (type === 'shipment') {
     const shipment = item as ShipmentItem;
     if (shipment.division === 'ЛХ') return 'ЛХ';
     if (shipment.division === 'ЛЮ') return 'ЛЮ';
+    if (shipment.division === 'СП') return 'СП';
+    if (shipment.division === 'Щ') return 'Щ';
   }
   return 'Другой';
 };
-
-
 
 const getFactoryName = (code: string): string => {
   switch (code) {
     case 'ЛХ': return '🏭 Луховицкий';
     case 'ЛЮ': return '🏭 Люберецкий';
+    case 'СП': return '🏭 Сергиев Посад';
+    case 'Щ': return '🏭 Щёлково';
     default: return '📦 Все заводы';
   }
 };
 
+// ============================================
+// КОМПОНЕНТ
+// ============================================
+
 export default function Home() {
-  // const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [incomingData, setIncomingData] = useState<IncomingItem[]>([]);
   const [shipmentData, setShipmentData] = useState<ShipmentItem[]>([]);
-  // const [factoryRequests, setFactoryRequests] = useState<FactoryRequest[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [refreshing, setRefreshing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -220,148 +279,174 @@ export default function Home() {
 
 
 
-  // Функция загрузки количества новых отгрузок (за сегодня)
-
-//   const loadNewShipmentsCount = async () => {
-//   try {
-//     // Получаем заявки
-//     const requestsResponse = await fetch('/api/outgoing-requests');
-//     const allRequests = await requestsResponse.json();
-    
-//     // Получаем отгрузки за сегодня
-//     const shipmentsResponse = await fetch('/api/shipments');
-//     const allShipments = await shipmentsResponse.json();
-    
-//     const today = new Date();
-//     today.setHours(0, 0, 0, 0);
-    
-//     // Группируем отгрузки по заявкам
-//     const shipmentsByRequest = new Map();
-//     for (const shipment of allShipments) {
-//       const shipmentDate = new Date(shipment.date);
-//       shipmentDate.setHours(0, 0, 0, 0);
-//       if (shipmentDate.getTime() !== today.getTime()) continue;
-      
-//       const requestNumber = shipment.clientRequestNumber;
-//       if (requestNumber) {
-//         if (!shipmentsByRequest.has(requestNumber)) {
-//           shipmentsByRequest.set(requestNumber, { fact: 0, count: 0 });
-//         }
-//         const stats = shipmentsByRequest.get(requestNumber);
-//         stats.fact += shipment.quantity;
-//         stats.count += 1;
-//       }
-//     }
-    
-//     // Считаем активные заявки (не закрытые и с фактом > 0)
-//     let activeCount = 0;
-//     for (const request of allRequests) {
-//       if (request.closed) continue;
-//       const stats = shipmentsByRequest.get(request.number);
-//       if (stats && stats.fact > 0) {
-//         activeCount++;
-//       }
-//     }
-    
-//     setNewShipmentsCount(activeCount);
-//   } catch (err) {
-//     console.error(err);
-//   }
-// };
-
-const loadNewShipmentsCount = async () => {
-  try {
-    const [requestsResponse, shipmentsResponse] = await Promise.all([
-      fetch('/api/outgoing-requests'),
-      fetch('/api/shipments')
-    ]);
-    
-    const allRequests = await requestsResponse.json();
-    const allShipments = await shipmentsResponse.json();
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Группируем отгрузки по заявкам
-    const shipmentsByRequest = new Map();
-    for (const shipment of allShipments) {
-      const shipmentDate = new Date(shipment.date);
-      shipmentDate.setHours(0, 0, 0, 0);
-      if (shipmentDate.getTime() !== today.getTime()) continue;
-      
-      const requestNumber = shipment.clientRequestNumber;
-      if (requestNumber) {
-        const current = shipmentsByRequest.get(requestNumber) || { fact: 0 };
-        current.fact += shipment.quantity;
-        shipmentsByRequest.set(requestNumber, current);
-      }
-    }
-    
-    // Создаём карту плановых количеств
-const planMap = new Map();
-for (const req of allRequests) {
-  planMap.set(req.number, req.quantity);
-}
-
-// Считаем активные заявки (не закрытые, факт > 0, процент < 94%)
-let activeCount = 0;
-for (const [requestNumber, data] of shipmentsByRequest) {
-  const request = allRequests.find((r: ApiOutgoingRequest) => r.number === requestNumber);
-  if (request && !request.closed) {
-    const plan = planMap.get(requestNumber) || 0;
-    const percent = plan > 0 ? (data.fact / plan) * 100 : 0;
-    if (percent > 0 && percent < 94) {
-      activeCount++;
-    }
-  }
-}
-    
-    setNewShipmentsCount(activeCount);
-  } catch (err) {
-    console.error(err);
-  }
-};
-
-
-  const loadFutureRequestsCount = async () => {
-  try {
-    const [requestsResponse, shipmentsResponse] = await Promise.all([
-      fetch('/api/outgoing-requests'),
-      fetch('/api/shipments')
-    ]);
-    
-    const allRequests = await requestsResponse.json();
-    const allShipments = await shipmentsResponse.json();
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Получаем номера заявок, у которых есть отгрузки сегодня
-    const activeTodayRequests = new Set();
-    for (const shipment of allShipments) {
-      const shipmentDate = new Date(shipment.date);
-      shipmentDate.setHours(0, 0, 0, 0);
-      if (shipmentDate.getTime() === today.getTime() && shipment.clientRequestNumber) {
-        activeTodayRequests.add(shipment.clientRequestNumber);
-      }
-    }
-    
-    // Фильтруем будущие заявки: не закрытые, с датой >= сегодня, и НЕ имеющие отгрузок сегодня
-const future = allRequests.filter((req: ApiOutgoingRequest) => {
-  if (req.closed) return false;
-  if (!req.delivery_date) return false;
-  const deliveryDate = new Date(req.delivery_date);
-  deliveryDate.setHours(0, 0, 0, 0);
-  return deliveryDate >= today && !activeTodayRequests.has(req.number);
-});
-    
-    setFutureRequestsCount(future.length);
-  } catch (err) {
-    console.error(err);
-  }
-};
+  
 
   
+
+
+  // Режим переключения
+const [mode, setMode] = useState<'tas' | 'iceberg'>(() => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('appMode');
+    if (saved === 'tas' || saved === 'iceberg') {
+      return saved;
+    }
+  }
+  return 'tas';
+});
+
+// Анимация контента (опционально)
+const [contentKey, setContentKey] = useState(0);
+
+// Доступные заводы в зависимости от режима
+const availableFactories: string[] = mode === 'tas' 
+  ? factories.filter(f => f === 'ЛХ' || f === 'ЛЮ')
+  : factories.filter(f => f === 'СП' || f === 'Щ');
+
+// Функция переключения режима
+const toggleMode = () => {
+  const newMode = mode === 'tas' ? 'iceberg' : 'tas';
+  
+  setContentKey(prev => prev + 1);
+  setMode(newMode);
+  setActiveFactory('all');
+  
+  if (window.navigator && window.navigator.vibrate) {
+    window.navigator.vibrate(50);
+  }
+  
+  localStorage.setItem('appMode', newMode);
+};
+
+// Применяем класс к body для изменения темы
+useEffect(() => {
+  if (mode === 'iceberg') {
+    document.body.classList.add('iceberg-mode');
+  } else {
+    document.body.classList.remove('iceberg-mode');
+  }
+}, [mode]);
+
+// Обновлённая функция фильтрации
+const getFilteredData = (): UnifiedDataItem[] => {
+  const data = getCurrentData();
+  
+  if (activeFactory === 'all') {
+    return data.filter(item => {
+      const factory = detectFactory(item, activeMainTab as 'incoming' | 'shipment');
+      return availableFactories.includes(factory);
+    });
+  }
+  
+  return data.filter(item => {
+    const factory = detectFactory(item, activeMainTab as 'incoming' | 'shipment');
+    return factory === activeFactory;
+  });
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // ============================================
+  // ЗАГРУЗКА ДАННЫХ
+  // ============================================
+
+  const loadNewShipmentsCount = async () => {
+    try {
+      const [requestsResponse, shipmentsResponse] = await Promise.all([
+        fetch('/api/outgoing-requests'),
+        fetch('/api/shipments')
+      ]);
+      
+      const allRequests = await requestsResponse.json();
+      const allShipments = await shipmentsResponse.json();
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const shipmentsByRequest = new Map();
+      for (const shipment of allShipments) {
+        const shipmentDate = parseRussianDate(shipment.date);
+        shipmentDate.setHours(0, 0, 0, 0);
+        if (shipmentDate.getTime() !== today.getTime()) continue;
+        
+        const requestNumber = shipment.clientRequestNumber;
+        if (requestNumber) {
+          const current = shipmentsByRequest.get(requestNumber) || { fact: 0 };
+          current.fact += shipment.quantity;
+          shipmentsByRequest.set(requestNumber, current);
+        }
+      }
+      
+      const planMap = new Map();
+      for (const req of allRequests) {
+        planMap.set(req.number, req.quantity);
+      }
+      
+      let activeCount = 0;
+      for (const [requestNumber, data] of shipmentsByRequest) {
+        const request = allRequests.find((r: ApiOutgoingRequest) => r.number === requestNumber);
+        if (request && !request.closed) {
+          const plan = planMap.get(requestNumber) || 0;
+          const percent = plan > 0 ? (data.fact / plan) * 100 : 0;
+          if (percent > 0 && percent < 94) {
+            activeCount++;
+          }
+        }
+      }
+      
+      setNewShipmentsCount(activeCount);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const loadFutureRequestsCount = async () => {
+    try {
+      const [requestsResponse, shipmentsResponse] = await Promise.all([
+        fetch('/api/outgoing-requests'),
+        fetch('/api/shipments')
+      ]);
+      
+      const allRequests = await requestsResponse.json();
+      const allShipments = await shipmentsResponse.json();
+      
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      const activeTodayRequests = new Set();
+      for (const shipment of allShipments) {
+        const shipmentDate = parseRussianDate(shipment.date);
+        shipmentDate.setHours(0, 0, 0, 0);
+        if (shipmentDate.getTime() === today.getTime() && shipment.clientRequestNumber) {
+          activeTodayRequests.add(shipment.clientRequestNumber);
+        }
+      }
+      
+      const future = allRequests.filter((req: ApiOutgoingRequest) => {
+        if (req.closed) return false;
+        if (!req.delivery_date) return false;
+        const deliveryDate = parseRussianDate(req.delivery_date);
+        deliveryDate.setHours(0, 0, 0, 0);
+        return deliveryDate >= today && !activeTodayRequests.has(req.number);
+      });
+      
+      setFutureRequestsCount(future.length);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const loadOutgoingRequests = async () => {
     try {
       const response = await fetch('/api/outgoing-requests');
@@ -374,45 +459,6 @@ const future = allRequests.filter((req: ApiOutgoingRequest) => {
     }
   };
 
-  const formatDate = (dateString?: string): string => {
-    if (!dateString) return 'Нет даты';
-    const date = parseDate(dateString);
-    if (isNaN(date.getTime())) return 'Нет даты';
-    
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-    
-    const todayStr = today.toLocaleDateString('ru-RU');
-    const yesterdayStr = yesterday.toLocaleDateString('ru-RU');
-    const dateStr = date.toLocaleDateString('ru-RU');
-    const timeStr = date.toLocaleTimeString('ru-RU', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-    
-    if (dateStr === todayStr) return timeStr;
-    if (dateStr === yesterdayStr) return `ВЧЕРА в ${timeStr}`;
-    return `${dateStr} в ${timeStr}`;
-  };
-
-  const isToday = (dateStr: string): boolean => {
-    if (!dateStr) return false;
-    const date = parseDate(dateStr);
-    if (isNaN(date.getTime())) return false;
-    
-    const today = new Date();
-    return date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear();
-  };
-
-  const formatWeight = (weight?: number | null): string => {
-    if (weight === undefined || weight === null) return '—';
-    if (isNaN(weight)) return '—';
-    return `${weight.toFixed(2)} т`;
-  };
-
   const formatSyncTime = (timestamp: string | null): string => {
     if (!timestamp) return 'Никогда';
     const date = new Date(timestamp);
@@ -423,53 +469,6 @@ const future = allRequests.filter((req: ApiOutgoingRequest) => {
       minute: '2-digit'
     });
   };
-
-  const getFactoryBadge = (item: UnifiedDataItem): string => {
-    if ('supplier' in item) {
-      const incoming = item as IncomingItem;
-      if (incoming.number?.startsWith('ЛХ')) return 'ЛХ';
-      if (incoming.number?.startsWith('ЛЮ')) return 'ЛЮ';
-    } else if ('division' in item) {
-      const shipment = item as ShipmentItem;
-      if (shipment.division === 'Луховицы') return 'ЛХ';
-      if (shipment.division === 'Люберцы') return 'ЛЮ';
-    }
-    return 'Другой';
-  };
-
-  const getUniqueFactories = (records: UnifiedDataItem[]): string[] => {
-    const factoriesSet = new Set<string>();
-    records.forEach(record => {
-      if ('supplier' in record) {
-        const incoming = record as IncomingItem;
-        if (incoming.number?.startsWith('ЛХ')) factoriesSet.add('ЛХ');
-        if (incoming.number?.startsWith('ЛЮ')) factoriesSet.add('ЛЮ');
-      } else if ('division' in record) {
-        const shipment = record as ShipmentItem;
-        if (shipment.division === 'Луховицы') factoriesSet.add('ЛХ');
-        if (shipment.division === 'Люберцы') factoriesSet.add('ЛЮ');
-      }
-    });
-    return Array.from(factoriesSet);
-  };
-
-  const getRequestCompletion = useCallback((clientRequestNumber: string | null) => {
-    if (!clientRequestNumber) return null;
-    
-    const request = outgoingRequests.find(r => r.number === clientRequestNumber);
-    if (!request) return null;
-    
-    const relatedShipments = shipmentData.filter(s => s.clientRequestNumber === clientRequestNumber);
-    const factQuantity = relatedShipments.reduce((sum, s) => sum + s.quantity, 0);
-    const percent = request.quantity > 0 ? (factQuantity / request.quantity) * 100 : 0;
-    
-    return {
-      plan: request.quantity,
-      fact: factQuantity,
-      percent: Math.round(percent),
-      requestNumber: request.number,
-    };
-  }, [outgoingRequests, shipmentData]);
 
   const loadIncomingData = async () => {
     try {
@@ -486,64 +485,30 @@ const future = allRequests.filter((req: ApiOutgoingRequest) => {
     }
   };
 
-  // const loadShipmentData = async () => {
-  //   try {
-  //     const response = await fetch('/api/shipments');
-  //     const data = await response.json();
-  //     if (Array.isArray(data)) {
-  //       setShipmentData(data);
-  //       return data;
-  //     }
-  //     return [];
-  //   } catch (err) {
-  //     console.error('Error loading shipments:', err);
-  //     return [];
-  //   }
-  // };
-
-
-const loadShipmentData = async () => {
-  try {
-    const response = await fetch('/api/shipments');
-    const data: ShipmentItem[] = await response.json();
-
-    console.log('📦 Shipments loaded:', data.length);
-    console.log('📦 First shipment:', data[0]);
-
-    
-    if (Array.isArray(data)) {
-      setShipmentData(data);
-      // Обновляем счётчик новых отгрузок
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const todayShipments = data.filter((shipment: ShipmentItem) => {
-        if (!shipment.date) return false;
-        const shipmentDate = new Date(shipment.date);
-        shipmentDate.setHours(0, 0, 0, 0);
-        return shipmentDate.getTime() === today.getTime();
-      });
-      setNewShipmentsCount(todayShipments.length);
-      return data;
+  const loadShipmentData = async () => {
+    try {
+      const response = await fetch('/api/shipments');
+      const data: ShipmentItem[] = await response.json();
+      
+      if (Array.isArray(data)) {
+        setShipmentData(data);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayShipments = data.filter((shipment: ShipmentItem) => {
+          if (!shipment.date) return false;
+          const shipmentDate = parseRussianDate(shipment.date);
+          shipmentDate.setHours(0, 0, 0, 0);
+          return shipmentDate.getTime() === today.getTime();
+        });
+        setNewShipmentsCount(todayShipments.length);
+        return data;
+      }
+      return [];
+    } catch (err) {
+      console.error('Error loading shipments:', err);
+      return [];
     }
-    return [];
-  } catch (err) {
-    console.error('Error loading shipments:', err);
-    return [];
-  }
-};
-
-
-  // const loadFactoryRequests = async () => {
-  //   try {
-  //     const response = await fetch('/api/factory-requests');
-  //     const data = await response.json();
-  //     if (Array.isArray(data)) {
-  //       setFactoryRequests(data);
-  //     }
-  //   } catch (err) {
-  //     console.error('Error loading factory requests:', err);
-  //   }
-  // };
+  };
 
   const loadCronInfo = async () => {
     try {
@@ -577,22 +542,24 @@ const loadShipmentData = async () => {
         loadOutgoingRequests(),
       ]);
       
-      await Promise.all([
-        // loadFactoryRequests(),
-        loadCronInfo(),
-        loadShipmentCronInfo(),
-      ]);
-      
       const factorySet = new Set<string>();
       
       (incoming as IncomingItem[]).forEach(item => {
         if (item.number?.startsWith('ЛХ')) factorySet.add('ЛХ');
         if (item.number?.startsWith('ЛЮ')) factorySet.add('ЛЮ');
+        if (item.number?.startsWith('СП')) factorySet.add('СП');
+        if (item.number?.startsWith('Щ')) factorySet.add('Щ');
+        if (item.division === 'ЛХ') factorySet.add('ЛХ');
+        if (item.division === 'ЛЮ') factorySet.add('ЛЮ');
+        if (item.division === 'СП') factorySet.add('СП');
+        if (item.division === 'Щ') factorySet.add('Щ');
       });
       
       (shipment as ShipmentItem[]).forEach(item => {
-        if (item.division === 'Луховицы') factorySet.add('ЛХ');
-        if (item.division === 'Люберцы') factorySet.add('ЛЮ');
+        if (item.division === 'ЛХ') factorySet.add('ЛХ');
+        if (item.division === 'ЛЮ') factorySet.add('ЛЮ');
+        if (item.division === 'СП') factorySet.add('СП');
+        if (item.division === 'Щ') factorySet.add('Щ');
       });
       
       setFactories(Array.from(factorySet).sort());
@@ -600,6 +567,10 @@ const loadShipmentData = async () => {
       console.error('Error loading all data:', err);
     }
   };
+
+  // ============================================
+  // ОБНОВЛЕНИЕ ДАННЫХ
+  // ============================================
 
   const handleRefresh = async () => {
     if (refreshing) return;
@@ -651,131 +622,9 @@ const loadShipmentData = async () => {
     loadAllData().finally(() => setLoading(false));
   };
 
-  // useEffect(() => {
-  //   if (!isAuthenticated) return;
-    
-  //   let isMounted = true;
-    
-  //   const fetchData = async () => {
-  //     try {
-  //       setLoading(true);
-  //       await loadAllData();
-  //       await loadFutureRequestsCount();
-  //       if (isMounted) {
-  //         setLoading(false);
-  //       }
-  //     } catch (err) {
-  //       if (isMounted) {
-  //         setError(err instanceof Error ? err.message : 'Ошибка');
-  //         setLoading(false);
-  //       }
-  //     }
-  //   };
-    
-  //   fetchData();
-    
-  //   return () => {
-  //     isMounted = false;
-  //   };
-  // }, [isAuthenticated]);
-
-  // useEffect(() => {
-  //   if (!isAuthenticated) return;
-    
-  //   const interval = setInterval(() => {
-  //     console.log('🔄 Автообновление...');
-  //     if (activeMainTab === 'incoming') {
-  //       loadIncomingData();
-  //       loadCronInfo();
-  //     } else if (activeMainTab === 'shipment') {
-  //       loadShipmentData();
-  //       loadShipmentCronInfo();
-  //     } else if (activeMainTab === 'summary') {
-  //       loadAllData();
-  //       loadFutureRequestsCount();
-  //     }
-  //   }, 30000);
-    
-  //   return () => clearInterval(interval);
-  // }, [isAuthenticated, activeMainTab]);
-
-//   useEffect(() => {
-//   if (!isAuthenticated) return;
-  
-//   let isMounted = true;
-  
-//   const fetchData = async () => {
-//     try {
-//       setLoading(true);
-//       await loadAllData();
-//       await loadFutureRequestsCount();
-//       await loadNewShipmentsCount();  // ← добавить
-//       if (isMounted) {
-//         setLoading(false);
-//       }
-//     } catch (err) {
-//       if (isMounted) {
-//         setError(err instanceof Error ? err.message : 'Ошибка');
-//         setLoading(false);
-//       }
-//     }
-//   };
-  
-//   fetchData();
-  
-//   return () => {
-//     isMounted = false;
-//   };
-// }, [isAuthenticated]);
-
-
-
-
-// Также обновляем при автообновлении
-// useEffect(() => {
-//   if (!isAuthenticated) return;
-  
-//   const interval = setInterval(() => {
-//     console.log('🔄 Автообновление...');
-//     if (activeMainTab === 'incoming') {
-//       loadIncomingData();
-//       loadCronInfo();
-//     } else if (activeMainTab === 'shipment') {
-//       loadShipmentData();
-//       loadShipmentCronInfo();
-//       loadNewShipmentsCount();  // ← добавить
-//     } else if (activeMainTab === 'summary') {
-//       loadAllData();
-//       loadFutureRequestsCount();
-//       loadNewShipmentsCount();  // ← добавить
-//     }
-//   }, 30000);
-  
-//   return () => clearInterval(interval);
-// }, [isAuthenticated, activeMainTab]);
-
-useEffect(() => {
-  // if (!isAuthenticated) return;
-  
-  const interval = setInterval(() => {
-    console.log('🔄 Автообновление...');
-    if (activeMainTab === 'incoming') {
-      loadIncomingData();
-      loadCronInfo();
-    } else if (activeMainTab === 'shipment') {
-      loadShipmentData();
-      loadShipmentCronInfo();
-      loadNewShipmentsCount();
-    } else if (activeMainTab === 'summary') {
-      loadAllData();
-      loadFutureRequestsCount();  // ← обновляем счётчик
-      loadNewShipmentsCount();
-    }
-  }, 30000);
-  
-  return () => clearInterval(interval);
-}, [activeMainTab]);
-
+  // ============================================
+  // ФИЛЬТРАЦИЯ ДАННЫХ
+  // ============================================
 
   const getCurrentData = (): UnifiedDataItem[] => {
     if (activeMainTab === 'incoming') {
@@ -794,35 +643,11 @@ useEffect(() => {
   //   });
   // };
 
-
-
-
-  const getFilteredData = (): UnifiedDataItem[] => {
-  const data = getCurrentData();
-  console.log('Active factory filter:', activeFactory);
-  
-  if (activeFactory === 'all') return data;
-  
-  const filtered = data.filter(item => {
-    const factory = detectFactory(item, activeMainTab as 'incoming' | 'shipment');
-    console.log('Item factory:', factory, 'Filter:', activeFactory, 'Match:', factory === activeFactory);
-    return factory === activeFactory;
-  });
-  
-  console.log('Filtered count:', filtered.length);
-  return filtered;
-};
-
-
-
-
-
   const groupDataByDay = (data: UnifiedDataItem[]) => {
     const groupedMap = new Map<string, Map<string, GroupedRecord>>();
     
     data.forEach((record) => {
-      const date = parseDate(record.date);
-      const dateOnly = date.toLocaleDateString('ru-RU');
+      const dateKey = getDateKey(record.date);
       
       let supplier: string;
       if (activeMainTab === 'incoming') {
@@ -832,13 +657,13 @@ useEffect(() => {
         supplier = shipment.consignee || shipment.customer;
       }
       
-      const key = `${dateOnly}_${supplier}_${record.material}`;
+      const key = `${dateKey}_${supplier}_${record.material}`;
       
-      if (!groupedMap.has(dateOnly)) {
-        groupedMap.set(dateOnly, new Map());
+      if (!groupedMap.has(dateKey)) {
+        groupedMap.set(dateKey, new Map());
       }
       
-      const dayMap = groupedMap.get(dateOnly)!;
+      const dayMap = groupedMap.get(dateKey)!;
       
       if (dayMap.has(key)) {
         const existing = dayMap.get(key)!;
@@ -867,11 +692,7 @@ useEffect(() => {
 
   const filteredData = getFilteredData();
   const groupedData = groupDataByDay(filteredData);
-  const sortedDates = Array.from(groupedData.keys()).sort((a, b) => {
-    const dateA = parseDateForSort(a);
-    const dateB = parseDateForSort(b);
-    return dateB.getTime() - dateA.getTime();
-  });
+  const sortedDates = Array.from(groupedData.keys()).sort(compareDates);
 
   const outgoingRequestsForCompact = outgoingRequests.map(req => ({
     number: req.number,
@@ -904,21 +725,10 @@ useEffect(() => {
 
   const currentSyncInfo = activeMainTab === 'incoming' ? cronInfo : shipmentCronInfo;
 
-  // if (!isAuthenticated) {
-  //   return <PinModal onSuccess={() => setIsAuthenticated(true)} />;
-  // }
+  // ============================================
+  // EFFECTS
+  // ============================================
 
-
-
-
-
-
-
-
-
-
-
-  // Загрузка данных при монтировании компонента
   useEffect(() => {
     let isMounted = true;
     
@@ -946,7 +756,6 @@ useEffect(() => {
     };
   }, []);
 
-  // Автообновление раз в 30 секунд
   useEffect(() => {
     const interval = setInterval(() => {
       console.log('🔄 Автообновление...');
@@ -967,17 +776,9 @@ useEffect(() => {
     return () => clearInterval(interval);
   }, [activeMainTab]);
 
-
-
-
-
-
-
-
-
-
-
-
+  // ============================================
+  // РЕНДЕР
+  // ============================================
 
   if (loading) {
     return (
@@ -997,34 +798,6 @@ useEffect(() => {
     );
   }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
   return (
     <>
       <Notification message={notificationMessage} show={showNotification} />
@@ -1037,29 +810,21 @@ useEffect(() => {
             onSendPlan={sendPlan}
           />
           
-          {/* <MainTabs 
+          <ModeSwitch mode={mode} onToggle={toggleMode} />
+
+          <MainTabs 
             activeTab={activeMainTab} 
             onTabChange={setActiveMainTab}
             futureRequestsCount={futureRequestsCount}
+            newShipmentsCount={newShipmentsCount}
           />
-           */}
-
-
-           <MainTabs 
-  activeTab={activeMainTab} 
-  onTabChange={setActiveMainTab}
-  futureRequestsCount={futureRequestsCount}
-  newShipmentsCount={newShipmentsCount}
-/>
-
-
 
           <div className="sync-info">
             <span className="sync-label">🔄 Синхронизация с 1С:</span>
             <span className="sync-time">{formatSyncTime(currentSyncInfo.lastSync)}</span>
           </div>
 
-          {activeMainTab !== 'summary' && (
+          {/* {activeMainTab !== 'summary' && (
             <>
               <FactoryFilter 
                 factories={factories} 
@@ -1074,7 +839,26 @@ useEffect(() => {
                 {activeFactory !== 'all' && ` (${getFactoryName(activeFactory)})`}
               </div>
             </>
-          )}
+          )} */}
+
+
+          {activeMainTab !== 'summary' && (
+  <>
+    <FactoryFilter 
+      factories={availableFactories} 
+      activeFactory={activeFactory} 
+      onFactoryChange={setActiveFactory} 
+    />
+    <ViewTabs activeTab={activeViewTab} onTabChange={setActiveViewTab} />
+    <div className="stats">
+      Всего записей: <strong>{filteredData.length}</strong>
+      {activeFactory !== 'all' && ` (${getFactoryName(activeFactory)})`}
+    </div>
+  </>
+)}
+
+
+
         </header>
 
         <motion.div
@@ -1097,9 +881,10 @@ useEffect(() => {
               data={filteredData}
               mainTab={activeMainTab}
               outgoingRequests={outgoingRequestsForCompact}
-              allShipments={shipmentData}  // ← добавить
-              allShipmentsForChart={shipmentData}  // ← добавить
-              selectedFactory={activeFactory}  // ← добавить
+              allShipments={shipmentData}
+              allShipmentsForChart={shipmentData}
+              selectedFactory={activeFactory}
+              mode={mode}  // ← добавить эту строку
             />
           )}
 
@@ -1119,18 +904,12 @@ useEffect(() => {
 
 
 
-
-
-
-
-
 // // app/page.tsx
 // 'use client';
 
 // import { useState, useEffect, useCallback } from 'react';
 // import { motion } from 'framer-motion';
-// import PinModal from './components/PinModal';
-// // import Header from './components/Header';
+// // import PinModal from './components/PinModal';
 // import MainTabs from './components/MainTabs';
 // import FactoryFilter from './components/FactoryFilter';
 // import ViewTabs from './components/ViewTabs';
@@ -1143,26 +922,46 @@ useEffect(() => {
 // import ChartsView from './components/ChartsView';
 // import TopCustomersView from './components/TopCustomersView';
 
+
+// // Добавьте интерфейс после других импортов
+// interface ApiOutgoingRequest {
+//   id: number;
+//   number: string;
+//   date: string;
+//   division: string;
+//   customer: string;
+//   consignee: string | null;
+//   material: string;
+//   quantity: number;
+//   clientRequestNumber: string | null;
+//   clientRequestDate: string | null;
+//   createdAt: number;
+//   closed: boolean | null;
+//   delivery_date: string | null;
+// }
+
+
 // export interface OutgoingRequest {
 //   id: number;
 //   number: string;
 //   date: string;
 //   division: string;
 //   customer: string;
-//   consignee: string | null;  // ← оставляем null
+//   consignee: string | null;
 //   material: string;
 //   quantity: number;
 //   clientRequestNumber: string | null;
 //   clientRequestDate: string | null;
 //   createdAt: number;
-//   closed: boolean | null;  // ← добавить эту строку
+//   closed: boolean | null;
+//   delivery_date: string | null;  // ← добавить
 // }
-
 
 // export interface IncomingItem {
 //   id: number;
 //   number: string;
 //   date: string;
+//   division: string;          // ← ДОБАВИТЬ ЭТУ СТРОКУ!
 //   supplier: string;
 //   material: string;
 //   gross: number | null;
@@ -1172,26 +971,6 @@ useEffect(() => {
 //   licensePlate: string | null;
 //   createdAt: number;
 // }
-
-// // export interface ShipmentItem {
-// //   id: number;
-// //   number: string;
-// //   date: string;
-// //   division: string;
-// //   customer: string;
-// //   consignee: string | null;
-// //   material: string;
-// //   gross: number | null;
-// //   tara: number | null;
-// //   quantity: number;
-// //   driver: string | null;
-// //   licensePlate: string | null;
-// //   clientRequestNumber: string | null;
-// //   clientRequestDate: string | null;
-// //   createdAt: number;
-  
-// // }
-
 
 // export interface ShipmentItem {
 //   id: number;
@@ -1206,17 +985,12 @@ useEffect(() => {
 //   quantity: number;
 //   driver: string | null;
 //   licensePlate: string | null;
-//   // clientRequestNumber: string | null;
-//   // clientRequestDate: string | null;
 //   createdAt: number;
-//   // Поля из 1С (русские названия)
 //   ЗаявкаНаОтгрузкуНомер?: string;
 //   ЗаявкаНаОтгрузкуДата?: string;
 //   clientRequestNumber: string | null;
 //   clientRequestDate: string | null;
 // }
-
-
 
 // export interface FactoryRequest {
 //   id: number;
@@ -1246,15 +1020,10 @@ useEffect(() => {
 // }
 
 // type MainTab = 'incoming' | 'shipment' | 'summary';
-// // type ViewTab = 'grouped' | 'list' | 'compact';
-// // type ViewTab = 'compact' | 'grouped' | 'list' | 'charts';
 // type ViewTab = 'compact' | 'grouped' | 'list' | 'charts' | 'topCustomers';
-
 
 // type UnifiedDataItem = IncomingItem | ShipmentItem;
 
-
-// // Парсинг даты из формата "DD.MM.YYYY HH:MM:SS" или "DD.MM.YYYY"
 // const parseDate = (dateString: string): Date => {
 //   if (!dateString) return new Date();
   
@@ -1281,7 +1050,6 @@ useEffect(() => {
 //   return new Date(year, month, day, hour, minute, second);
 // };
 
-// // Парсинг даты для сортировки
 // const parseDateForSort = (dateString: string): Date => {
 //   if (!dateString) return new Date(0);
 //   const parts = dateString.split(' ');
@@ -1298,33 +1066,104 @@ useEffect(() => {
 //   return new Date(year, month, day, hour, minute, second);
 // };
 
-// // Определяем завод
+// // const detectFactory = (item: UnifiedDataItem, type: 'incoming' | 'shipment'): string => {
+// //   if (type === 'incoming') {
+// //     const incoming = item as IncomingItem;
+// //     if (incoming.number?.startsWith('ЛХ')) return 'ЛХ';
+// //     if (incoming.number?.startsWith('ЛЮ')) return 'ЛЮ';
+// //   } else if (type === 'shipment') {
+// //     const shipment = item as ShipmentItem;
+// //     if (shipment.division === 'Луховицы') return 'ЛХ';
+// //     if (shipment.division === 'Люберцы') return 'ЛЮ';
+// //   }
+// //   return 'Другой';
+// // };
+
+
+
+// // const detectFactory = (item: UnifiedDataItem, type: 'incoming' | 'shipment'): string => {
+// //   if (type === 'incoming') {
+// //     const incoming = item as IncomingItem;
+// //     if (incoming.number?.startsWith('ЛХ')) return 'ЛХ';
+// //     if (incoming.number?.startsWith('ЛЮ')) return 'ЛЮ';
+// //   } else if (type === 'shipment') {
+// //     const shipment = item as ShipmentItem;
+// //     if (shipment.division === 'ЛХ') return 'ЛХ';
+// //     if (shipment.division === 'ЛЮ') return 'ЛЮ';
+// //   }
+// //   return 'Другой';
+// // };
+
+
+// // const detectFactory = (item: UnifiedDataItem, type: 'incoming' | 'shipment'): string => {
+// //   if (type === 'incoming') {
+// //     const incoming = item as IncomingItem;
+// //     if (incoming.number?.startsWith('ЛХ')) return 'ЛХ';
+// //     if (incoming.number?.startsWith('ЛЮ')) return 'ЛЮ';
+// //     if (incoming.number?.startsWith('СП')) return 'СП';
+// //     if (incoming.number?.startsWith('Щ')) return 'Щ';
+// //     if (incoming.division === 'СП') return 'СП';
+// //     if (incoming.division === 'Щ') return 'Щ';
+// //   } else if (type === 'shipment') {
+// //     const shipment = item as ShipmentItem;
+// //     if (shipment.division === 'ЛХ') return 'ЛХ';
+// //     if (shipment.division === 'ЛЮ') return 'ЛЮ';
+// //     if (shipment.division === 'СП') return 'СП';
+// //     if (shipment.division === 'Щ') return 'Щ';
+// //   }
+// //   return 'Другой';
+// // };
+
 // const detectFactory = (item: UnifiedDataItem, type: 'incoming' | 'shipment'): string => {
 //   if (type === 'incoming') {
 //     const incoming = item as IncomingItem;
+//     // division уже есть в типе!
+//     if (incoming.division === 'ЛХ') return 'ЛХ';
+//     if (incoming.division === 'ЛЮ') return 'ЛЮ';
+//     if (incoming.division === 'СП') return 'СП';
+//     if (incoming.division === 'Щ') return 'Щ';
+//     // Если division нет, пробуем по номеру
 //     if (incoming.number?.startsWith('ЛХ')) return 'ЛХ';
 //     if (incoming.number?.startsWith('ЛЮ')) return 'ЛЮ';
+//     if (incoming.number?.startsWith('СП')) return 'СП';
+//     if (incoming.number?.startsWith('Щ')) return 'Щ';
 //   } else if (type === 'shipment') {
 //     const shipment = item as ShipmentItem;
-//     if (shipment.division === 'Луховицы') return 'ЛХ';
-//     if (shipment.division === 'Люберцы') return 'ЛЮ';
+//     if (shipment.division === 'ЛХ') return 'ЛХ';
+//     if (shipment.division === 'ЛЮ') return 'ЛЮ';
+//     if (shipment.division === 'СП') return 'СП';
+//     if (shipment.division === 'Щ') return 'Щ';
 //   }
 //   return 'Другой';
 // };
+
+
+// // const getFactoryName = (code: string): string => {
+// //   switch (code) {
+// //     case 'ЛХ': return '🏭 Луховицкий';
+// //     case 'ЛЮ': return '🏭 Люберецкий';
+// //     default: return '📦 Все заводы';
+// //   }
+// // };
+
 
 // const getFactoryName = (code: string): string => {
 //   switch (code) {
 //     case 'ЛХ': return '🏭 Луховицкий';
 //     case 'ЛЮ': return '🏭 Люберецкий';
+//     case 'СП': return '🏭 Сергиев Посад';
+//     case 'Щ': return '🏭 Щёлково';
 //     default: return '📦 Все заводы';
 //   }
 // };
 
+
+
 // export default function Home() {
-//   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+//   // const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
 //   const [incomingData, setIncomingData] = useState<IncomingItem[]>([]);
 //   const [shipmentData, setShipmentData] = useState<ShipmentItem[]>([]);
-//   const [factoryRequests, setFactoryRequests] = useState<FactoryRequest[]>([]);
+//   // const [factoryRequests, setFactoryRequests] = useState<FactoryRequest[]>([]);
 //   const [loading, setLoading] = useState<boolean>(true);
 //   const [refreshing, setRefreshing] = useState<boolean>(false);
 //   const [error, setError] = useState<string | null>(null);
@@ -1337,23 +1176,166 @@ useEffect(() => {
 //   const [showNotification, setShowNotification] = useState<boolean>(false);
 //   const [notificationMessage, setNotificationMessage] = useState<string>('');
 //   const [shouldShake, setShouldShake] = useState<boolean>(false);
-
 //   const [outgoingRequests, setOutgoingRequests] = useState<OutgoingRequest[]>([]);
+//   const [futureRequestsCount, setFutureRequestsCount] = useState<number>(0);
+//   const [newShipmentsCount, setNewShipmentsCount] = useState<number>(0);
 
 
-//   const loadOutgoingRequests = async () => {
+
+//   // Функция загрузки количества новых отгрузок (за сегодня)
+
+// //   const loadNewShipmentsCount = async () => {
+// //   try {
+// //     // Получаем заявки
+// //     const requestsResponse = await fetch('/api/outgoing-requests');
+// //     const allRequests = await requestsResponse.json();
+    
+// //     // Получаем отгрузки за сегодня
+// //     const shipmentsResponse = await fetch('/api/shipments');
+// //     const allShipments = await shipmentsResponse.json();
+    
+// //     const today = new Date();
+// //     today.setHours(0, 0, 0, 0);
+    
+// //     // Группируем отгрузки по заявкам
+// //     const shipmentsByRequest = new Map();
+// //     for (const shipment of allShipments) {
+// //       const shipmentDate = new Date(shipment.date);
+// //       shipmentDate.setHours(0, 0, 0, 0);
+// //       if (shipmentDate.getTime() !== today.getTime()) continue;
+      
+// //       const requestNumber = shipment.clientRequestNumber;
+// //       if (requestNumber) {
+// //         if (!shipmentsByRequest.has(requestNumber)) {
+// //           shipmentsByRequest.set(requestNumber, { fact: 0, count: 0 });
+// //         }
+// //         const stats = shipmentsByRequest.get(requestNumber);
+// //         stats.fact += shipment.quantity;
+// //         stats.count += 1;
+// //       }
+// //     }
+    
+// //     // Считаем активные заявки (не закрытые и с фактом > 0)
+// //     let activeCount = 0;
+// //     for (const request of allRequests) {
+// //       if (request.closed) continue;
+// //       const stats = shipmentsByRequest.get(request.number);
+// //       if (stats && stats.fact > 0) {
+// //         activeCount++;
+// //       }
+// //     }
+    
+// //     setNewShipmentsCount(activeCount);
+// //   } catch (err) {
+// //     console.error(err);
+// //   }
+// // };
+
+// const loadNewShipmentsCount = async () => {
 //   try {
-//     const response = await fetch('/api/outgoing-requests');
-//     const data = await response.json();
-//     if (Array.isArray(data)) {
-//       setOutgoingRequests(data);
+//     const [requestsResponse, shipmentsResponse] = await Promise.all([
+//       fetch('/api/outgoing-requests'),
+//       fetch('/api/shipments')
+//     ]);
+    
+//     const allRequests = await requestsResponse.json();
+//     const allShipments = await shipmentsResponse.json();
+    
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+    
+//     // Группируем отгрузки по заявкам
+//     const shipmentsByRequest = new Map();
+//     for (const shipment of allShipments) {
+//       const shipmentDate = new Date(shipment.date);
+//       shipmentDate.setHours(0, 0, 0, 0);
+//       if (shipmentDate.getTime() !== today.getTime()) continue;
+      
+//       const requestNumber = shipment.clientRequestNumber;
+//       if (requestNumber) {
+//         const current = shipmentsByRequest.get(requestNumber) || { fact: 0 };
+//         current.fact += shipment.quantity;
+//         shipmentsByRequest.set(requestNumber, current);
+//       }
 //     }
+    
+//     // Создаём карту плановых количеств
+// const planMap = new Map();
+// for (const req of allRequests) {
+//   planMap.set(req.number, req.quantity);
+// }
+
+// // Считаем активные заявки (не закрытые, факт > 0, процент < 94%)
+// let activeCount = 0;
+// for (const [requestNumber, data] of shipmentsByRequest) {
+//   const request = allRequests.find((r: ApiOutgoingRequest) => r.number === requestNumber);
+//   if (request && !request.closed) {
+//     const plan = planMap.get(requestNumber) || 0;
+//     const percent = plan > 0 ? (data.fact / plan) * 100 : 0;
+//     if (percent > 0 && percent < 94) {
+//       activeCount++;
+//     }
+//   }
+// }
+    
+//     setNewShipmentsCount(activeCount);
 //   } catch (err) {
-//     console.error('Error loading outgoing requests:', err);
+//     console.error(err);
 //   }
 // };
 
-//   // Форматирование даты для отображения
+
+//   const loadFutureRequestsCount = async () => {
+//   try {
+//     const [requestsResponse, shipmentsResponse] = await Promise.all([
+//       fetch('/api/outgoing-requests'),
+//       fetch('/api/shipments')
+//     ]);
+    
+//     const allRequests = await requestsResponse.json();
+//     const allShipments = await shipmentsResponse.json();
+    
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+    
+//     // Получаем номера заявок, у которых есть отгрузки сегодня
+//     const activeTodayRequests = new Set();
+//     for (const shipment of allShipments) {
+//       const shipmentDate = new Date(shipment.date);
+//       shipmentDate.setHours(0, 0, 0, 0);
+//       if (shipmentDate.getTime() === today.getTime() && shipment.clientRequestNumber) {
+//         activeTodayRequests.add(shipment.clientRequestNumber);
+//       }
+//     }
+    
+//     // Фильтруем будущие заявки: не закрытые, с датой >= сегодня, и НЕ имеющие отгрузок сегодня
+// const future = allRequests.filter((req: ApiOutgoingRequest) => {
+//   if (req.closed) return false;
+//   if (!req.delivery_date) return false;
+//   const deliveryDate = new Date(req.delivery_date);
+//   deliveryDate.setHours(0, 0, 0, 0);
+//   return deliveryDate >= today && !activeTodayRequests.has(req.number);
+// });
+    
+//     setFutureRequestsCount(future.length);
+//   } catch (err) {
+//     console.error(err);
+//   }
+// };
+
+  
+//   const loadOutgoingRequests = async () => {
+//     try {
+//       const response = await fetch('/api/outgoing-requests');
+//       const data = await response.json();
+//       if (Array.isArray(data)) {
+//         setOutgoingRequests(data);
+//       }
+//     } catch (err) {
+//       console.error('Error loading outgoing requests:', err);
+//     }
+//   };
+
 //   const formatDate = (dateString?: string): string => {
 //     if (!dateString) return 'Нет даты';
 //     const date = parseDate(dateString);
@@ -1376,7 +1358,6 @@ useEffect(() => {
 //     return `${dateStr} в ${timeStr}`;
 //   };
 
-//   // Проверка, сегодня ли дата
 //   const isToday = (dateStr: string): boolean => {
 //     if (!dateStr) return false;
 //     const date = parseDate(dateStr);
@@ -1388,7 +1369,6 @@ useEffect(() => {
 //       date.getFullYear() === today.getFullYear();
 //   };
 
-//   // Форматирование веса
 //   const formatWeight = (weight?: number | null): string => {
 //     if (weight === undefined || weight === null) return '—';
 //     if (isNaN(weight)) return '—';
@@ -1406,7 +1386,6 @@ useEffect(() => {
 //     });
 //   };
 
-//   // Получить метку завода для бейджа
 //   const getFactoryBadge = (item: UnifiedDataItem): string => {
 //     if ('supplier' in item) {
 //       const incoming = item as IncomingItem;
@@ -1420,7 +1399,6 @@ useEffect(() => {
 //     return 'Другой';
 //   };
 
-//   // Получить уникальные заводы из записей в группе
 //   const getUniqueFactories = (records: UnifiedDataItem[]): string[] => {
 //     const factoriesSet = new Set<string>();
 //     records.forEach(record => {
@@ -1437,82 +1415,24 @@ useEffect(() => {
 //     return Array.from(factoriesSet);
 //   };
 
-//   // Получение информации о заявке для компактного вида
-//   // const getRequestCompletion = useCallback((clientRequestNumber: string | null) => {
-//   //   if (!clientRequestNumber) return null;
+//   const getRequestCompletion = useCallback((clientRequestNumber: string | null) => {
+//     if (!clientRequestNumber) return null;
     
-//   //   const request = factoryRequests.find(r => r.clientRequestNumber === clientRequestNumber);
-//   //   if (!request) return null;
+//     const request = outgoingRequests.find(r => r.number === clientRequestNumber);
+//     if (!request) return null;
     
-//   //   return {
-//   //     plan: request.planQuantity,
-//   //     fact: request.factQuantity,
-//   //     percent: request.planQuantity > 0 ? (request.factQuantity / request.planQuantity) * 100 : 0,
-//   //     requestNumber: request.clientRequestNumber,
-//   //   };
-//   // }, [factoryRequests]);
-// // const getRequestCompletion = useCallback((clientRequestNumber: string | null) => {
-// //   console.log('Looking for:', clientRequestNumber);
-// //   console.log('Available requests:', factoryRequests.map(r => r.clientRequestNumber));
-  
-// //   if (!clientRequestNumber) return null;
-  
-// //   const request = factoryRequests.find(r => r.clientRequestNumber === clientRequestNumber);
-// //   if (!request) {
-// //     console.log('Not found:', clientRequestNumber);
-// //     return null;
-// //   }
-  
-// //   console.log('Found:', request);
-  
-// //   return {
-// //     plan: request.planQuantity,
-// //     fact: request.factQuantity,
-// //     percent: request.planQuantity > 0 ? (request.factQuantity / request.planQuantity) * 100 : 0,
-// //     requestNumber: request.clientRequestNumber,
-// //   };
-// // }, [factoryRequests]);
+//     const relatedShipments = shipmentData.filter(s => s.clientRequestNumber === clientRequestNumber);
+//     const factQuantity = relatedShipments.reduce((sum, s) => sum + s.quantity, 0);
+//     const percent = request.quantity > 0 ? (factQuantity / request.quantity) * 100 : 0;
+    
+//     return {
+//       plan: request.quantity,
+//       fact: factQuantity,
+//       percent: Math.round(percent),
+//       requestNumber: request.number,
+//     };
+//   }, [outgoingRequests, shipmentData]);
 
-// // const getRequestCompletion = useCallback((clientRequestNumber: string | null) => {
-// //   if (!clientRequestNumber) return null;
-  
-// //   // Ищем заявку по number (номеру заявки)
-// //   const request = outgoingRequests.find(r => r.number === clientRequestNumber);
-  
-// //   if (!request) return null;
-  
-// //   return {
-// //     plan: request.quantity,
-// //     fact: 0, // факт можно будет посчитать из отгрузок
-// //     percent: 0,
-// //     requestNumber: request.number,
-// //   };
-// // }, [outgoingRequests]);
-
-// const getRequestCompletion = useCallback((clientRequestNumber: string | null) => {
-//   if (!clientRequestNumber) return null;
-  
-//   // Ищем заявку по number (номеру заявки)
-//   const request = outgoingRequests.find(r => r.number === clientRequestNumber);
-  
-//   if (!request) return null;
-  
-//   // Считаем факт из отгрузок, связанных с этой заявкой
-//   const relatedShipments = shipmentData.filter(s => s.clientRequestNumber === clientRequestNumber);
-//   const factQuantity = relatedShipments.reduce((sum, s) => sum + s.quantity, 0);
-//   const percent = request.quantity > 0 ? (factQuantity / request.quantity) * 100 : 0;
-  
-//   return {
-//     plan: request.quantity,
-//     fact: factQuantity,
-//     percent: Math.round(percent),
-//     requestNumber: request.number,
-//   };
-// }, [outgoingRequests, shipmentData]);
-
-
-
-//   // Загрузка данных
 //   const loadIncomingData = async () => {
 //     try {
 //       const response = await fetch('/api/incoming');
@@ -1528,32 +1448,64 @@ useEffect(() => {
 //     }
 //   };
 
-//   const loadShipmentData = async () => {
-//     try {
-//       const response = await fetch('/api/shipments');
-//       const data = await response.json();
-//       if (Array.isArray(data)) {
-//         setShipmentData(data);
-//         return data;
-//       }
-//       return [];
-//     } catch (err) {
-//       console.error('Error loading shipments:', err);
-//       return [];
-//     }
-//   };
+//   // const loadShipmentData = async () => {
+//   //   try {
+//   //     const response = await fetch('/api/shipments');
+//   //     const data = await response.json();
+//   //     if (Array.isArray(data)) {
+//   //       setShipmentData(data);
+//   //       return data;
+//   //     }
+//   //     return [];
+//   //   } catch (err) {
+//   //     console.error('Error loading shipments:', err);
+//   //     return [];
+//   //   }
+//   // };
 
-//   const loadFactoryRequests = async () => {
-//     try {
-//       const response = await fetch('/api/factory-requests');
-//       const data = await response.json();
-//       if (Array.isArray(data)) {
-//         setFactoryRequests(data);
-//       }
-//     } catch (err) {
-//       console.error('Error loading factory requests:', err);
+
+// const loadShipmentData = async () => {
+//   try {
+//     const response = await fetch('/api/shipments');
+//     const data: ShipmentItem[] = await response.json();
+
+//     console.log('📦 Shipments loaded:', data.length);
+//     console.log('📦 First shipment:', data[0]);
+
+    
+//     if (Array.isArray(data)) {
+//       setShipmentData(data);
+//       // Обновляем счётчик новых отгрузок
+//       const today = new Date();
+//       today.setHours(0, 0, 0, 0);
+//       const todayShipments = data.filter((shipment: ShipmentItem) => {
+//         if (!shipment.date) return false;
+//         const shipmentDate = new Date(shipment.date);
+//         shipmentDate.setHours(0, 0, 0, 0);
+//         return shipmentDate.getTime() === today.getTime();
+//       });
+//       setNewShipmentsCount(todayShipments.length);
+//       return data;
 //     }
-//   };
+//     return [];
+//   } catch (err) {
+//     console.error('Error loading shipments:', err);
+//     return [];
+//   }
+// };
+
+
+//   // const loadFactoryRequests = async () => {
+//   //   try {
+//   //     const response = await fetch('/api/factory-requests');
+//   //     const data = await response.json();
+//   //     if (Array.isArray(data)) {
+//   //       setFactoryRequests(data);
+//   //     }
+//   //   } catch (err) {
+//   //     console.error('Error loading factory requests:', err);
+//   //   }
+//   // };
 
 //   const loadCronInfo = async () => {
 //     try {
@@ -1579,38 +1531,108 @@ useEffect(() => {
 //     }
 //   };
 
-//   const loadAllData = async () => {
-//     try {
-//       const [incoming, shipment] = await Promise.all([
-//         loadIncomingData(),
-//         loadShipmentData(),
-//         loadOutgoingRequests(),
-//       ]);
+
+
+
+
+
+
+
+
+
+
+
+// //   const loadAllData = async () => {
+// //     try {
+// //       const [incoming, shipment] = await Promise.all([
+// //         loadIncomingData(),
+// //         loadShipmentData(),
+// //         loadOutgoingRequests(),
+// //       ]);
       
-//       await Promise.all([
-//         loadFactoryRequests(),
-//         loadCronInfo(),
-//         loadShipmentCronInfo(),
-//       ]);
+// //       await Promise.all([
+// //         // loadFactoryRequests(),
+// //         loadCronInfo(),
+// //         loadShipmentCronInfo(),
+// //       ]);
       
-//       // Собираем уникальные заводы
-//       const factorySet = new Set<string>();
+// //       const factorySet = new Set<string>();
       
-//       (incoming as IncomingItem[]).forEach(item => {
-//         if (item.number?.startsWith('ЛХ')) factorySet.add('ЛХ');
-//         if (item.number?.startsWith('ЛЮ')) factorySet.add('ЛЮ');
-//       });
+// //       // (incoming as IncomingItem[]).forEach(item => {
+// //       //   if (item.number?.startsWith('ЛХ')) factorySet.add('ЛХ');
+// //       //   if (item.number?.startsWith('ЛЮ')) factorySet.add('ЛЮ');
+// //       // });
       
-//       (shipment as ShipmentItem[]).forEach(item => {
-//         if (item.division === 'Луховицы') factorySet.add('ЛХ');
-//         if (item.division === 'Люберцы') factorySet.add('ЛЮ');
-//       });
+// // (incoming as IncomingItem[]).forEach(item => {
+// //   if (item.number?.startsWith('ЛХ')) factorySet.add('ЛХ');
+// //   if (item.number?.startsWith('ЛЮ')) factorySet.add('ЛЮ');
+// //   if (item.number?.startsWith('СП')) factorySet.add('СП');
+// //   if (item.number?.startsWith('Щ')) factorySet.add('Щ');
+// // });
+
+
+// //       (shipment as ShipmentItem[]).forEach(item => {
+// //         if (item.division === 'Луховицы') factorySet.add('ЛХ');
+// //         if (item.division === 'Люберцы') factorySet.add('ЛЮ');
+// //       });
       
-//       setFactories(Array.from(factorySet).sort());
-//     } catch (err) {
-//       console.error('Error loading all data:', err);
-//     }
-//   };
+// //       setFactories(Array.from(factorySet).sort());
+// //     } catch (err) {
+// //       console.error('Error loading all data:', err);
+// //     }
+// //   };
+
+
+// const loadAllData = async () => {
+//   try {
+//     const [incoming, shipment] = await Promise.all([
+//       loadIncomingData(),
+//       loadShipmentData(),
+//       loadOutgoingRequests(),
+//     ]);
+    
+//     const factorySet = new Set<string>();
+    
+//     // Для поступлений - по номеру
+//     (incoming as IncomingItem[]).forEach(item => {
+//       if (item.number?.startsWith('ЛХ')) factorySet.add('ЛХ');
+//       if (item.number?.startsWith('ЛЮ')) factorySet.add('ЛЮ');
+//       if (item.number?.startsWith('СП')) factorySet.add('СП');
+//       if (item.number?.startsWith('Щ')) factorySet.add('Щ');
+//       // Также по division, если есть
+//       if (item.division === 'ЛХ') factorySet.add('ЛХ');
+//       if (item.division === 'ЛЮ') factorySet.add('ЛЮ');
+//       if (item.division === 'СП') factorySet.add('СП');
+//       if (item.division === 'Щ') factorySet.add('Щ');
+//     });
+    
+//     // Для отгрузок - по division
+//     (shipment as ShipmentItem[]).forEach(item => {
+//       if (item.division === 'ЛХ') factorySet.add('ЛХ');
+//       if (item.division === 'ЛЮ') factorySet.add('ЛЮ');
+//       if (item.division === 'СП') factorySet.add('СП');
+//       if (item.division === 'Щ') factorySet.add('Щ');
+//     });
+    
+//     setFactories(Array.from(factorySet).sort());
+//   } catch (err) {
+//     console.error('Error loading all data:', err);
+//   }
+// };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 //   const handleRefresh = async () => {
 //     if (refreshing) return;
@@ -1662,51 +1684,131 @@ useEffect(() => {
 //     loadAllData().finally(() => setLoading(false));
 //   };
 
-//   useEffect(() => {
-//     if (!isAuthenticated) return;
+//   // useEffect(() => {
+//   //   if (!isAuthenticated) return;
     
-//     let isMounted = true;
+//   //   let isMounted = true;
     
-//     const fetchData = async () => {
-//       try {
-//         setLoading(true);
-//         await loadAllData();
-//         if (isMounted) {
-//           setLoading(false);
-//         }
-//       } catch (err) {
-//         if (isMounted) {
-//           setError(err instanceof Error ? err.message : 'Ошибка');
-//           setLoading(false);
-//         }
-//       }
-//     };
+//   //   const fetchData = async () => {
+//   //     try {
+//   //       setLoading(true);
+//   //       await loadAllData();
+//   //       await loadFutureRequestsCount();
+//   //       if (isMounted) {
+//   //         setLoading(false);
+//   //       }
+//   //     } catch (err) {
+//   //       if (isMounted) {
+//   //         setError(err instanceof Error ? err.message : 'Ошибка');
+//   //         setLoading(false);
+//   //       }
+//   //     }
+//   //   };
     
-//     fetchData();
+//   //   fetchData();
     
-//     return () => {
-//       isMounted = false;
-//     };
-//   }, [isAuthenticated]);
+//   //   return () => {
+//   //     isMounted = false;
+//   //   };
+//   // }, [isAuthenticated]);
 
-//   useEffect(() => {
-//     if (!isAuthenticated) return;
+//   // useEffect(() => {
+//   //   if (!isAuthenticated) return;
     
-//     const interval = setInterval(() => {
-//       console.log('🔄 Автообновление...');
-//       if (activeMainTab === 'incoming') {
-//         loadIncomingData();
-//         loadCronInfo();
-//       } else if (activeMainTab === 'shipment') {
-//         loadShipmentData();
-//         loadShipmentCronInfo();
-//       } else if (activeMainTab === 'summary') {
-//         loadAllData();
-//       }
-//     }, 30000);
+//   //   const interval = setInterval(() => {
+//   //     console.log('🔄 Автообновление...');
+//   //     if (activeMainTab === 'incoming') {
+//   //       loadIncomingData();
+//   //       loadCronInfo();
+//   //     } else if (activeMainTab === 'shipment') {
+//   //       loadShipmentData();
+//   //       loadShipmentCronInfo();
+//   //     } else if (activeMainTab === 'summary') {
+//   //       loadAllData();
+//   //       loadFutureRequestsCount();
+//   //     }
+//   //   }, 30000);
     
-//     return () => clearInterval(interval);
-//   }, [isAuthenticated, activeMainTab]);
+//   //   return () => clearInterval(interval);
+//   // }, [isAuthenticated, activeMainTab]);
+
+// //   useEffect(() => {
+// //   if (!isAuthenticated) return;
+  
+// //   let isMounted = true;
+  
+// //   const fetchData = async () => {
+// //     try {
+// //       setLoading(true);
+// //       await loadAllData();
+// //       await loadFutureRequestsCount();
+// //       await loadNewShipmentsCount();  // ← добавить
+// //       if (isMounted) {
+// //         setLoading(false);
+// //       }
+// //     } catch (err) {
+// //       if (isMounted) {
+// //         setError(err instanceof Error ? err.message : 'Ошибка');
+// //         setLoading(false);
+// //       }
+// //     }
+// //   };
+  
+// //   fetchData();
+  
+// //   return () => {
+// //     isMounted = false;
+// //   };
+// // }, [isAuthenticated]);
+
+
+
+
+// // Также обновляем при автообновлении
+// // useEffect(() => {
+// //   if (!isAuthenticated) return;
+  
+// //   const interval = setInterval(() => {
+// //     console.log('🔄 Автообновление...');
+// //     if (activeMainTab === 'incoming') {
+// //       loadIncomingData();
+// //       loadCronInfo();
+// //     } else if (activeMainTab === 'shipment') {
+// //       loadShipmentData();
+// //       loadShipmentCronInfo();
+// //       loadNewShipmentsCount();  // ← добавить
+// //     } else if (activeMainTab === 'summary') {
+// //       loadAllData();
+// //       loadFutureRequestsCount();
+// //       loadNewShipmentsCount();  // ← добавить
+// //     }
+// //   }, 30000);
+  
+// //   return () => clearInterval(interval);
+// // }, [isAuthenticated, activeMainTab]);
+
+// useEffect(() => {
+//   // if (!isAuthenticated) return;
+  
+//   const interval = setInterval(() => {
+//     console.log('🔄 Автообновление...');
+//     if (activeMainTab === 'incoming') {
+//       loadIncomingData();
+//       loadCronInfo();
+//     } else if (activeMainTab === 'shipment') {
+//       loadShipmentData();
+//       loadShipmentCronInfo();
+//       loadNewShipmentsCount();
+//     } else if (activeMainTab === 'summary') {
+//       loadAllData();
+//       loadFutureRequestsCount();  // ← обновляем счётчик
+//       loadNewShipmentsCount();
+//     }
+//   }, 30000);
+  
+//   return () => clearInterval(interval);
+// }, [activeMainTab]);
+
 
 //   const getCurrentData = (): UnifiedDataItem[] => {
 //     if (activeMainTab === 'incoming') {
@@ -1715,15 +1817,38 @@ useEffect(() => {
 //     return shipmentData;
 //   };
 
-//   const getFilteredData = (): UnifiedDataItem[] => {
-//     const data = getCurrentData();
-//     if (activeFactory === 'all') return data;
+//   // const getFilteredData = (): UnifiedDataItem[] => {
+//   //   const data = getCurrentData();
+//   //   if (activeFactory === 'all') return data;
     
-//     return data.filter(item => {
-//       const factory = detectFactory(item, activeMainTab as 'incoming' | 'shipment');
-//       return factory === activeFactory;
-//     });
-//   };
+//   //   return data.filter(item => {
+//   //     const factory = detectFactory(item, activeMainTab as 'incoming' | 'shipment');
+//   //     return factory === activeFactory;
+//   //   });
+//   // };
+
+
+
+
+//   const getFilteredData = (): UnifiedDataItem[] => {
+//   const data = getCurrentData();
+//   console.log('Active factory filter:', activeFactory);
+  
+//   if (activeFactory === 'all') return data;
+  
+//   const filtered = data.filter(item => {
+//     const factory = detectFactory(item, activeMainTab as 'incoming' | 'shipment');
+//     console.log('Item factory:', factory, 'Filter:', activeFactory, 'Match:', factory === activeFactory);
+//     return factory === activeFactory;
+//   });
+  
+//   console.log('Filtered count:', filtered.length);
+//   return filtered;
+// };
+
+
+
+
 
 //   const groupDataByDay = (data: UnifiedDataItem[]) => {
 //     const groupedMap = new Map<string, Map<string, GroupedRecord>>();
@@ -1781,53 +1906,111 @@ useEffect(() => {
 //     return dateB.getTime() - dateA.getTime();
 //   });
 
+//   const outgoingRequestsForCompact = outgoingRequests.map(req => ({
+//     number: req.number,
+//     date: req.date,
+//     division: req.division,
+//     quantity: req.quantity,
+//     consignee: req.consignee || '',
+//     material: req.material,
+//     closed: req.closed,
+//   }));
 
-
-// const outgoingRequestsForCompact = outgoingRequests.map(req => ({
-//   number: req.number,
-//   date: req.date,
-//   division: req.division,     // ← ДОБАВИТЬ подразделение (завод)
-//   quantity: req.quantity,
-//   consignee: req.consignee || '',  // ← null заменяем на пустую строку
-//   material: req.material,
-//   closed: req.closed,  // ← добавить
-// }));
-
-
-// // console.log('outgoingRequestsForCompact length:', outgoingRequestsForCompact.length);
-// // console.log('Sample:', outgoingRequestsForCompact[0]);
-
-
-
-
-
-// const sendPlan = async () => {
-//   setRefreshing(true);
-//   try {
-//     const response = await fetch('/api/send-plan', {
-//       headers: { 'Authorization': 'Bearer icg72xf3b1' }
-//     });
-//     const data = await response.json();
-//     setNotificationMessage(`✅ План отправлен! ${data.planCount} заказов`);
-//     setShowNotification(true);
-//     setTimeout(() => setShowNotification(false), 3000);
-//   } catch (err) {
-//     setNotificationMessage('⚠️ Ошибка отправки');
-//     setShowNotification(true);
-//     setTimeout(() => setShowNotification(false), 3000);
-//   } finally {
-//     setRefreshing(false);
-//   }
-// };
-
-
-
+//   const sendPlan = async () => {
+//     setRefreshing(true);
+//     try {
+//       const response = await fetch('/api/send-plan', {
+//         headers: { 'Authorization': 'Bearer icg72xf3b1' }
+//       });
+//       const data = await response.json();
+//       setNotificationMessage(`✅ План отправлен! ${data.planCount} заказов`);
+//       setShowNotification(true);
+//       setTimeout(() => setShowNotification(false), 3000);
+//     } catch (err) {
+//       setNotificationMessage('⚠️ Ошибка отправки');
+//       setShowNotification(true);
+//       setTimeout(() => setShowNotification(false), 3000);
+//     } finally {
+//       setRefreshing(false);
+//     }
+//   };
 
 //   const currentSyncInfo = activeMainTab === 'incoming' ? cronInfo : shipmentCronInfo;
 
-//   if (!isAuthenticated) {
-//     return <PinModal onSuccess={() => setIsAuthenticated(true)} />;
-//   }
+//   // if (!isAuthenticated) {
+//   //   return <PinModal onSuccess={() => setIsAuthenticated(true)} />;
+//   // }
+
+
+
+
+
+
+
+
+
+
+
+//   // Загрузка данных при монтировании компонента
+//   useEffect(() => {
+//     let isMounted = true;
+    
+//     const fetchData = async () => {
+//       try {
+//         setLoading(true);
+//         await loadAllData();
+//         await loadFutureRequestsCount();
+//         await loadNewShipmentsCount();
+//         if (isMounted) {
+//           setLoading(false);
+//         }
+//       } catch (err) {
+//         if (isMounted) {
+//           setError(err instanceof Error ? err.message : 'Ошибка');
+//           setLoading(false);
+//         }
+//       }
+//     };
+    
+//     fetchData();
+    
+//     return () => {
+//       isMounted = false;
+//     };
+//   }, []);
+
+//   // Автообновление раз в 30 секунд
+//   useEffect(() => {
+//     const interval = setInterval(() => {
+//       console.log('🔄 Автообновление...');
+//       if (activeMainTab === 'incoming') {
+//         loadIncomingData();
+//         loadCronInfo();
+//       } else if (activeMainTab === 'shipment') {
+//         loadShipmentData();
+//         loadShipmentCronInfo();
+//         loadNewShipmentsCount();
+//       } else if (activeMainTab === 'summary') {
+//         loadAllData();
+//         loadFutureRequestsCount();
+//         loadNewShipmentsCount();
+//       }
+//     }, 30000);
+    
+//     return () => clearInterval(interval);
+//   }, [activeMainTab]);
+
+
+
+
+
+
+
+
+
+
+
+
 
 //   if (loading) {
 //     return (
@@ -1847,25 +2030,63 @@ useEffect(() => {
 //     );
 //   }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //   return (
 //     <>
 //       <Notification message={notificationMessage} show={showNotification} />
 
 //       <div className="container">
 //         <header className="header">
-//           {/* <Header refreshing={refreshing} onRefresh={handleRefresh} /> */}
-          
 //           <Header 
 //             refreshing={refreshing} 
 //             onRefresh={handleRefresh}
 //             onSendPlan={sendPlan}
 //           />
           
+//           {/* <MainTabs 
+//             activeTab={activeMainTab} 
+//             onTabChange={setActiveMainTab}
+//             futureRequestsCount={futureRequestsCount}
+//           />
+//            */}
 
-//           {/* <MainTabs activeTab={activeMainTab} onTabChange={setActiveMainTab} /> */}
 
-          
-          
+//            <MainTabs 
+//   activeTab={activeMainTab} 
+//   onTabChange={setActiveMainTab}
+//   futureRequestsCount={futureRequestsCount}
+//   newShipmentsCount={newShipmentsCount}
+// />
+
+
+
 //           <div className="sync-info">
 //             <span className="sync-label">🔄 Синхронизация с 1С:</span>
 //             <span className="sync-time">{formatSyncTime(currentSyncInfo.lastSync)}</span>
@@ -1897,63 +2118,39 @@ useEffect(() => {
 //         >
 //           {activeMainTab === 'summary' && <SummaryView />}
 
-//           {/* {activeMainTab !== 'summary' && activeViewTab === 'list' && (
+//           {activeMainTab !== 'summary' && activeViewTab === 'list' && (
 //             <ListView 
 //               data={filteredData}
 //               mainTab={activeMainTab}
-//               isToday={isToday}
-//               formatDate={formatDate}
-//               formatWeight={formatWeight}
-//               getFactoryBadge={getFactoryBadge}
 //             />
-//           )} */}
+//           )}
 
-
-//           {activeMainTab !== 'summary' && activeViewTab === 'list' && (
-//   <ListView 
-//     data={filteredData}
-//     mainTab={activeMainTab}
-//   />
-// )}
-
-//           {/* {activeMainTab !== 'summary' && activeViewTab === 'grouped' && (
-//             <GroupedView 
-//               groupedData={groupedData}
-//               dates={sortedDates}
+//           {activeMainTab !== 'summary' && activeViewTab === 'compact' && (
+//             <CompactView 
+//               data={filteredData}
 //               mainTab={activeMainTab}
-//               formatWeight={formatWeight}
-//               getUniqueFactories={getUniqueFactories}
+//               outgoingRequests={outgoingRequestsForCompact}
+//               allShipments={shipmentData}  // ← добавить
+//               allShipmentsForChart={shipmentData}  // ← добавить
+//               selectedFactory={activeFactory}  // ← добавить
 //             />
-//           )} */}
+//           )}
 
-// {activeMainTab !== 'summary' && activeViewTab === 'compact' && (
-//   <CompactView 
-//     data={filteredData}
-//     mainTab={activeMainTab}
-//     outgoingRequests={outgoingRequestsForCompact}
-//   />
-// )}
+//           {activeMainTab !== 'summary' && activeViewTab === 'charts' && (
+//             <ChartsView data={shipmentData} />
+//           )}
 
-
-// {activeMainTab !== 'summary' && activeViewTab === 'charts' && (
-//   <ChartsView data={shipmentData} />
-// )}
-
-
-
-// {activeMainTab !== 'summary' && activeViewTab === 'topCustomers' && (
-//   <TopCustomersView data={shipmentData} />
-// )}
-
-
-
-
-
+//           {activeMainTab !== 'summary' && activeViewTab === 'topCustomers' && (
+//             <TopCustomersView data={shipmentData} />
+//           )}
 //         </motion.div>
 //       </div>
 //     </>
 //   );
 // }
+
+
+
 
 
 

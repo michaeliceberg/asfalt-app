@@ -1,9 +1,19 @@
 // app/components/FactoryFilter.tsx
 
+// const getFactoryName = (code: string): string => {
+//   switch (code) {
+//     case 'ЛХ': return '🏭 Луховицкий';
+//     case 'ЛЮ': return '🏭 Люберецкий';
+//     default: return '📦 Все заводы';
+//   }
+// };
+
 const getFactoryName = (code: string): string => {
   switch (code) {
     case 'ЛХ': return '🏭 Луховицкий';
     case 'ЛЮ': return '🏭 Люберецкий';
+    case 'СП': return '🏭 Сергиев Посад';
+    case 'Щ': return '🏭 Щёлково';
     default: return '📦 Все заводы';
   }
 };
