@@ -10,25 +10,21 @@ export async function GET(request: Request) {
     const cookieStore = await cookies();
     const token = cookieStore.get('token')?.value;
     
-    console.log('🔑 Token from cookie:', token ? 'present' : 'missing');
     
     if (!token) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     
     const accessibleFactories = await getUserAccessibleFactories(token);
-    console.log('🏭 Accessible factories:', accessibleFactories);
     
     // Получаем все отгрузки
     let allShipments = await db.select().from(shipments);
-    console.log('📦 Total shipments in DB:', allShipments.length);
     
     // Фильтруем по доступным заводам
     if (accessibleFactories.length > 0) {
       allShipments = allShipments.filter(shipment => 
         accessibleFactories.includes(shipment.division)
       );
-      console.log('🔍 Filtered shipments:', allShipments.length);
     }
     
     // Если нет данных, вернём пустой массив

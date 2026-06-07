@@ -9,7 +9,7 @@ import { sqliteTable, integer, text, real } from 'drizzle-orm/sqlite-core';
 // lib/db/schema.ts
 export const incomingMaterials = sqliteTable('incoming_materials', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  number: text('number').notNull(),
+  number: text('number').notNull().unique(), // ← добавляем unique
   date: text('date').notNull(),
   division: text('division'),  // ← эта строка должна быть
   supplier: text('supplier').notNull(),

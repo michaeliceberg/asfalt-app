@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef, startTransition } from 'react';
 import { motion } from 'framer-motion';
 import MainTabs from './components/MainTabs';
 import FactoryFilter from './components/FactoryFilter';
@@ -14,6 +14,7 @@ import Header from './components/header';
 import ChartsView from './components/ChartsView';
 import TopCustomersView from './components/TopCustomersView';
 import ModeSwitch from './components/ModeSwitch';
+import LoadingSpinner from './components/LoadingSpinner';
 
 // ============================================
 // ИНТЕРФЕЙСЫ
@@ -86,19 +87,6 @@ export interface ShipmentItem {
   clientRequestDate: string | null;
 }
 
-export interface FactoryRequest {
-  id: number;
-  clientRequestNumber: string;
-  date: string;
-  material: string;
-  planQuantity: number;
-  factQuantity: number;
-  consignee: string;
-  customer: string;
-  factory: string;
-  createdAt: number;
-}
-
 interface GroupedRecord {
   date: string;
   supplier: string;
@@ -113,79 +101,71 @@ interface CronInfo {
   totalRecords: number;
 }
 
-type MainTab = 'incoming' | 'shipment' | 'summary';
+
+
+
+// ============================================
+// ФУНКЦИЯ ОПРЕДЕЛЕНИЯ БЕТОНА
+// ============================================
+
+const isConcreteMaterial = (material: string): boolean => {
+  if (!material) return false;
+  const lower = material.toLowerCase();
+  
+  // Чёткие маркеры бетона
+  const concreteMarkers = ['бст', 'бсм', 'бетон', 'раствор'];
+  
+  // Исключения — что точно НЕ бетон
+  const notConcreteMarkers = ['пбв', 'гранит', 'асфальт', 'щебень', 'песок', 'битум', 'эмульсия'];
+  
+  // Сначала проверяем исключения
+  for (const marker of notConcreteMarkers) {
+    if (lower.includes(marker)) return false;
+  }
+  
+  // Потом проверяем маркеры бетона
+  for (const marker of concreteMarkers) {
+    if (lower.includes(marker)) return true;
+  }
+  
+  return false;
+};
+
+
+
+type MainTab = 'incoming' | 'shipment' | 'shipmentConcrete' | 'summary';
 type ViewTab = 'compact' | 'grouped' | 'list' | 'charts' | 'topCustomers';
 type UnifiedDataItem = IncomingItem | ShipmentItem;
 
 // ============================================
-// ФУНКЦИИ ДЛЯ РАБОТЫ С ДАТАМИ (ПРАВИЛЬНЫЙ ПАРСИНГ ДД.ММ.ГГГГ)
+// ФУНКЦИИ ДЛЯ РАБОТЫ С ДАТАМИ
 // ============================================
 
-/**
- * Парсит дату в формате "ДД.ММ.ГГГГ ЧЧ:ММ:СС" или "ДД.ММ.ГГГГ"
- * Пример: "05.06.2026 11:45:35" → 5 июня 2026 года
- */
 const parseRussianDate = (dateString: string): Date => {
   if (!dateString) return new Date();
   
-  // Если уже ISO формат
   if (dateString.includes('T') && !dateString.includes('.')) {
     const date = new Date(dateString);
     if (!isNaN(date.getTime())) return date;
   }
   
-  // Разделяем дату и время
   const parts = dateString.split(' ');
   const dateParts = parts[0].split('.');
   
-  let hour = 0, minute = 0, second = 0;
+  let hour = 0, minute = 0;
   if (parts[1]) {
     const timeParts = parts[1].split(':');
     hour = parseInt(timeParts[0], 10);
     minute = parseInt(timeParts[1], 10);
-    second = parseInt(timeParts[2], 10);
   }
   
-  // ВНИМАНИЕ: формат ДД.ММ.ГГГГ
   const day = parseInt(dateParts[0], 10);
-  const month = parseInt(dateParts[1], 10) - 1; // month 0-11
+  const month = parseInt(dateParts[1], 10) - 1;
   const year = parseInt(dateParts[2], 10);
   
-  return new Date(year, month, day, hour, minute, second);
+  return new Date(year, month, day, hour, minute);
 };
 
-/**
- * Форматирует дату для отображения "ДД.ММ.ГГГГ ЧЧ:ММ"
- */
-const formatDateForDisplay = (dateString: string): string => {
-  const date = parseRussianDate(dateString);
-  if (isNaN(date.getTime())) return dateString;
-  
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const year = date.getFullYear();
-  const time = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-  
-  return `${day}.${month}.${year} ${time}`;
-};
-
-/**
- * Форматирует только дату "ДД.ММ.ГГГГ"
- */
-const formatDateOnly = (dateString: string): string => {
-  const date = parseRussianDate(dateString);
-  if (isNaN(date.getTime())) return dateString;
-  
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const year = date.getFullYear();
-  
-  return `${day}.${month}.${year}`;
-};
-
-/**
- * Возвращает ключ для группировки "ДД.ММ.ГГГГ"
- */
 const getDateKey = (dateString: string): string => {
   const date = parseRussianDate(dateString);
   if (isNaN(date.getTime())) return dateString;
@@ -197,31 +177,14 @@ const getDateKey = (dateString: string): string => {
   return `${day}.${month}.${year}`;
 };
 
-/**
- * Сравнивает две даты для сортировки (новые сначала)
- */
-const compareDates = (dateA: string, dateB: string): number => {
-  const a = parseRussianDate(dateA);
-  const b = parseRussianDate(dateB);
-  return b.getTime() - a.getTime();
+const isConcrete = (material: string): boolean => {
+  if (!material) return false;
+  const lower = material.toLowerCase();
+  return lower.includes('бст') || 
+         lower.includes('бетон') ||
+         lower.includes('раствор') ||
+         lower.includes('бсм');
 };
-
-/**
- * Проверяет, является ли дата сегодняшней
- */
-const isDateToday = (dateString: string): boolean => {
-  const date = parseRussianDate(dateString);
-  if (isNaN(date.getTime())) return false;
-  
-  const today = new Date();
-  return date.getDate() === today.getDate() &&
-    date.getMonth() === today.getMonth() &&
-    date.getFullYear() === today.getFullYear();
-};
-
-// ============================================
-// ФУНКЦИИ ДЛЯ РАБОТЫ С ЗАВОДАМИ
-// ============================================
 
 const detectFactory = (item: UnifiedDataItem, type: 'incoming' | 'shipment'): string => {
   if (type === 'incoming') {
@@ -255,10 +218,11 @@ const getFactoryName = (code: string): string => {
 };
 
 // ============================================
-// КОМПОНЕНТ
+// ОСНОВНОЙ КОМПОНЕНТ
 // ============================================
 
 export default function Home() {
+  // Состояния
   const [incomingData, setIncomingData] = useState<IncomingItem[]>([]);
   const [shipmentData, setShipmentData] = useState<ShipmentItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -276,176 +240,188 @@ export default function Home() {
   const [outgoingRequests, setOutgoingRequests] = useState<OutgoingRequest[]>([]);
   const [futureRequestsCount, setFutureRequestsCount] = useState<number>(0);
   const [newShipmentsCount, setNewShipmentsCount] = useState<number>(0);
+  const [newConcreteCount, setNewConcreteCount] = useState<number>(0);
+  const [contentKey, setContentKey] = useState(0);
 
-
-
-  
-
-  
-
-
-  // Режим переключения
-const [mode, setMode] = useState<'tas' | 'iceberg'>(() => {
-  if (typeof window !== 'undefined') {
-    const saved = localStorage.getItem('appMode');
-    if (saved === 'tas' || saved === 'iceberg') {
-      return saved;
+  // Режим переключения (ТАС / Айсберг)
+  const [mode, setMode] = useState<'tas' | 'iceberg'>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('appMode');
+      if (saved === 'tas' || saved === 'iceberg') {
+        return saved;
+      }
     }
-  }
-  return 'tas';
-});
+    return 'tas';
+  });
 
-// Анимация контента (опционально)
-const [contentKey, setContentKey] = useState(0);
-
-// Доступные заводы в зависимости от режима
-const availableFactories: string[] = mode === 'tas' 
+  // Доступные заводы в зависимости от режима
+const availableFactories = mode === 'tas' 
   ? factories.filter(f => f === 'ЛХ' || f === 'ЛЮ')
   : factories.filter(f => f === 'СП' || f === 'Щ');
 
-// Функция переключения режима
-const toggleMode = () => {
-  const newMode = mode === 'tas' ? 'iceberg' : 'tas';
-  
-  setContentKey(prev => prev + 1);
-  setMode(newMode);
-  setActiveFactory('all');
-  
-  if (window.navigator && window.navigator.vibrate) {
-    window.navigator.vibrate(50);
-  }
-  
-  localStorage.setItem('appMode', newMode);
-};
+  // Функция переключения режима
+  const toggleMode = () => {
+    const newMode = mode === 'tas' ? 'iceberg' : 'tas';
+    
+    setContentKey(prev => prev + 1);
+    setMode(newMode);
+    setActiveFactory('all');
+    
+    // Вибрация на мобильных устройствах
+    if (window.navigator && window.navigator.vibrate) {
+      window.navigator.vibrate(50);
+    }
+    
+    localStorage.setItem('appMode', newMode);
+  };
 
-// Применяем класс к body для изменения темы
-useEffect(() => {
-  if (mode === 'iceberg') {
-    document.body.classList.add('iceberg-mode');
-  } else {
-    document.body.classList.remove('iceberg-mode');
-  }
-}, [mode]);
-
-// Обновлённая функция фильтрации
-const getFilteredData = (): UnifiedDataItem[] => {
-  const data = getCurrentData();
-  
-  if (activeFactory === 'all') {
-    return data.filter(item => {
-      const factory = detectFactory(item, activeMainTab as 'incoming' | 'shipment');
-      return availableFactories.includes(factory);
-    });
-  }
-  
-  return data.filter(item => {
-    const factory = detectFactory(item, activeMainTab as 'incoming' | 'shipment');
-    return factory === activeFactory;
-  });
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
+  // Применяем класс к body для изменения темы
+  useEffect(() => {
+    if (mode === 'iceberg') {
+      document.body.classList.add('iceberg-mode');
+    } else {
+      document.body.classList.remove('iceberg-mode');
+    }
+  }, [mode]);
 
   // ============================================
   // ЗАГРУЗКА ДАННЫХ
   // ============================================
 
   const loadNewShipmentsCount = async () => {
-    try {
-      const [requestsResponse, shipmentsResponse] = await Promise.all([
-        fetch('/api/outgoing-requests'),
-        fetch('/api/shipments')
-      ]);
+  try {
+    const [requestsResponse, shipmentsResponse] = await Promise.all([
+      fetch('/api/outgoing-requests'),
+      fetch('/api/shipments')
+    ]);
+    
+    const allRequests = await requestsResponse.json();
+    let allShipments = await shipmentsResponse.json();
+    
+    // Фильтруем отгрузки по текущему режиму (только асфальт)
+    allShipments = allShipments.filter((s: ShipmentItem) => !isConcreteMaterial(s.material));
+    
+    // Фильтруем по заводам текущего режима
+    const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
+    allShipments = allShipments.filter((s: ShipmentItem) => validFactories.includes(s.division));
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const shipmentsByRequest = new Map();
+    for (const shipment of allShipments) {
+      const shipmentDate = parseRussianDate(shipment.date);
+      shipmentDate.setHours(0, 0, 0, 0);
+      if (shipmentDate.getTime() !== today.getTime()) continue;
       
-      const allRequests = await requestsResponse.json();
-      const allShipments = await shipmentsResponse.json();
-      
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const shipmentsByRequest = new Map();
-      for (const shipment of allShipments) {
-        const shipmentDate = parseRussianDate(shipment.date);
-        shipmentDate.setHours(0, 0, 0, 0);
-        if (shipmentDate.getTime() !== today.getTime()) continue;
-        
-        const requestNumber = shipment.clientRequestNumber;
-        if (requestNumber) {
-          const current = shipmentsByRequest.get(requestNumber) || { fact: 0 };
-          current.fact += shipment.quantity;
-          shipmentsByRequest.set(requestNumber, current);
-        }
+      const requestNumber = shipment.clientRequestNumber;
+      if (requestNumber) {
+        const current = shipmentsByRequest.get(requestNumber) || { fact: 0 };
+        current.fact += shipment.quantity;
+        shipmentsByRequest.set(requestNumber, current);
       }
-      
-      const planMap = new Map();
-      for (const req of allRequests) {
-        planMap.set(req.number, req.quantity);
-      }
-      
-      let activeCount = 0;
-      for (const [requestNumber, data] of shipmentsByRequest) {
-        const request = allRequests.find((r: ApiOutgoingRequest) => r.number === requestNumber);
-        if (request && !request.closed) {
-          const plan = planMap.get(requestNumber) || 0;
-          const percent = plan > 0 ? (data.fact / plan) * 100 : 0;
-          if (percent > 0 && percent < 94) {
-            activeCount++;
-          }
-        }
-      }
-      
-      setNewShipmentsCount(activeCount);
-    } catch (err) {
-      console.error(err);
     }
-  };
+    
+    const planMap = new Map();
+    for (const req of allRequests) {
+      planMap.set(req.number, req.quantity);
+    }
+    
+    let activeCount = 0;
+    for (const [requestNumber, data] of shipmentsByRequest) {
+      const request = allRequests.find((r: ApiOutgoingRequest) => r.number === requestNumber);
+      if (request && !request.closed) {
+        const plan = planMap.get(requestNumber) || 0;
+        const percent = plan > 0 ? (data.fact / plan) * 100 : 0;
+        if (percent > 0 && percent < 94) {
+          activeCount++;
+        }
+      }
+    }
+    
+    setNewShipmentsCount(activeCount);
+  } catch (err) {
+    console.error(err);
+  }
+};
 
-  const loadFutureRequestsCount = async () => {
-    try {
-      const [requestsResponse, shipmentsResponse] = await Promise.all([
-        fetch('/api/outgoing-requests'),
-        fetch('/api/shipments')
-      ]);
-      
-      const allRequests = await requestsResponse.json();
-      const allShipments = await shipmentsResponse.json();
-      
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      const activeTodayRequests = new Set();
-      for (const shipment of allShipments) {
-        const shipmentDate = parseRussianDate(shipment.date);
-        shipmentDate.setHours(0, 0, 0, 0);
-        if (shipmentDate.getTime() === today.getTime() && shipment.clientRequestNumber) {
-          activeTodayRequests.add(shipment.clientRequestNumber);
-        }
+const loadNewConcreteCount = async () => {
+  try {
+    const response = await fetch('/api/shipments');
+    let allShipments: ShipmentItem[] = await response.json();
+    
+    // Только бетон
+    allShipments = allShipments.filter(s => isConcreteMaterial(s.material));
+    
+    // Только заводы текущего режима (Айсберг)
+    const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
+    allShipments = allShipments.filter(s => validFactories.includes(s.division));
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const todayConcrete = allShipments.filter(shipment => {
+      const shipmentDate = parseRussianDate(shipment.date);
+      shipmentDate.setHours(0, 0, 0, 0);
+      return shipmentDate.getTime() === today.getTime();
+    });
+    
+    setNewConcreteCount(todayConcrete.length);
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+
+
+
+
+
+const loadFutureRequestsCount = async () => {
+  try {
+    const [requestsResponse, shipmentsResponse] = await Promise.all([
+      fetch('/api/outgoing-requests'),
+      fetch('/api/shipments')
+    ]);
+    
+    let allRequests = await requestsResponse.json();
+    let allShipments = await shipmentsResponse.json();
+    
+    // Фильтруем по заводам текущего режима
+    const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
+    allRequests = allRequests.filter((r: ApiOutgoingRequest) => validFactories.includes(r.division));
+    allShipments = allShipments.filter((s: ShipmentItem) => validFactories.includes(s.division));
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const activeTodayRequests = new Set();
+    for (const shipment of allShipments) {
+      const shipmentDate = parseRussianDate(shipment.date);
+      shipmentDate.setHours(0, 0, 0, 0);
+      if (shipmentDate.getTime() === today.getTime() && shipment.clientRequestNumber) {
+        activeTodayRequests.add(shipment.clientRequestNumber);
       }
-      
-      const future = allRequests.filter((req: ApiOutgoingRequest) => {
-        if (req.closed) return false;
-        if (!req.delivery_date) return false;
-        const deliveryDate = parseRussianDate(req.delivery_date);
-        deliveryDate.setHours(0, 0, 0, 0);
-        return deliveryDate >= today && !activeTodayRequests.has(req.number);
-      });
-      
-      setFutureRequestsCount(future.length);
-    } catch (err) {
-      console.error(err);
     }
-  };
+    
+    const future = allRequests.filter((req: ApiOutgoingRequest) => {
+      if (req.closed) return false;
+      if (!req.delivery_date) return false;
+      const deliveryDate = parseRussianDate(req.delivery_date);
+      deliveryDate.setHours(0, 0, 0, 0);
+      return deliveryDate >= today && !activeTodayRequests.has(req.number);
+    });
+    
+    setFutureRequestsCount(future.length);
+  } catch (err) {
+    console.error(err);
+  }
+};
+
+
+
+
+
 
   const loadOutgoingRequests = async () => {
     try {
@@ -492,15 +468,6 @@ const getFilteredData = (): UnifiedDataItem[] => {
       
       if (Array.isArray(data)) {
         setShipmentData(data);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todayShipments = data.filter((shipment: ShipmentItem) => {
-          if (!shipment.date) return false;
-          const shipmentDate = parseRussianDate(shipment.date);
-          shipmentDate.setHours(0, 0, 0, 0);
-          return shipmentDate.getTime() === today.getTime();
-        });
-        setNewShipmentsCount(todayShipments.length);
         return data;
       }
       return [];
@@ -534,87 +501,107 @@ const getFilteredData = (): UnifiedDataItem[] => {
     }
   };
 
-  const loadAllData = async () => {
-    try {
-      const [incoming, shipment] = await Promise.all([
-        loadIncomingData(),
-        loadShipmentData(),
-        loadOutgoingRequests(),
-      ]);
-      
-      const factorySet = new Set<string>();
-      
-      (incoming as IncomingItem[]).forEach(item => {
-        if (item.number?.startsWith('ЛХ')) factorySet.add('ЛХ');
-        if (item.number?.startsWith('ЛЮ')) factorySet.add('ЛЮ');
-        if (item.number?.startsWith('СП')) factorySet.add('СП');
-        if (item.number?.startsWith('Щ')) factorySet.add('Щ');
-        if (item.division === 'ЛХ') factorySet.add('ЛХ');
-        if (item.division === 'ЛЮ') factorySet.add('ЛЮ');
-        if (item.division === 'СП') factorySet.add('СП');
-        if (item.division === 'Щ') factorySet.add('Щ');
-      });
-      
-      (shipment as ShipmentItem[]).forEach(item => {
-        if (item.division === 'ЛХ') factorySet.add('ЛХ');
-        if (item.division === 'ЛЮ') factorySet.add('ЛЮ');
-        if (item.division === 'СП') factorySet.add('СП');
-        if (item.division === 'Щ') factorySet.add('Щ');
-      });
-      
-      setFactories(Array.from(factorySet).sort());
-    } catch (err) {
-      console.error('Error loading all data:', err);
-    }
-  };
+
+
+
+const loadAllData = async () => {
+  try {
+    const [incoming, shipment] = await Promise.all([
+      loadIncomingData(),
+      loadShipmentData(),
+      loadOutgoingRequests(),
+    ]);
+    
+    const factorySet = new Set<string>();
+    
+    // Добавляем все найденные заводы
+    (incoming as IncomingItem[]).forEach(item => {
+      if (item.division) factorySet.add(item.division);
+      if (item.number?.startsWith('ЛХ')) factorySet.add('ЛХ');
+      if (item.number?.startsWith('ЛЮ')) factorySet.add('ЛЮ');
+      if (item.number?.startsWith('СП')) factorySet.add('СП');
+      if (item.number?.startsWith('Щ')) factorySet.add('Щ');
+    });
+    
+    (shipment as ShipmentItem[]).forEach(item => {
+      if (item.division) factorySet.add(item.division);
+    });
+    
+    setFactories(Array.from(factorySet).sort());
+  } catch (err) {
+    console.error('Error loading all data:', err);
+  }
+};
+
+
+
+
 
   // ============================================
   // ОБНОВЛЕНИЕ ДАННЫХ
   // ============================================
 
   const handleRefresh = async () => {
-    if (refreshing) return;
-    
-    setRefreshing(true);
-    
-    try {
-      if (activeMainTab === 'incoming') {
-        await fetch('/api/cron', {
-          headers: { 'Authorization': 'Bearer icg72xf3b1' }
-        });
-        await loadIncomingData();
-        await loadCronInfo();
-        setNotificationMessage(`✅ Поступления обновлены`);
-      } else if (activeMainTab === 'shipment') {
-        await fetch('/api/cron-shipments', {
-          headers: { 'Authorization': 'Bearer icg72xf3b1' }
-        });
-        await loadShipmentData();
-        await loadShipmentCronInfo();
-        setNotificationMessage(`✅ Отгрузки обновлены`);
-      } else if (activeMainTab === 'summary') {
-        await Promise.all([
-          fetch('/api/cron', { headers: { 'Authorization': 'Bearer icg72xf3b1' } }),
-          fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } }),
-        ]);
-        await loadAllData();
-        setNotificationMessage(`✅ Все данные обновлены`);
-      }
-      
-      setShowNotification(true);
-      setTimeout(() => setShowNotification(false), 2000);
-      
-      setShouldShake(true);
-      setTimeout(() => setShouldShake(false), 500);
-    } catch (err) {
-      console.error('Ошибка при обновлении:', err);
-      setNotificationMessage('⚠️ Ошибка обновления');
-      setShowNotification(true);
-      setTimeout(() => setShowNotification(false), 2000);
-    } finally {
-      setRefreshing(false);
+  if (refreshing) return;
+  
+  setRefreshing(true);
+  
+  try {
+    if (activeMainTab === 'incoming') {
+      await fetch('/api/cron', {
+        headers: { 'Authorization': 'Bearer icg72xf3b1' }
+      });
+      await loadIncomingData();
+      await loadCronInfo();
+      setNotificationMessage(`✅ Поступления обновлены`);
+    } else if (activeMainTab === 'shipment') {
+      await fetch('/api/cron-shipments', {
+        headers: { 'Authorization': 'Bearer icg72xf3b1' }
+      });
+      await loadShipmentData();
+      await loadShipmentCronInfo();
+      await loadNewShipmentsCount();  // ← добавить
+      setNotificationMessage(`✅ Отгрузки асфальта обновлены`);
+    } else if (activeMainTab === 'shipmentConcrete') {
+      await fetch('/api/cron-shipments', {
+        headers: { 'Authorization': 'Bearer icg72xf3b1' }
+      });
+      await loadShipmentData();
+      await loadShipmentCronInfo();
+      await loadNewConcreteCount();  // ← добавить
+      setNotificationMessage(`✅ Отгрузки бетона обновлены`);
+    } else if (activeMainTab === 'summary') {
+      await Promise.all([
+        fetch('/api/cron', { headers: { 'Authorization': 'Bearer icg72xf3b1' } }),
+        fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } }),
+      ]);
+      await loadAllData();
+      await loadFutureRequestsCount();
+      await loadNewShipmentsCount();
+      await loadNewConcreteCount();  // ← добавить
+      setNotificationMessage(`✅ Все данные обновлены`);
     }
-  };
+    
+    setShowNotification(true);
+    setTimeout(() => setShowNotification(false), 2000);
+    
+    setShouldShake(true);
+    setTimeout(() => setShouldShake(false), 500);
+  } catch (err) {
+    console.error('Ошибка при обновлении:', err);
+    setNotificationMessage('⚠️ Ошибка обновления');
+    setShowNotification(true);
+    setTimeout(() => setShowNotification(false), 2000);
+  } finally {
+    setRefreshing(false);
+  }
+};
+
+
+
+
+
+
 
   const handleRetry = () => {
     setLoading(true);
@@ -626,73 +613,112 @@ const getFilteredData = (): UnifiedDataItem[] => {
   // ФИЛЬТРАЦИЯ ДАННЫХ
   // ============================================
 
+  const getFilteredShipmentsByType = (type: 'asphalt' | 'concrete'): ShipmentItem[] => {
+    let filtered = shipmentData;
+    
+    // Фильтруем по заводу
+    if (activeFactory !== 'all') {
+      filtered = filtered.filter(item => {
+        const factory = detectFactory(item, 'shipment');
+        return factory === activeFactory;
+      });
+    }
+    
+    // Фильтруем по типу материала
+    if (type === 'asphalt') {
+      filtered = filtered.filter(item => !isConcrete(item.material));
+    } else if (type === 'concrete') {
+      filtered = filtered.filter(item => isConcrete(item.material));
+    }
+    
+    return filtered;
+  };
+
+  
+  
+  
+  
+
   const getCurrentData = (): UnifiedDataItem[] => {
-    if (activeMainTab === 'incoming') {
-      return incomingData;
+  // Поступления
+  if (activeMainTab === 'incoming') {
+    let filtered = incomingData;
+    
+    // Фильтруем по заводу если выбран конкретный
+    if (activeFactory !== 'all') {
+      filtered = filtered.filter(item => {
+        const factory = detectFactory(item, 'incoming');
+        return factory === activeFactory;
+      });
+    } else {
+      // Если выбран "Все заводы", фильтруем по текущему режиму
+      filtered = filtered.filter(item => {
+        const factory = detectFactory(item, 'incoming');
+        if (mode === 'tas') {
+          return factory === 'ЛХ' || factory === 'ЛЮ';
+        } else {
+          return factory === 'СП' || factory === 'Щ';
+        }
+      });
     }
-    return shipmentData;
-  };
-
-  // const getFilteredData = (): UnifiedDataItem[] => {
-  //   const data = getCurrentData();
-  //   if (activeFactory === 'all') return data;
+    return filtered;
+  }
+  
+  // Отгрузка Асфальт
+  if (activeMainTab === 'shipment') {
+    let filtered = shipmentData.filter(item => !isConcreteMaterial(item.material));
     
-  //   return data.filter(item => {
-  //     const factory = detectFactory(item, activeMainTab as 'incoming' | 'shipment');
-  //     return factory === activeFactory;
-  //   });
-  // };
-
-  const groupDataByDay = (data: UnifiedDataItem[]) => {
-    const groupedMap = new Map<string, Map<string, GroupedRecord>>();
-    
-    data.forEach((record) => {
-      const dateKey = getDateKey(record.date);
-      
-      let supplier: string;
-      if (activeMainTab === 'incoming') {
-        supplier = (record as IncomingItem).supplier;
-      } else {
-        const shipment = record as ShipmentItem;
-        supplier = shipment.consignee || shipment.customer;
-      }
-      
-      const key = `${dateKey}_${supplier}_${record.material}`;
-      
-      if (!groupedMap.has(dateKey)) {
-        groupedMap.set(dateKey, new Map());
-      }
-      
-      const dayMap = groupedMap.get(dateKey)!;
-      
-      if (dayMap.has(key)) {
-        const existing = dayMap.get(key)!;
-        existing.totalQuantity += record.quantity;
-        existing.vehicleCount += 1;
-        existing.records.push(record);
-      } else {
-        dayMap.set(key, {
-          date: record.date,
-          supplier: supplier,
-          material: record.material,
-          totalQuantity: record.quantity,
-          vehicleCount: 1,
-          records: [record],
-        });
-      }
-    });
-    
-    const result: Map<string, GroupedRecord[]> = new Map();
-    for (const [date, dayMap] of groupedMap) {
-      result.set(date, Array.from(dayMap.values()));
+    if (activeFactory !== 'all') {
+      filtered = filtered.filter(item => {
+        const factory = detectFactory(item, 'shipment');
+        return factory === activeFactory;
+      });
+    } else {
+      filtered = filtered.filter(item => {
+        const factory = detectFactory(item, 'shipment');
+        if (mode === 'tas') {
+          return factory === 'ЛХ' || factory === 'ЛЮ';
+        } else {
+          return factory === 'СП' || factory === 'Щ';
+        }
+      });
     }
+    return filtered;
+  }
+  
+  // Отгрузка Бетон (только для Айсберг)
+  if (activeMainTab === 'shipmentConcrete') {
+    let filtered = shipmentData.filter(item => isConcreteMaterial(item.material));
     
-    return result;
-  };
+    if (activeFactory !== 'all') {
+      filtered = filtered.filter(item => {
+        const factory = detectFactory(item, 'shipment');
+        return factory === activeFactory;
+      });
+    } else {
+      filtered = filtered.filter(item => {
+        const factory = detectFactory(item, 'shipment');
+        if (mode === 'tas') {
+          return factory === 'ЛХ' || factory === 'ЛЮ';
+        } else {
+          return factory === 'СП' || factory === 'Щ';
+        }
+      });
+    }
+    return filtered;
+  }
+  
+  return [];
+};
 
-  const filteredData = getFilteredData();
-  const groupedData = groupDataByDay(filteredData);
-  const sortedDates = Array.from(groupedData.keys()).sort(compareDates);
+
+
+
+
+
+
+
+  const filteredData = getCurrentData();
 
   const outgoingRequestsForCompact = outgoingRequests.map(req => ({
     number: req.number,
@@ -738,6 +764,7 @@ const getFilteredData = (): UnifiedDataItem[] => {
         await loadAllData();
         await loadFutureRequestsCount();
         await loadNewShipmentsCount();
+        await loadNewConcreteCount();
         if (isMounted) {
           setLoading(false);
         }
@@ -756,37 +783,54 @@ const getFilteredData = (): UnifiedDataItem[] => {
     };
   }, []);
 
+
+
+
   useEffect(() => {
-    const interval = setInterval(() => {
-      console.log('🔄 Автообновление...');
-      if (activeMainTab === 'incoming') {
-        loadIncomingData();
-        loadCronInfo();
-      } else if (activeMainTab === 'shipment') {
-        loadShipmentData();
-        loadShipmentCronInfo();
-        loadNewShipmentsCount();
-      } else if (activeMainTab === 'summary') {
-        loadAllData();
-        loadFutureRequestsCount();
-        loadNewShipmentsCount();
-      }
-    }, 30000);
+  const interval = setInterval(() => {
+    console.log('🔄 Автообновление...');
     
-    return () => clearInterval(interval);
-  }, [activeMainTab]);
+    if (activeMainTab === 'incoming') {
+      loadIncomingData();
+      loadCronInfo();
+    } 
+    else if (activeMainTab === 'shipment') {
+      loadShipmentData();
+      loadShipmentCronInfo();
+      loadNewShipmentsCount();
+    } 
+    else if (activeMainTab === 'shipmentConcrete') {
+      loadShipmentData();
+      loadShipmentCronInfo();
+      // Обновляем счётчик бетона только в режиме Айсберг
+      if (mode === 'iceberg') {
+        loadNewConcreteCount();
+      }
+    } 
+    else if (activeMainTab === 'summary') {
+      loadAllData();
+      loadFutureRequestsCount();
+      loadNewShipmentsCount();
+      if (mode === 'iceberg') {
+        loadNewConcreteCount();
+      }
+    }
+  }, 30000);
+  
+  return () => clearInterval(interval);
+}, [activeMainTab, mode]);
+
+
+
+
+
 
   // ============================================
   // РЕНДЕР
   // ============================================
 
   if (loading) {
-    return (
-      <div className="loading">
-        <div className="spinner"></div>
-        <p>Загрузка данных...</p>
-      </div>
-    );
+    return <LoadingSpinner message="Загрузка данных..." size="large" fullScreen />;
   }
 
   if (error) {
@@ -817,6 +861,8 @@ const getFilteredData = (): UnifiedDataItem[] => {
             onTabChange={setActiveMainTab}
             futureRequestsCount={futureRequestsCount}
             newShipmentsCount={newShipmentsCount}
+            newConcreteCount={newConcreteCount}
+            showConcreteTab={mode === 'iceberg'}  // ← показываем только в режиме Айсберг
           />
 
           <div className="sync-info">
@@ -824,10 +870,10 @@ const getFilteredData = (): UnifiedDataItem[] => {
             <span className="sync-time">{formatSyncTime(currentSyncInfo.lastSync)}</span>
           </div>
 
-          {/* {activeMainTab !== 'summary' && (
+          {activeMainTab !== 'summary' && (
             <>
               <FactoryFilter 
-                factories={factories} 
+                factories={availableFactories} 
                 activeFactory={activeFactory} 
                 onFactoryChange={setActiveFactory} 
               />
@@ -839,68 +885,58 @@ const getFilteredData = (): UnifiedDataItem[] => {
                 {activeFactory !== 'all' && ` (${getFactoryName(activeFactory)})`}
               </div>
             </>
-          )} */}
-
-
-          {activeMainTab !== 'summary' && (
-  <>
-    <FactoryFilter 
-      factories={availableFactories} 
-      activeFactory={activeFactory} 
-      onFactoryChange={setActiveFactory} 
-    />
-    <ViewTabs activeTab={activeViewTab} onTabChange={setActiveViewTab} />
-    <div className="stats">
-      Всего записей: <strong>{filteredData.length}</strong>
-      {activeFactory !== 'all' && ` (${getFactoryName(activeFactory)})`}
-    </div>
-  </>
-)}
-
-
-
+          )}
         </header>
 
         <motion.div
-          animate={shouldShake ? {
-            x: [0, -5, 5, -3, 3, 0],
-            transition: { duration: 0.3 }
-          } : {}}
+          key={contentKey}
+          initial={{ opacity: 0, x: mode === 'tas' ? -20 : 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: mode === 'tas' ? 20 : -20 }}
+          transition={{ duration: 0.3, type: 'spring', stiffness: 400, damping: 30 }}
         >
-          {activeMainTab === 'summary' && <SummaryView />}
+          {/* {activeMainTab === 'summary' && <SummaryView />} */}
+          {activeMainTab === 'summary' && <SummaryView mode={mode} />}
+          
+{activeMainTab !== 'summary' && activeViewTab === 'list' && (
+  <ListView 
+    data={getCurrentData()}
+    mainTab={activeMainTab}
+  />
+)}
 
-          {activeMainTab !== 'summary' && activeViewTab === 'list' && (
-            <ListView 
-              data={filteredData}
-              mainTab={activeMainTab}
-            />
-          )}
+{activeMainTab !== 'summary' && activeViewTab === 'compact' && (
+  <CompactView 
+    data={getCurrentData()}
+    mainTab={activeMainTab}
+    outgoingRequests={outgoingRequestsForCompact}
+    allShipments={shipmentData}
+    allShipmentsForChart={shipmentData}
+    selectedFactory={activeFactory}
+    mode={mode}
+  />
+)}
 
-          {activeMainTab !== 'summary' && activeViewTab === 'compact' && (
-            <CompactView 
-              data={filteredData}
-              mainTab={activeMainTab}
-              outgoingRequests={outgoingRequestsForCompact}
-              allShipments={shipmentData}
-              allShipmentsForChart={shipmentData}
-              selectedFactory={activeFactory}
-              mode={mode}  // ← добавить эту строку
-            />
-          )}
-
-          {activeMainTab !== 'summary' && activeViewTab === 'charts' && (
+          {/* {activeMainTab !== 'summary' && activeViewTab === 'charts' && (
             <ChartsView data={shipmentData} />
-          )}
+          )} */}
+
+
+{activeMainTab !== 'summary' && activeViewTab === 'charts' && (
+  <ChartsView data={shipmentData} mode={mode} />
+)}
 
           {activeMainTab !== 'summary' && activeViewTab === 'topCustomers' && (
-            <TopCustomersView data={shipmentData} />
+            <TopCustomersView 
+              data={shipmentData} 
+              mode={mode} 
+            />
           )}
         </motion.div>
       </div>
     </>
   );
 }
-
 
 
 

@@ -4,6 +4,7 @@ import { IncomingItem, ShipmentItem } from '@/app/page';
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ActivityChart from './ActivityChart';
+import LoadingSpinner from './LoadingSpinner';
 
 type UnifiedDataItem = IncomingItem | ShipmentItem;
 
@@ -29,7 +30,7 @@ interface CombinedRequest {
 
 interface CompactViewProps {
   data: UnifiedDataItem[];
-  mainTab: 'incoming' | 'shipment';
+  mainTab: 'incoming' | 'shipment' | 'shipmentConcrete';
   outgoingRequests?: Array<{
     number: string;
     date: string;
@@ -69,7 +70,7 @@ interface GroupedItem {
 }
 
 // ============================================
-// ФУНКЦИИ ДЛЯ РАБОТЫ С ДАТАМИ
+// ФУНКЦИИ ДЛЯ РАБОТЫ С ДАТАМИ И МАТЕРИАЛАМИ
 // ============================================
 
 const parseRussianDate = (dateString: string): Date => {
@@ -143,6 +144,42 @@ const getFactoryBadgeClass = (factory: string): string => {
   }
 };
 
+const isConcreteMaterial = (material: string): boolean => {
+  if (!material) return false;
+  const lower = material.toLowerCase();
+  
+  // Чёткие маркеры бетона
+  const concreteMarkers = [
+    'бст',      // бетонная смесь тяжелая
+    'бсм',      // бетонная смесь мелкозернистая
+    'бетон',
+    'раствор'
+  ];
+  
+  // Исключения — что точно НЕ бетон
+  const notConcreteMarkers = [
+    'пбв',      // полимерно-битумное вяжущее
+    'гранит',
+    'асфальт',
+    'щебень',
+    'песок',
+    'битум',
+    'эмульсия'
+  ];
+  
+  // Сначала проверяем исключения
+  for (const marker of notConcreteMarkers) {
+    if (lower.includes(marker)) return false;
+  }
+  
+  // Потом проверяем маркеры бетона
+  for (const marker of concreteMarkers) {
+    if (lower.includes(marker)) return true;
+  }
+  
+  return false;
+};
+
 export default function CompactView({ 
   data, 
   mainTab, 
@@ -155,9 +192,10 @@ export default function CompactView({
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [combinedData, setCombinedData] = useState<CombinedRequest[]>([]);
   const [combinedLoading, setCombinedLoading] = useState(false);
-  const isShipment = mainTab === 'shipment';
   const isMountedRef = useRef(true);
   
+  const isShipment = mainTab === 'shipment' || mainTab === 'shipmentConcrete';
+  const isConcreteOnly = mainTab === 'shipmentConcrete';
   const shouldUseCombined = mode === 'iceberg' && isShipment;
   const effectiveData = shouldUseCombined ? [] : data;
   
@@ -179,7 +217,6 @@ export default function CompactView({
       }
       
       try {
-        // Определяем, какие заводы загружать
         let factoriesToLoad: string[] = [];
         if (selectedFactory === 'all') {
           factoriesToLoad = ['СП', 'Щ'];
@@ -199,8 +236,16 @@ export default function CompactView({
           }
         }
         
+        // Фильтруем по типу материала (асфальт/бетон)
+        let filteredResults = allResults;
+        if (isConcreteOnly) {
+          filteredResults = allResults.filter(item => isConcreteMaterial(item.material));
+        } else if (mainTab === 'shipment') {
+          filteredResults = allResults.filter(item => !isConcreteMaterial(item.material));
+        }
+        
         if (isMountedRef.current) {
-          setCombinedData(allResults);
+          setCombinedData(filteredResults);
           setCombinedLoading(false);
         }
       } catch (err) {
@@ -217,10 +262,10 @@ export default function CompactView({
     return () => {
       isMountedRef.current = false;
     };
-  }, [shouldUseCombined, selectedFactory]);
+  }, [shouldUseCombined, selectedFactory, isConcreteOnly, mainTab]);
   
   // ============================================
-  // ЛОГИКА ДЛЯ ТАС (ЛХ, ЛЮ) - старая группировка
+  // ЛОГИКА ДЛЯ ТАС (ЛХ, ЛЮ)
   // ============================================
   
   const requestsMap = new Map<string, { quantity: number; closed: boolean | null }>();
@@ -232,73 +277,88 @@ export default function CompactView({
   const groupedByDateAndRequest = !shouldUseCombined ? data.reduce((acc, item) => {
     const dateKey = getDateKey(item.date);
     
-    if (mainTab === 'incoming') {
-      const incoming = item as IncomingItem;
-      
-      let factory = '—';
-      if (incoming.number?.startsWith('ЛХ')) factory = 'ЛХ';
-      else if (incoming.number?.startsWith('ЛЮ')) factory = 'ЛЮ';
-      else if (incoming.number?.startsWith('СП')) factory = 'СП';
-      else if (incoming.number?.startsWith('Щ')) factory = 'Щ';
-      else if (incoming.division === 'ЛХ') factory = 'ЛХ';
-      else if (incoming.division === 'ЛЮ') factory = 'ЛЮ';
-      else if (incoming.division === 'СП') factory = 'СП';
-      else if (incoming.division === 'Щ') factory = 'Щ';
-      
-      const groupKey = `${dateKey}_${factory}_${incoming.material}_${incoming.supplier}`;
-      
-      if (!acc[dateKey]) {
-        acc[dateKey] = new Map<string, GroupedItem>();
-      }
-      
-      const itemTime = formatTime(incoming.date);
-      
-      if (!acc[dateKey].has(groupKey)) {
-        acc[dateKey].set(groupKey, {
-          time: itemTime,
-          factQuantity: incoming.quantity,
-          planQuantity: 0,
-          consignee: incoming.supplier,
-          factories: [factory],
-          truckCount: 1,
-          material: incoming.material,
-          requestNumber: '',
-          requestDate: '',
-          closed: false,
-          supplier: incoming.supplier,
-          vehicles: [{
-            licensePlate: incoming.licensePlate || '—',
-            factory: factory,
-            quantity: incoming.quantity,
-            time: itemTime,
-            driver: incoming.driver || '—',
-            material: incoming.material,
-            supplier: incoming.supplier,
-          }],
-        });
-      } else {
-        const existing = acc[dateKey].get(groupKey)!;
-        existing.factQuantity += incoming.quantity;
-        existing.truckCount += 1;
-        if (!existing.factories.includes(factory) && factory !== '—') {
-          existing.factories.push(factory);
-        }
-        existing.vehicles.push({
-          licensePlate: incoming.licensePlate || '—',
-          factory: factory,
-          quantity: incoming.quantity,
-          time: itemTime,
-          driver: incoming.driver || '—',
-          material: incoming.material,
-          supplier: incoming.supplier,
-        });
-        if (itemTime > existing.time) {
-          existing.time = itemTime;
-        }
-      }
-      
-    } else {
+   if (mainTab === 'incoming') {
+  const incoming = item as IncomingItem;
+  
+  let factory = '—';
+  if (incoming.number?.startsWith('ЛХ')) factory = 'ЛХ';
+  else if (incoming.number?.startsWith('ЛЮ')) factory = 'ЛЮ';
+  else if (incoming.number?.startsWith('СП')) factory = 'СП';
+  else if (incoming.number?.startsWith('Щ')) factory = 'Щ';
+  else if (incoming.division === 'ЛХ') factory = 'ЛХ';
+  else if (incoming.division === 'ЛЮ') factory = 'ЛЮ';
+  else if (incoming.division === 'СП') factory = 'СП';
+  else if (incoming.division === 'Щ') factory = 'Щ';
+  
+  // ✅ УНИКАЛЬНЫЙ КЛЮЧ: номер документа + машина
+  // Это предотвратит дублирование одной и той же машины с одним документом
+  const documentNumber = incoming.number || 'unknown';
+  const vehicleId = incoming.licensePlate || incoming.driver || 'unknown';
+  const groupKey = `${dateKey}_${factory}_${incoming.material}_${incoming.supplier}_${documentNumber}_${vehicleId}`;
+  
+  if (!acc[dateKey]) {
+    acc[dateKey] = new Map<string, GroupedItem>();
+  }
+  
+  const itemTime = formatTime(incoming.date);
+  
+  if (!acc[dateKey].has(groupKey)) {
+    // Создаём новую группу
+    acc[dateKey].set(groupKey, {
+      time: itemTime,
+      factQuantity: incoming.quantity,
+      planQuantity: 0,
+      consignee: incoming.supplier,
+      factories: [factory],
+      truckCount: 1,
+      material: incoming.material,
+      requestNumber: '',
+      requestDate: '',
+      closed: false,
+      supplier: incoming.supplier,
+      vehicles: [{
+        licensePlate: incoming.licensePlate || '—',
+        factory: factory,
+        quantity: incoming.quantity,
+        time: itemTime,
+        driver: incoming.driver || '—',
+        material: incoming.material,
+        supplier: incoming.supplier,
+      }],
+    });
+  } else {
+    // Добавляем в существующую группу
+    const existing = acc[dateKey].get(groupKey)!;
+    existing.factQuantity += incoming.quantity;
+    existing.truckCount += 1;
+    if (!existing.factories.includes(factory) && factory !== '—') {
+      existing.factories.push(factory);
+    }
+    existing.vehicles.push({
+      licensePlate: incoming.licensePlate || '—',
+      factory: factory,
+      quantity: incoming.quantity,
+      time: itemTime,
+      driver: incoming.driver || '—',
+      material: incoming.material,
+      supplier: incoming.supplier,
+    });
+    if (itemTime > existing.time) {
+      existing.time = itemTime;
+    }
+  }
+}
+    
+    
+    
+    
+    
+    else {
       const shipment = item as ShipmentItem;
+      
+      // Фильтрация по типу материала для ТАС
+      if (isConcreteOnly && !isConcreteMaterial(shipment.material)) return acc;
+      if (mainTab === 'shipment' && isConcreteMaterial(shipment.material)) return acc;
       
       const requestNumber = shipment.clientRequestNumber || '';
       const requestDate = shipment.clientRequestDate || '';
@@ -386,14 +446,24 @@ export default function CompactView({
     );
   }
   
-  if (shouldUseCombined && combinedLoading) {
-    return (
-      <div className="loading">
-        <div className="spinner"></div>
-        <p>Загрузка данных...</p>
-      </div>
-    );
-  }
+  // if (shouldUseCombined && combinedLoading) {
+  //   return <LoadingSpinner message="Загрузка отгрузок..." size="large" />;
+  // }
+
+if (shouldUseCombined && combinedLoading) {
+  return (
+    <div className="compact-view">
+      <ActivityChart 
+        shipments={[]} 
+        selectedFactory={selectedFactory} 
+        mode={mode}
+      />
+      <LoadingSpinner message="Загрузка отгрузок..." size="medium" />
+    </div>
+  );
+}
+
+
   
   if (shouldUseCombined && combinedData.length === 0) {
     return (
@@ -408,7 +478,6 @@ export default function CompactView({
   // ============================================
   
   if (shouldUseCombined) {
-    // Группируем по дате доставки
     const groupedByDate = combinedData.reduce((acc, item) => {
       if (!item.delivery_date) return acc;
       const dateKey = getDateKey(item.delivery_date);
@@ -427,6 +496,7 @@ export default function CompactView({
           <ActivityChart 
             shipments={allShipmentsForChart} 
             selectedFactory={selectedFactory}
+            mode={mode}
           />
         )}
         
@@ -557,6 +627,7 @@ export default function CompactView({
         <ActivityChart 
           shipments={allShipmentsForChart} 
           selectedFactory={selectedFactory}
+          mode={mode}
         />
       )}
       
@@ -635,7 +706,30 @@ export default function CompactView({
                                     const todayKey = getDateKey(new Date().toISOString());
                                     return ship.clientRequestNumber === item.requestNumber && shipDateKey === todayKey;
                                   });
-                                  const showActiveDot = hasTodayShipments && percentComplete < 94;
+                                  
+                                  // const showActiveDot = hasTodayShipments && percentComplete < 94;
+                                  
+                                  
+                                  const showActiveDot = (() => {
+  // Проверяем, были ли отгрузки по этой заявке сегодня
+  const hasTodayShipments = allShipments.some(ship => {
+    const shipDate = parseRussianDate(ship.date);
+    const today = new Date();
+    const isToday = shipDate.getDate() === today.getDate() &&
+                    shipDate.getMonth() === today.getMonth() &&
+                    shipDate.getFullYear() === today.getFullYear();
+    return ship.clientRequestNumber === item.requestNumber && isToday;
+  });
+  
+  // Показываем точку только если:
+  // 1. Есть отгрузки сегодня
+  // 2. Процент выполнения < 94%
+  // 3. Заявка не закрыта (для Айсберг всегда false, что означает "не закрыта")
+  return hasTodayShipments && percentComplete < 94 && !item.closed;
+})();
+                                  
+                                  
+                                  
                                   return showActiveDot ? <span className="active-dot" title="Идут отгрузки"></span> : null;
                                 })()
                               )}
@@ -769,20 +863,13 @@ export default function CompactView({
 
 
 
-
-
-
-
-
-
-// // app/components/CompactView.tsx
-
 // 'use client';
 
 // import { IncomingItem, ShipmentItem } from '@/app/page';
-// import { useState, useEffect, useCallback, useRef } from 'react';
+// import { useState, useEffect, useRef } from 'react';
 // import { motion, AnimatePresence } from 'framer-motion';
 // import ActivityChart from './ActivityChart';
+// import LoadingSpinner from './LoadingSpinner';
 
 // type UnifiedDataItem = IncomingItem | ShipmentItem;
 
@@ -808,7 +895,8 @@ export default function CompactView({
 
 // interface CompactViewProps {
 //   data: UnifiedDataItem[];
-//   mainTab: 'incoming' | 'shipment';
+//   // mainTab: 'incoming' | 'shipment';
+//   mainTab: 'incoming' | 'shipment' | 'shipmentConcrete' | 'summary';
 //   outgoingRequests?: Array<{
 //     number: string;
 //     date: string;
@@ -821,7 +909,7 @@ export default function CompactView({
 //   allShipments?: ShipmentItem[];
 //   allShipmentsForChart?: ShipmentItem[];
 //   selectedFactory?: string;
-//   mode?: 'lhl' | 'iceberg';
+//   mode?: 'tas' | 'iceberg';
 // }
 
 // interface GroupedItem {
@@ -896,7 +984,7 @@ export default function CompactView({
 // const compareDatesDesc = (dateA: string, dateB: string): number => {
 //   const a = parseRussianDate(dateA);
 //   const b = parseRussianDate(dateB);
-//   return b.getTime() - a.getTime(); // новые сверху
+//   return b.getTime() - a.getTime();
 // };
 
 // const getDayLabel = (dateStr: string): string => {
@@ -922,10 +1010,6 @@ export default function CompactView({
 //   }
 // };
 
-// const useCombinedData = (factory: string): boolean => {
-//   return factory === 'СП' || factory === 'Щ';
-// };
-
 // export default function CompactView({ 
 //   data, 
 //   mainTab, 
@@ -933,7 +1017,7 @@ export default function CompactView({
 //   allShipments = [],
 //   allShipmentsForChart = [],
 //   selectedFactory = 'all',
-//   mode
+//   mode = 'tas'
 // }: CompactViewProps) {
 //   const [expandedId, setExpandedId] = useState<string | null>(null);
 //   const [combinedData, setCombinedData] = useState<CombinedRequest[]>([]);
@@ -941,15 +1025,15 @@ export default function CompactView({
 //   const isShipment = mainTab === 'shipment';
 //   const isMountedRef = useRef(true);
   
-//   // const shouldUseCombined = useCombinedData(selectedFactory) && isShipment;
 //   const shouldUseCombined = mode === 'iceberg' && isShipment;
 //   const effectiveData = shouldUseCombined ? [] : data;
   
+//   // Загрузка объединённых данных для Айсберг
 //   useEffect(() => {
 //     isMountedRef.current = true;
     
 //     const fetchCombinedData = async () => {
-//       if (!shouldUseCombined || selectedFactory === 'all') {
+//       if (!shouldUseCombined) {
 //         if (isMountedRef.current) {
 //           setCombinedData([]);
 //           setCombinedLoading(false);
@@ -962,15 +1046,28 @@ export default function CompactView({
 //       }
       
 //       try {
-//         const encodedFactory = encodeURIComponent(selectedFactory);
-//         const response = await fetch(`/api/combined-requests?factory=${encodedFactory}`);
-//         const result = await response.json();
+//         // Определяем, какие заводы загружать
+//         let factoriesToLoad: string[] = [];
+//         if (selectedFactory === 'all') {
+//           factoriesToLoad = ['СП', 'Щ'];
+//         } else {
+//           factoriesToLoad = [selectedFactory];
+//         }
         
-//         if (isMountedRef.current && !result.error) {
-//           setCombinedData(result);
-//           setCombinedLoading(false);
-//         } else if (isMountedRef.current) {
-//           setCombinedData([]);
+//         const allResults: CombinedRequest[] = [];
+        
+//         for (const factory of factoriesToLoad) {
+//           const encodedFactory = encodeURIComponent(factory);
+//           const response = await fetch(`/api/combined-requests?factory=${encodedFactory}`);
+//           const result = await response.json();
+          
+//           if (isMountedRef.current && !result.error && Array.isArray(result)) {
+//             allResults.push(...result);
+//           }
+//         }
+        
+//         if (isMountedRef.current) {
+//           setCombinedData(allResults);
 //           setCombinedLoading(false);
 //         }
 //       } catch (err) {
@@ -990,7 +1087,7 @@ export default function CompactView({
 //   }, [shouldUseCombined, selectedFactory]);
   
 //   // ============================================
-//   // ЛОГИКА ДЛЯ СТАРЫХ ЗАВОДОВ (ЛХ, ЛЮ)
+//   // ЛОГИКА ДЛЯ ТАС (ЛХ, ЛЮ) - старая группировка
 //   // ============================================
   
 //   const requestsMap = new Map<string, { quantity: number; closed: boolean | null }>();
@@ -1144,7 +1241,42 @@ export default function CompactView({
 //     return acc;
 //   }, {} as Record<string, Map<string, GroupedItem>>) : {};
   
-//   // Сортировка дат - новые сверху
+  
+  
+  
+  
+  
+//   // const sortedDates = !shouldUseCombined 
+//   //   ? Object.keys(groupedByDateAndRequest).sort(compareDatesDesc)
+//   //   : [];
+  
+//   // if (!shouldUseCombined && effectiveData.length === 0) {
+//   //   return (
+//   //     <div className="empty">
+//   //       <p>Нет данных</p>
+//   //     </div>
+//   //   );
+//   // }
+  
+//   // if (shouldUseCombined && combinedLoading) {
+//   //   return (
+//   //     <div className="loading">
+//   //       <div className="spinner"></div>
+//   //       <p>Загрузка данных...</p>
+//   //     </div>
+//   //   );
+//   // }
+  
+//   // if (shouldUseCombined && combinedData.length === 0) {
+//   //   return (
+//   //     <div className="empty">
+//   //       <p>Нет данных по заявкам</p>
+//   //     </div>
+//   //   );
+//   // }
+  
+
+
 //   const sortedDates = !shouldUseCombined 
 //     ? Object.keys(groupedByDateAndRequest).sort(compareDatesDesc)
 //     : [];
@@ -1158,12 +1290,7 @@ export default function CompactView({
 //   }
   
 //   if (shouldUseCombined && combinedLoading) {
-//     return (
-//       <div className="loading">
-//         <div className="spinner"></div>
-//         <p>Загрузка данных...</p>
-//       </div>
-//     );
+//     return <LoadingSpinner message="Загрузка отгрузок..." size="large" />;
 //   }
   
 //   if (shouldUseCombined && combinedData.length === 0) {
@@ -1173,13 +1300,16 @@ export default function CompactView({
 //       </div>
 //     );
 //   }
-  
+
+
+
+
 //   // ============================================
-//   // РЕНДЕР ДЛЯ НОВЫХ ЗАВОДОВ (СП, Щ)
+//   // РЕНДЕР ДЛЯ АЙСБЕРГ (СП, Щ)
 //   // ============================================
   
 //   if (shouldUseCombined) {
-//     // Группируем по дате доставки и сортируем новые сверху
+//     // Группируем по дате доставки
 //     const groupedByDate = combinedData.reduce((acc, item) => {
 //       if (!item.delivery_date) return acc;
 //       const dateKey = getDateKey(item.delivery_date);
@@ -1190,7 +1320,6 @@ export default function CompactView({
 //       return acc;
 //     }, {} as Record<string, CombinedRequest[]>);
     
-//     // Сортируем даты от новых к старым
 //     const combinedSortedDates = Object.keys(groupedByDate).sort(compareDatesDesc);
     
 //     return (
@@ -1320,7 +1449,7 @@ export default function CompactView({
 //   }
   
 //   // ============================================
-//   // РЕНДЕР ДЛЯ СТАРЫХ ЗАВОДОВ (ЛХ, ЛЮ)
+//   // РЕНДЕР ДЛЯ ТАС (ЛХ, ЛЮ)
 //   // ============================================
   
 //   return (

@@ -2,10 +2,10 @@
 import './globals.css'
 import type { Metadata, Viewport } from 'next'
 
-export const metadata: Metadata = {
-  title: 'Асфальтовый завод - Поступление материалов',
-  description: 'Мониторинг поступления материалов на асфальтный завод',
-}
+// export const metadata: Metadata = {
+//   title: 'Асфальтовый завод - Поступление материалов',
+//   description: 'Мониторинг поступления материалов на асфальтный завод',
+// }
 
 export const viewport: Viewport = {
   width: 'device-width',
@@ -23,4 +23,25 @@ export default function RootLayout({
       <body>{children}</body>
     </html>
   )
+}
+
+
+
+
+// app/layout.tsx
+export const metadata: Metadata = {
+  title: 'АБЗ Контроль',
+  description: 'Контроль отгрузок асфальтобетонного завода',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'АБЗ Контроль',
+  },
+  viewport: {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
 }
