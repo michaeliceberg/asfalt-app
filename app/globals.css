@@ -5611,32 +5611,30 @@ body.iceberg-mode .spinner-ring:nth-child(3) {
 
 
 
-
-
 /* ============================================
-   БЕЙДЖ "СЕГОДНЯ" - ЯРКИЙ И ЗАМЕТНЫЙ
+   БЕЙДЖ "СЕГОДНЯ" - ПАСТЕЛЬНО-ГОЛУБОЙ
    ============================================ */
 
 /* Для компактного режима */
+/* Для компактного режима - яркий аквамарин */
 .compact-date-header .today-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-  color: white;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: #ffffff;
   font-size: 11px;
   font-weight: 700;
   padding: 4px 12px;
   border-radius: 20px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
-  animation: gentlePulse 0.5s ease;
+  box-shadow: 0 2px 12px rgba(79, 172, 254, 0.4);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1);
 }
-
 /* Для списка (ёмкий вид) */
 .list-view .today-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-  color: white;
+  background: linear-gradient(135deg, #a0c4e8 0%, #7eb8da 100%);
+  color: #1a3a5c;
   font-size: 10px;
   font-weight: 700;
   padding: 2px 8px;
@@ -5644,31 +5642,70 @@ body.iceberg-mode .spinner-ring:nth-child(3) {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   margin-left: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
 /* Для группы (GroupedView) */
 .date-separator .today-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-  color: white;
+  background: linear-gradient(135deg, #a0c4e8 0%, #7eb8da 100%);
+  color: #1a3a5c;
   font-size: 11px;
   font-weight: 700;
   padding: 4px 12px;
   border-radius: 20px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
-  box-shadow: 0 2px 6px rgba(255, 152, 0, 0.3);
+  box-shadow: 0 2px 6px rgba(126, 184, 218, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.5);
 }
 
-/* Анимация пульсации для привлечения внимания */
-@keyframes gentlePulse {
-  0% { transform: scale(1); opacity: 0.9; }
-  50% { transform: scale(1.02); opacity: 1; }
-  100% { transform: scale(1); opacity: 0.9; }
-}
-
-/* Для темы Айсберг — оранжевый всё равно яркий, оставляем */
+/* Для темы Айсберг — тот же пастельно-голубой */
 body.iceberg-mode .compact-date-header .today-badge {
-  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.4);
+  background: linear-gradient(135deg, #a0c4e8 0%, #7eb8da 100%);
+  color: #1a3a5c;
+  box-shadow: 0 2px 8px rgba(126, 184, 218, 0.4);
+}
+
+
+
+
+
+
+
+
+
+
+/* В globals.css добавьте или обновите */
+
+.date-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* .compact-date-header .today-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
+} */
+
+/* Для ВЧЕРА можно тоже сделать бейдж */
+.compact-date-header .yesterday-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #a0a0a0 0%, #808080 100%);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }

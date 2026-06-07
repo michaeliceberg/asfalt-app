@@ -56,18 +56,43 @@ const getDateKey = (dateString: string): string => {
   return `${day}.${month}.${year}`;
 };
 
+// const getDayLabel = (dateStr: string): string => {
+//   const today = new Date();
+//   const todayStr = `${today.getDate().toString().padStart(2, '0')}.${(today.getMonth() + 1).toString().padStart(2, '0')}.${today.getFullYear()}`;
+  
+//   const yesterday = new Date(today);
+//   yesterday.setDate(yesterday.getDate() - 1);
+//   const yesterdayStr = `${yesterday.getDate().toString().padStart(2, '0')}.${(yesterday.getMonth() + 1).toString().padStart(2, '0')}.${yesterday.getFullYear()}`;
+  
+//   if (dateStr === todayStr) return 'СЕГОДНЯ';
+//   if (dateStr === yesterdayStr) return 'ВЧЕРА';
+//   return dateStr;
+// };
+
+
 const getDayLabel = (dateStr: string): string => {
-  const today = new Date();
-  const todayStr = `${today.getDate().toString().padStart(2, '0')}.${(today.getMonth() + 1).toString().padStart(2, '0')}.${today.getFullYear()}`;
+  const date = parseRussianDate(dateStr);
+  if (isNaN(date.getTime())) return dateStr;
   
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = `${yesterday.getDate().toString().padStart(2, '0')}.${(yesterday.getMonth() + 1).toString().padStart(2, '0')}.${yesterday.getFullYear()}`;
+  // Форматируем дату как "7 июня"
+  const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+  const day = date.getDate();
+  const month = months[date.getMonth()];
   
-  if (dateStr === todayStr) return 'СЕГОДНЯ';
-  if (dateStr === yesterdayStr) return 'ВЧЕРА';
-  return dateStr;
+  return `${day} ${month}`;
 };
+
+// Отдельная функция для проверки, является ли дата сегодняшней
+const isDateToday = (dateStr: string): boolean => {
+  const date = parseRussianDate(dateStr);
+  if (isNaN(date.getTime())) return false;
+  
+  const today = new Date();
+  return date.getDate() === today.getDate() &&
+         date.getMonth() === today.getMonth() &&
+         date.getFullYear() === today.getFullYear();
+};
+
 
 const getFactory = (item: UnifiedDataItem): string => {
   if ('supplier' in item) {
@@ -202,15 +227,13 @@ export default function ListView({ data, mainTab }: ListViewProps) {
         
         return (
           <div key={date} className="compact-date-group">
-            {/* <div className={`compact-date-header ${isDateToday ? 'today-separator' : ''}`}>
-              {getDayLabel(date)}
-            </div> */}
 
-            <div className={`compact-date-header ${isDateToday ? 'today-separator' : ''}`}>
-  <span className="date-text">
-    {getDayLabel(date)}
+
+<div className={`compact-date-header ${isDateToday ? 'today-separator' : ''}`}>
+  <div className="date-wrapper">
+    <span className="date-text">{getDayLabel(date)}</span>
     {getDayLabel(date) === 'СЕГОДНЯ' && <span className="today-badge">СЕГОДНЯ</span>}
-  </span>
+  </div>
 </div>
             <div className="list-table">
               <div className="list-header">
