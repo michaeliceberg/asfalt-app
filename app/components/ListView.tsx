@@ -202,9 +202,16 @@ export default function ListView({ data, mainTab }: ListViewProps) {
         
         return (
           <div key={date} className="compact-date-group">
-            <div className={`compact-date-header ${isDateToday ? 'today-separator' : ''}`}>
+            {/* <div className={`compact-date-header ${isDateToday ? 'today-separator' : ''}`}>
               {getDayLabel(date)}
-            </div>
+            </div> */}
+
+            <div className={`compact-date-header ${isDateToday ? 'today-separator' : ''}`}>
+  <span className="date-text">
+    {getDayLabel(date)}
+    {getDayLabel(date) === 'СЕГОДНЯ' && <span className="today-badge">СЕГОДНЯ</span>}
+  </span>
+</div>
             <div className="list-table">
               <div className="list-header">
                 <span className="list-time">Время</span>

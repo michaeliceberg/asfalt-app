@@ -500,29 +500,33 @@ if (shouldUseCombined && combinedLoading) {
           />
         )}
         
-        {combinedSortedDates.map(date => {
-          const items = groupedByDate[date];
-          const dayTotal = items.reduce((sum, item) => sum + item.factQuantity, 0);
-          
-          return (
-            <div key={date} className="compact-date-group">
-              <div className="compact-date-header">
-                <span className="date-text">{getDayLabel(date)}</span>
-                <span className="date-total">{dayTotal.toFixed(0)} т</span>
-              </div>
-              
-              <div className="compact-table">
-                <div className="compact-header">
-                  <span className="col-time">Время</span>
-                  <span className="col-fact">Вып</span>
-                  <span className="col-slash"></span>
-                  <span className="col-plan">Заяв</span>
-                  <span className="col-consignee">Грузополучатель</span>
-                  <span className="col-factory">Завод</span>
-                  <span className="col-trucks">Машин</span>
-                  <span className="col-expand"></span>
-                </div>
-                
+       {combinedSortedDates.map(date => {
+  const items = groupedByDate[date];
+  const dayTotal = items.reduce((sum, item) => sum + item.factQuantity, 0);
+  const dayLabel = getDayLabel(date);
+  
+  return (
+    <div key={date} className="compact-date-group">
+      <div className="compact-date-header">
+        <span className="date-text">
+          {dayLabel}
+          {dayLabel === 'СЕГОДНЯ' && <span className="today-badge">СЕГОДНЯ</span>}
+        </span>
+        <span className="date-total">{dayTotal.toFixed(0)} т</span>
+      </div>
+      
+      <div className="compact-table">
+        <div className="compact-header">
+          <span className="col-time">Время</span>
+          <span className="col-fact">Вып</span>
+          <span className="col-slash"></span>
+          <span className="col-plan">Заяв</span>
+          <span className="col-consignee">Грузополучатель</span>
+          <span className="col-factory">Завод</span>
+          <span className="col-trucks">Машин</span>
+          <span className="col-expand"></span>
+        </div>
+        
                 {items.map((item, idx) => {
                   const itemKey = `${date}_${idx}`;
                   const isExpanded = expandedId === itemKey;
@@ -637,12 +641,24 @@ if (shouldUseCombined && combinedLoading) {
         
         return (
           <div key={date} className="compact-date-group">
-            <div className="compact-date-header">
+            {/* <div className="compact-date-header">
               <span className="date-text">{getDayLabel(date)}</span>
               {isShipment && (
                 <span className="date-total">{dayTotal.toFixed(0)} т</span>
               )}
-            </div>
+            </div> */}
+
+
+
+<div className="compact-date-header">
+  <span className="date-text">
+    {getDayLabel(date)}
+    {getDayLabel(date) === 'СЕГОДНЯ' && <span className="today-badge">СЕГОДНЯ</span>}
+  </span>
+  {isShipment && (
+    <span className="date-total">{dayTotal.toFixed(0)} т</span>
+  )}
+</div>
             
             <div className="compact-table">
               {isShipment && (
