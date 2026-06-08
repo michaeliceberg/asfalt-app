@@ -327,7 +327,7 @@ def main():
     else:
         print(f"⚠️ Файл не найден: {hotimprodat_path}")
 
-    postup_path = os.path.join(base_path, '10postup.xlsx')
+    postup_path = os.path.join(base_path, 'postup.xlsx')
     if os.path.exists(postup_path):
         process_incoming(postup_path)
     else:

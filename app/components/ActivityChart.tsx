@@ -84,18 +84,18 @@ export default function ActivityChart({ shipments, selectedFactory, mode = 'tas'
       p.isCurrent = (p.startHour === currentBlockStartNow);
     });
     
-    // Фильтруем по заводу и режиму
+    // Фильтруем отгрузки
     let filteredShipments = shipments;
     
-    // Фильтруем по выбранному заводу (если выбран конкретный)
+    // 1. Фильтруем по заводам текущего режима
+    filteredShipments = filteredShipments.filter(s => validFactories.includes(s.division));
+    
+    // 2. Фильтруем по выбранному заводу (если выбран конкретный, а не "Все")
     if (selectedFactory !== 'all') {
       filteredShipments = filteredShipments.filter(s => s.division === selectedFactory);
-    } else {
-      // Если выбран "Все заводы", фильтруем по текущему режиму
-      filteredShipments = filteredShipments.filter(s => validFactories.includes(s.division));
     }
     
-    // Исключаем бетон
+    // 3. Исключаем бетон (только асфальт)
     filteredShipments = filteredShipments.filter(s => !isConcreteMaterial(s.material));
     
     // Считаем тонны по периодам
@@ -188,6 +188,8 @@ export default function ActivityChart({ shipments, selectedFactory, mode = 'tas'
 }
 
 
+
+
 // 'use client';
 
 // import { ShipmentItem } from '@/app/page';
@@ -196,9 +198,46 @@ export default function ActivityChart({ shipments, selectedFactory, mode = 'tas'
 // interface ActivityChartProps {
 //   shipments: ShipmentItem[];
 //   selectedFactory: string;
+//   mode?: 'tas' | 'iceberg';
 // }
 
-// export default function ActivityChart({ shipments, selectedFactory }: ActivityChartProps) {
+// // Функция для парсинга русской даты
+// const parseRussianDate = (dateString: string): Date => {
+//   if (!dateString) return new Date();
+  
+//   if (dateString.includes('T') && !dateString.includes('.')) {
+//     const date = new Date(dateString);
+//     if (!isNaN(date.getTime())) return date;
+//   }
+  
+//   const parts = dateString.split(' ');
+//   const dateParts = parts[0].split('.');
+  
+//   let hour = 0, minute = 0;
+//   if (parts[1]) {
+//     const timeParts = parts[1].split(':');
+//     hour = parseInt(timeParts[0], 10);
+//     minute = parseInt(timeParts[1], 10);
+//   }
+  
+//   const day = parseInt(dateParts[0], 10);
+//   const month = parseInt(dateParts[1], 10) - 1;
+//   const year = parseInt(dateParts[2], 10);
+  
+//   return new Date(year, month, day, hour, minute);
+// };
+
+// // Функция для определения бетона (исключаем из активности)
+// const isConcreteMaterial = (material: string): boolean => {
+//   if (!material) return false;
+//   const lower = material.toLowerCase();
+//   return lower.includes('бст') || 
+//          lower.includes('бетон') ||
+//          lower.includes('раствор') ||
+//          lower.includes('бсм');
+// };
+
+// export default function ActivityChart({ shipments, selectedFactory, mode = 'tas' }: ActivityChartProps) {
 //   const [activityData, setActivityData] = useState<Array<{ 
 //     period: string; 
 //     startHour: number;
@@ -210,6 +249,9 @@ export default function ActivityChart({ shipments, selectedFactory, mode = 'tas'
 
 //   useEffect(() => {
 //     isMounted.current = true;
+    
+//     // Определяем допустимые заводы для текущего режима
+//     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
     
 //     const now = new Date();
 //     const currentHour = now.getHours();
@@ -228,25 +270,31 @@ export default function ActivityChart({ shipments, selectedFactory, mode = 'tas'
 //       });
 //     }
     
-//     // Определяем текущий блок (тот, в котором сейчас час)
+//     // Определяем текущий блок
 //     const currentBlockStartNow = Math.floor(currentHour / 2) * 2;
 //     periods.forEach(p => {
 //       p.isCurrent = (p.startHour === currentBlockStartNow);
 //     });
     
-//     // Фильтруем по заводу
+//     // Фильтруем по заводу и режиму
 //     let filteredShipments = shipments;
-//     if (selectedFactory === 'ЛХ') {
-//       filteredShipments = shipments.filter(s => s.division === 'ЛХ');
-//     } else if (selectedFactory === 'ЛЮ') {
-//       filteredShipments = shipments.filter(s => s.division === 'ЛЮ');
+    
+//     // Фильтруем по выбранному заводу (если выбран конкретный)
+//     if (selectedFactory !== 'all') {
+//       filteredShipments = filteredShipments.filter(s => s.division === selectedFactory);
+//     } else {
+//       // Если выбран "Все заводы", фильтруем по текущему режиму
+//       filteredShipments = filteredShipments.filter(s => validFactories.includes(s.division));
 //     }
+    
+//     // Исключаем бетон
+//     filteredShipments = filteredShipments.filter(s => !isConcreteMaterial(s.material));
     
 //     // Считаем тонны по периодам
 //     const activity: { [key: number]: { tons: number } } = {};
     
 //     for (const shipment of filteredShipments) {
-//       const shipmentDate = new Date(shipment.date);
+//       const shipmentDate = parseRussianDate(shipment.date);
 //       const shipmentHour = shipmentDate.getHours();
 //       const blockStart = Math.floor(shipmentHour / 2) * 2;
 //       const hoursDiff = (now.getTime() - shipmentDate.getTime()) / (1000 * 60 * 60);
@@ -286,7 +334,7 @@ export default function ActivityChart({ shipments, selectedFactory, mode = 'tas'
 //     return () => {
 //       isMounted.current = false;
 //     };
-//   }, [shipments, selectedFactory]);
+//   }, [shipments, selectedFactory, mode]);
 
 //   const activeTons = activityData.filter(d => d.hasActivity).map(d => d.totalTons);
 //   const maxTons = activeTons.length > 0 ? Math.max(...activeTons) : 1;
@@ -330,5 +378,4 @@ export default function ActivityChart({ shipments, selectedFactory, mode = 'tas'
 //     </div>
 //   );
 // }
-
 

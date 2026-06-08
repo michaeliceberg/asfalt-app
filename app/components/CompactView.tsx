@@ -471,9 +471,6 @@ export default function CompactView({
     );
   }
   
-  // if (shouldUseCombined && combinedLoading) {
-  //   return <LoadingSpinner message="Загрузка отгрузок..." size="large" />;
-  // }
 
 if (shouldUseCombined && combinedLoading) {
   return (
@@ -524,8 +521,145 @@ if (shouldUseCombined && combinedLoading) {
             mode={mode}
           />
         )}
+
+
+
+        {combinedSortedDates.map(date => {
+  const items = groupedByDate[date];
+  
+  // Сортируем заявки по времени последней отгрузки (новые сверху)
+  const sortedItems = [...items].sort((a, b) => {
+    const timeA = a.lastShipmentTime || '00:00';
+    const timeB = b.lastShipmentTime || '00:00';
+    const getMinutes = (time: string) => {
+      const parts = time.split(':');
+      const hours = parseInt(parts[0], 10);
+      const minutes = parseInt(parts[1], 10);
+      return hours * 60 + minutes;
+    };
+    return getMinutes(timeB) - getMinutes(timeA);
+  });
+  
+  const dayTotal = sortedItems.reduce((sum, item) => sum + item.factQuantity, 0);
+  const dayLabel = getDayLabel(date);
+  
+  return (
+    <div key={date} className="compact-date-group">
+      <div className="compact-date-header">
+        <div className="date-wrapper">
+          <span className="date-text">{dayLabel}</span>
+          {dayLabel === 'СЕГОДНЯ' && <span className="today-badge">СЕГОДНЯ</span>}
+        </div>
+        <span className="date-total">{dayTotal.toFixed(0)} т</span>
+      </div>
+      
+      <div className="compact-table">
+        <div className="compact-header">
+          <span className="col-time">Время</span>
+          <span className="col-fact">Вып</span>
+          <span className="col-slash"></span>
+          <span className="col-plan">Заяв</span>
+          <span className="col-consignee">Грузополучатель</span>
+          <span className="col-factory">Завод</span>
+          <span className="col-trucks">Машин</span>
+          <span className="col-expand"></span>
+        </div>
         
-       {combinedSortedDates.map(date => {
+        {sortedItems.map((item, idx) => {
+          const itemKey = `${date}_${idx}`;
+          const isExpanded = expandedId === itemKey;
+          const percentComplete = item.planQuantity > 0 
+            ? (item.factQuantity / item.planQuantity) * 100 
+            : 0;
+          const isWarning = percentComplete < 94 && percentComplete > 0;
+          const displayTime = item.lastShipmentTime || '—';
+          
+          return (
+            <div key={idx}>
+              <div 
+                className="compact-row compact-clickable"
+                onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+              >
+                <span className="col-time">{displayTime}</span>
+                <span className={`col-fact ${isWarning ? 'warning' : ''}`}>
+                  {item.factQuantity.toFixed(1)}
+                </span>
+                <span className="col-slash">/</span>
+                <span className="col-plan">
+                  {item.planQuantity > 0 ? (
+                    <span style={{ whiteSpace: 'nowrap' }}>
+                      {item.planQuantity.toFixed(0)}
+                      {item.closed ? (
+                        <span className="closed-lock"> 🔒</span>
+                      ) : (
+                        item.factQuantity > 0 && percentComplete < 94 && (
+                          <span className="active-dot" title="Идут отгрузки"></span>
+                        )
+                      )}
+                    </span>
+                  ) : '—'}
+                </span>
+                <span className="col-consignee">{item.consignee}</span>
+                <span className="col-factory">
+                  <div className="factory-badges-group">
+                    <div className={getFactoryBadgeClass(item.division)}>
+                      {item.division}
+                    </div>
+                  </div>
+                </span>
+                <span className="col-trucks">{item.truckCount}</span>
+                <span className="col-expand">{isExpanded ? '▲' : '▼'}</span>
+              </div>
+              
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    className="compact-details"
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                  >
+                    <div className="detail-row">
+                      <span className="detail-label">📦 Материал:</span>
+                      <span className="detail-value">{item.material}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">🏭 Завод:</span>
+                      <span className="detail-value">{item.division}</span>
+                    </div>
+                    <div className="detail-row">
+                      <span className="detail-label">🚛 Машин:</span>
+                      <span className="detail-value">{item.truckCount}</span>
+                    </div>
+                    {item.vehicles.length > 0 && (
+                      <div className="vehicles-list">
+                        <div className="vehicles-title">🚛 Транспорт:</div>
+                        {item.vehicles.map((vehicle, i) => (
+                          <div key={i} className="vehicle-item">
+                            <span className="vehicle-time">{vehicle.time}</span>
+                            <span className="vehicle-license">{vehicle.licensePlate}</span>
+                            <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
+                            <span className="vehicle-quantity">{vehicle.quantity.toFixed(1)} т</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+})}
+
+
+
+        
+       {/* {combinedSortedDates.map(date => {
   const items = groupedByDate[date];
   const dayTotal = items.reduce((sum, item) => sum + item.factQuantity, 0);
   const dayLabel = getDayLabel(date);
@@ -533,16 +667,7 @@ if (shouldUseCombined && combinedLoading) {
   return (
 <div key={date} className="compact-date-group">
 
-  {/* <div className="compact-date-header">
-    <span className="date-text">
-      {dayLabel === 'СЕГОДНЯ' ? (
-        <span className="today-badge">СЕГОДНЯ</span>
-      ) : (
-        dayLabel
-      )}
-    </span>
-    <span className="date-total">{dayTotal.toFixed(0)} т</span>
-  </div> */}
+
 
 <div className="compact-date-header">
   <div className="date-wrapper">
@@ -655,7 +780,7 @@ if (shouldUseCombined && combinedLoading) {
               </div>
             </div>
           );
-        })}
+        })} */}
       </div>
     );
   }
