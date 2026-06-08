@@ -179,8 +179,8 @@ class TelegramPollingService {
 
 private getProgressEmoji(percent: number): string {
     if (percent === 0) return '⚪️';      // 0% — белый
-    if (percent >= 94) return '⚫️';      // >=94% — чёрный
-    return '🟢';                           // <94% — зелёный
+    if (percent >= 90) return '⚫️';      // >=90% — чёрный
+    return '🟢';                           // <90% — зелёный
 }
 
 

@@ -311,7 +311,7 @@ def main():
     base_path = "F:/obmen/Delta"
 
 
-    realiz_path = os.path.join(base_path, 'realiz.xlsx')
+    realiz_path = os.path.join(base_path, '10realiz.xlsx')
     order_factory_map = {}
 
     if os.path.exists(realiz_path):
@@ -321,7 +321,7 @@ def main():
         print(f"⚠️ Файл не найден: {realiz_path}")
         return
 
-    hotimprodat_path = os.path.join(base_path, 'hotimprodat.xlsx')
+    hotimprodat_path = os.path.join(base_path, '40hotimprodat.xlsx')
     if os.path.exists(hotimprodat_path):
         process_requests(hotimprodat_path, order_factory_map)
     else:

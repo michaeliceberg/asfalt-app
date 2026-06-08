@@ -572,7 +572,7 @@ if (shouldUseCombined && combinedLoading) {
                   const percentComplete = item.planQuantity > 0 
                     ? (item.factQuantity / item.planQuantity) * 100 
                     : 0;
-                  const isWarning = percentComplete < 94 && percentComplete > 0;
+                  const isWarning = percentComplete < 90 && percentComplete > 0;
                   const displayTime = item.lastShipmentTime || '—';
                   
                   return (
@@ -593,7 +593,7 @@ if (shouldUseCombined && combinedLoading) {
                               {item.closed ? (
                                 <span className="closed-lock"> 🔒</span>
                               ) : (
-                                item.factQuantity > 0 && percentComplete < 94 && (
+                                item.factQuantity > 0 && percentComplete < 90 && (
                                   <span className="active-dot" title="Идут отгрузки"></span>
                                 )
                               )}
@@ -727,7 +727,7 @@ if (shouldUseCombined && combinedLoading) {
                 const itemKey = `${date}_${idx}`;
                 const isExpanded = expandedId === itemKey;
                 const percentComplete = item.planQuantity > 0 ? (item.factQuantity / item.planQuantity) * 100 : 0;
-                const isWarning = percentComplete < 94;
+                const isWarning = percentComplete < 90;
                 
                 if (isShipment) {
                   return (
@@ -755,7 +755,7 @@ if (shouldUseCombined && combinedLoading) {
                                     return ship.clientRequestNumber === item.requestNumber && shipDateKey === todayKey;
                                   });
                                   
-                                  // const showActiveDot = hasTodayShipments && percentComplete < 94;
+                                  // const showActiveDot = hasTodayShipments && percentComplete < 90;
                                   
                                   
                                   const showActiveDot = (() => {
@@ -771,9 +771,9 @@ if (shouldUseCombined && combinedLoading) {
   
   // Показываем точку только если:
   // 1. Есть отгрузки сегодня
-  // 2. Процент выполнения < 94%
+  // 2. Процент выполнения < 90%
   // 3. Заявка не закрыта (для Айсберг всегда false, что означает "не закрыта")
-  return hasTodayShipments && percentComplete < 94 && !item.closed;
+  return hasTodayShipments && percentComplete < 90 && !item.closed;
 })();
                                   
                                   

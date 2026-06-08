@@ -8,8 +8,7 @@ import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# API_URL = "http://127.0.0.1:3000/api/excel-import"
-API_URL = "https://abziceberg.ru/api/excel-import"
+API_URL = "http://127.0.0.1:3000/api/excel-import"
 
 def detect_factory_by_warehouse(warehouse: str) -> str:
     if pd.isna(warehouse):
@@ -307,11 +306,9 @@ def main():
     print("🚀 Отправка данных на iCombinator")
     print("=" * 60)
 
-    # base_path = "/Users/mac/Desktop/asfalt2027/asfalt-app/4files"
-    base_path = "F:/obmen/Delta"
+    base_path = "/Users/mac/Desktop/asfalt2027/asfalt-app/4files"
 
-
-    realiz_path = os.path.join(base_path, 'realiz.xlsx')
+    realiz_path = os.path.join(base_path, '10realiz.xlsx')
     order_factory_map = {}
 
     if os.path.exists(realiz_path):
@@ -321,7 +318,7 @@ def main():
         print(f"⚠️ Файл не найден: {realiz_path}")
         return
 
-    hotimprodat_path = os.path.join(base_path, 'hotimprodat.xlsx')
+    hotimprodat_path = os.path.join(base_path, '40hotimprodat.xlsx')
     if os.path.exists(hotimprodat_path):
         process_requests(hotimprodat_path, order_factory_map)
     else:
@@ -338,5 +335,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-

@@ -243,6 +243,11 @@ export default function Home() {
   const [newConcreteCount, setNewConcreteCount] = useState<number>(0);
   const [contentKey, setContentKey] = useState(0);
 
+
+  const [lastImportInfo, setLastImportInfo] = useState<{ lastImport: string | null; totalRecords: number }>({ lastImport: null, totalRecords: 0 });
+
+
+
   // Режим переключения (ТАС / Айсберг)
   const [mode, setMode] = useState<'tas' | 'iceberg'>(() => {
     if (typeof window !== 'undefined') {
@@ -333,7 +338,7 @@ const availableFactories = mode === 'tas'
       if (request && !request.closed) {
         const plan = planMap.get(requestNumber) || 0;
         const percent = plan > 0 ? (data.fact / plan) * 100 : 0;
-        if (percent > 0 && percent < 94) {
+        if (percent > 0 && percent < 90) {
           activeCount++;
         }
       }
@@ -501,6 +506,17 @@ const loadFutureRequestsCount = async () => {
     }
   };
 
+
+  // 👇 ДОБАВЬТЕ ЭТУ ФУНКЦИЮ 👇
+  const loadLastImportInfo = async () => {
+    try {
+      const response = await fetch('/api/last-import-info');
+      const data = await response.json();
+      setLastImportInfo(data);
+    } catch (err) {
+      console.error('Failed to load import info:', err);
+    }
+  };
 
 
 
@@ -765,6 +781,7 @@ const loadAllData = async () => {
         await loadFutureRequestsCount();
         await loadNewShipmentsCount();
         await loadNewConcreteCount();
+        await loadLastImportInfo();  // 👈 ДОБАВЬТЕ ЭТУ СТРОКУ
         if (isMounted) {
           setLoading(false);
         }
@@ -782,6 +799,14 @@ const loadAllData = async () => {
       isMounted = false;
     };
   }, []);
+
+
+
+
+
+
+
+
 
 
 
@@ -866,8 +891,14 @@ const loadAllData = async () => {
           />
 
           <div className="sync-info">
-            <span className="sync-label">🔄 Синхронизация с 1С:</span>
+            <span className="sync-label">🔄 Синхронизация с 1С (ЛХ/ЛЮ):</span>
             <span className="sync-time">{formatSyncTime(currentSyncInfo.lastSync)}</span>
+          </div>
+
+          {/* 👇 ДОБАВЬТЕ ЭТОТ БЛОК 👇 */}
+          <div className="sync-info">
+            <span className="sync-label">📁 Импорт Excel (СП/Щ):</span>
+            <span className="sync-time">{formatSyncTime(lastImportInfo.lastImport)}</span>
           </div>
 
           {activeMainTab !== 'summary' && (
@@ -1301,14 +1332,14 @@ const loadAllData = async () => {
 //   planMap.set(req.number, req.quantity);
 // }
 
-// // Считаем активные заявки (не закрытые, факт > 0, процент < 94%)
+// // Считаем активные заявки (не закрытые, факт > 0, процент < 90%)
 // let activeCount = 0;
 // for (const [requestNumber, data] of shipmentsByRequest) {
 //   const request = allRequests.find((r: ApiOutgoingRequest) => r.number === requestNumber);
 //   if (request && !request.closed) {
 //     const plan = planMap.get(requestNumber) || 0;
 //     const percent = plan > 0 ? (data.fact / plan) * 100 : 0;
-//     if (percent > 0 && percent < 94) {
+//     if (percent > 0 && percent < 90) {
 //       activeCount++;
 //     }
 //   }
