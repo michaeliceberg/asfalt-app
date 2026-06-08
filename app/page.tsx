@@ -104,6 +104,24 @@ interface CronInfo {
 
 
 
+// Добавьте этот интерфейс после других интерфейсов
+interface ApiRequest {
+  id: number;
+  number: string;
+  date: string;
+  division: string;
+  customer: string;
+  consignee: string | null;
+  material: string;
+  quantity: number;
+  clientRequestNumber: string | null;
+  clientRequestDate: string | null;
+  createdAt: number;
+  closed: boolean | null;
+  delivery_date: string | null;
+}
+
+
 // ============================================
 // ФУНКЦИЯ ОПРЕДЕЛЕНИЯ БЕТОНА
 // ============================================
@@ -265,20 +283,57 @@ const availableFactories = mode === 'tas'
   : factories.filter(f => f === 'СП' || f === 'Щ');
 
   // Функция переключения режима
-  const toggleMode = () => {
-    const newMode = mode === 'tas' ? 'iceberg' : 'tas';
+  
+  
+  
+  
+  // const toggleMode = () => {
+  //   const newMode = mode === 'tas' ? 'iceberg' : 'tas';
     
-    setContentKey(prev => prev + 1);
-    setMode(newMode);
-    setActiveFactory('all');
+  //   setContentKey(prev => prev + 1);
+  //   setMode(newMode);
+  //   setActiveFactory('all');
     
-    // Вибрация на мобильных устройствах
-    if (window.navigator && window.navigator.vibrate) {
-      window.navigator.vibrate(50);
+  //   // Вибрация на мобильных устройствах
+  //   if (window.navigator && window.navigator.vibrate) {
+  //     window.navigator.vibrate(50);
+  //   }
+    
+  //   localStorage.setItem('appMode', newMode);
+  // };
+
+const toggleMode = () => {
+  const newMode = mode === 'tas' ? 'iceberg' : 'tas';
+  
+  setContentKey(prev => prev + 1);
+  setMode(newMode);
+  setActiveFactory('all');
+  
+  // Пересчитываем счётчики после смены режима
+  setTimeout(() => {
+    loadFutureRequestsCount();
+    loadNewShipmentsCount();
+    if (newMode === 'iceberg') {
+      loadNewConcreteCount();
+    } else {
+      setNewConcreteCount(0);
     }
-    
-    localStorage.setItem('appMode', newMode);
-  };
+  }, 100);
+  
+  if (window.navigator && window.navigator.vibrate) {
+    window.navigator.vibrate(50);
+  }
+  
+  localStorage.setItem('appMode', newMode);
+};
+
+
+
+
+
+
+
+
 
   // Применяем класс к body для изменения темы
   useEffect(() => {
@@ -382,6 +437,12 @@ const loadNewConcreteCount = async () => {
 
 
 
+
+
+
+
+
+
 const loadFutureRequestsCount = async () => {
   try {
     const [requestsResponse, shipmentsResponse] = await Promise.all([
@@ -389,13 +450,13 @@ const loadFutureRequestsCount = async () => {
       fetch('/api/shipments')
     ]);
     
-    let allRequests = await requestsResponse.json();
-    let allShipments = await shipmentsResponse.json();
+    let allRequests: ApiRequest[] = await requestsResponse.json();
+    let allShipments: ShipmentItem[] = await shipmentsResponse.json();
     
     // Фильтруем по заводам текущего режима
     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
-    allRequests = allRequests.filter((r: ApiOutgoingRequest) => validFactories.includes(r.division));
-    allShipments = allShipments.filter((s: ShipmentItem) => validFactories.includes(s.division));
+    allRequests = allRequests.filter((r) => validFactories.includes(r.division));
+    allShipments = allShipments.filter((s) => validFactories.includes(s.division));
     
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -409,7 +470,7 @@ const loadFutureRequestsCount = async () => {
       }
     }
     
-    const future = allRequests.filter((req: ApiOutgoingRequest) => {
+    const future = allRequests.filter((req) => {
       if (req.closed) return false;
       if (!req.delivery_date) return false;
       const deliveryDate = parseRussianDate(req.delivery_date);
@@ -422,6 +483,15 @@ const loadFutureRequestsCount = async () => {
     console.error(err);
   }
 };
+
+
+
+
+
+
+
+
+
 
 
 
@@ -847,6 +917,15 @@ const loadAllData = async () => {
 
 
 
+
+
+
+// При смене режима пересчитываем счётчики
+useEffect(() => {
+  loadFutureRequestsCount();
+  loadNewShipmentsCount();
+  loadNewConcreteCount(); // функция сама проверит mode
+}, [mode]);
 
 
 

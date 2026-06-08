@@ -543,12 +543,24 @@ if (shouldUseCombined && combinedLoading) {
   const dayTotal = sortedItems.reduce((sum, item) => sum + item.factQuantity, 0);
   const dayLabel = getDayLabel(date);
   
+  // Функция для проверки, является ли дата сегодняшней
+  const checkIsToday = (dateStr: string): boolean => {
+    const date = parseRussianDate(dateStr);
+    if (isNaN(date.getTime())) return false;
+    const today = new Date();
+    return date.getDate() === today.getDate() &&
+           date.getMonth() === today.getMonth() &&
+           date.getFullYear() === today.getFullYear();
+  };
+  
+  const isToday = checkIsToday(date);
+  
   return (
     <div key={date} className="compact-date-group">
       <div className="compact-date-header">
         <div className="date-wrapper">
           <span className="date-text">{dayLabel}</span>
-          {dayLabel === 'СЕГОДНЯ' && <span className="today-badge">СЕГОДНЯ</span>}
+          {isToday && <span className="today-badge">СЕГОДНЯ</span>}
         </div>
         <span className="date-total">{dayTotal.toFixed(0)} т</span>
       </div>
