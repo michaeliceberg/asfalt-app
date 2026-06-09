@@ -13,6 +13,46 @@ interface ListViewProps {
 // ФУНКЦИИ ДЛЯ РАБОТЫ С ДАТАМИ И МАТЕРИАЛАМИ
 // ============================================
 
+// Добавьте после функции isConcreteMaterial
+// const isSpecialMaterial = (material: string): boolean => {
+//   if (!material) return false;
+//   const lower = material.toLowerCase();
+  
+//   const specialMarkers = ['пбв', 'гранит', 'пыль', 'песок', 'щебень', 'битум', 'эмульсия'];
+  
+//   for (const marker of specialMarkers) {
+//     if (lower.includes(marker)) return true;
+//   }
+//   return false;
+// };
+
+
+
+const isSpecialMaterial = (material: string): boolean => {
+  if (!material) return false;
+  const lower = material.toLowerCase();
+  
+  // Если это асфальт — точно не инертный
+  if (lower.includes('асфальт') || lower.includes('а/б') || lower.includes('щма')) {
+    return false;
+  }
+  
+  // Если это бетон — точно не инертный
+  if (lower.includes('бст') || lower.includes('бсм') || lower.includes('бетон')) {
+    return false;
+  }
+  
+  // Маркеры инертных материалов
+  const specialMarkers = ['пбв', 'гранит', 'пыль', 'песок', 'щебень', 'битум', 'эмульсия'];
+  
+  for (const marker of specialMarkers) {
+    if (lower.includes(marker)) return true;
+  }
+  
+  return false;
+};
+
+
 const parseRussianDate = (dateString: string): Date => {
   if (!dateString) return new Date();
   
@@ -229,52 +269,69 @@ export default function ListView({ data, mainTab }: ListViewProps) {
           <div key={date} className="compact-date-group">
 
 
+
+
 <div className={`compact-date-header ${isDateToday ? 'today-separator' : ''}`}>
   <div className="date-wrapper">
     <span className="date-text">{getDayLabel(date)}</span>
     {getDayLabel(date) === 'СЕГОДНЯ' && <span className="today-badge">СЕГОДНЯ</span>}
   </div>
 </div>
-            <div className="list-table">
-              <div className="list-header">
-                <span className="list-time">Время</span>
-                <span className="list-material">Материал</span>
-                <span className="list-quantity">т</span>
-                <span className="list-customer">Контрагент</span>
-                <span className="list-factory"></span>
-                <span className="list-license">Машина</span>
-              </div>
-              <div className="list-rows">
-                {[...items].sort((a, b) => {
-                  const dateA = parseRussianDate(a.date);
-                  const dateB = parseRussianDate(b.date);
-                  return dateB.getTime() - dateA.getTime();
-                }).map((item, idx) => {
-                  const factory = getFactory(item);
-                  const time = formatTime(item.date);
-                  const isConcrete = isConcreteMaterial(item.material);
-                  
-                  return (
-                    <div 
-                      key={idx} 
-                      className={`list-row ${isConcrete && isShipment ? 'concrete-row' : ''}`}
-                    >
-                      <span className="list-time">{time}</span>
-                      <span className="list-material" title={item.material}>{getMaterial(item)}</span>
-                      <span className="list-quantity">{item.quantity.toFixed(1)}</span>
-                      <span className="list-customer" title={getCustomer(item, isShipment)}>
-                        {getCustomer(item, isShipment)}
-                        {isConcrete && isShipment && <span className="concrete-badge-row">БЕТОН</span>}
-                      </span>
-                      <span className="list-factory">
-                        <span className={getFactoryBadgeClass(factory)}>{factory}</span>
-                      </span>
-                      <span className="list-license" title={item.licensePlate || '—'}>{getLicensePlate(item)}</span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
+<div className="list-table">
+  <div className="list-header">
+    <span className="list-time">Время</span>
+    <span className="list-material">Материал</span>
+    <span className="list-quantity">т</span>
+    <span className="list-customer">Контрагент</span>
+    <span className="list-factory"></span>
+    <span className="list-license">Машина</span>
+  </div>
+  <div className="list-rows">
+    {[...items].sort((a, b) => {
+      const dateA = parseRussianDate(a.date);
+      const dateB = parseRussianDate(b.date);
+      return dateB.getTime() - dateA.getTime();
+    }).map((item, idx) => {
+      const factory = getFactory(item);
+      const time = formatTime(item.date);
+      const isConcrete = isConcreteMaterial(item.material);
+      const isSpecial = isSpecialMaterial(item.material);
+      
+      // Определяем, какой бейдж показывать (приоритет: бетон > инертные)
+      let badge = null;
+      if (isConcrete && isShipment) {
+        badge = <span className="concrete-badge-row">БЕТОН</span>;
+      } else if (isSpecial && isShipment && !isConcrete) {
+        badge = <span className="special-badge">ИНЕРТНЫЕ</span>;
+      }
+      
+      return (
+        <div 
+          key={idx} 
+          className={`list-row ${isConcrete && isShipment ? 'concrete-row' : ''} ${isSpecial && !isConcrete ? 'special-row' : ''}`}
+        >
+          <span className="list-time">{time}</span>
+          <span className="list-material" title={item.material}>{getMaterial(item)}</span>
+          <span className="list-quantity">
+            {item.quantity.toFixed(1)} {isConcrete ? 'м³' : 'т'}
+          </span>
+          <span className="list-customer" title={getCustomer(item, isShipment)}>
+            {getCustomer(item, isShipment)}
+            {badge}
+          </span>
+          <span className="list-factory">
+            <span className={getFactoryBadgeClass(factory)}>{factory}</span>
+          </span>
+          <span className="list-license" title={item.licensePlate || '—'}>{getLicensePlate(item)}</span>
+        </div>
+      );
+    })}
+  </div>
+</div>
+
+
+
+
           </div>
         );
       })}

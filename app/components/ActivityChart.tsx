@@ -7,6 +7,7 @@ interface ActivityChartProps {
   shipments: ShipmentItem[];
   selectedFactory: string;
   mode?: 'tas' | 'iceberg';
+  materialType?: 'asphalt' | 'concrete' | 'all';  // добавляем тип материала
 }
 
 // Функция для парсинга русской даты
@@ -35,17 +36,29 @@ const parseRussianDate = (dateString: string): Date => {
   return new Date(year, month, day, hour, minute);
 };
 
-// Функция для определения бетона (исключаем из активности)
+// Функция для определения бетона
 const isConcreteMaterial = (material: string): boolean => {
   if (!material) return false;
   const lower = material.toLowerCase();
-  return lower.includes('бст') || 
-         lower.includes('бетон') ||
-         lower.includes('раствор') ||
-         lower.includes('бсм');
+  
+  const concreteMarkers = ['бст', 'бсм', 'бетон', 'раствор'];
+  const notConcreteMarkers = ['пбв', 'гранит', 'асфальт', 'щебень', 'песок', 'битум', 'эмульсия'];
+  
+  for (const marker of notConcreteMarkers) {
+    if (lower.includes(marker)) return false;
+  }
+  for (const marker of concreteMarkers) {
+    if (lower.includes(marker)) return true;
+  }
+  return false;
 };
 
-export default function ActivityChart({ shipments, selectedFactory, mode = 'tas' }: ActivityChartProps) {
+export default function ActivityChart({ 
+  shipments, 
+  selectedFactory, 
+  mode = 'tas',
+  materialType = 'asphalt' 
+}: ActivityChartProps) {
   const [activityData, setActivityData] = useState<Array<{ 
     period: string; 
     startHour: number;
@@ -85,7 +98,7 @@ export default function ActivityChart({ shipments, selectedFactory, mode = 'tas'
     });
     
     // Фильтруем отгрузки
-    let filteredShipments = shipments;
+    let filteredShipments = [...shipments];
     
     // 1. Фильтруем по заводам текущего режима
     filteredShipments = filteredShipments.filter(s => validFactories.includes(s.division));
@@ -95,8 +108,13 @@ export default function ActivityChart({ shipments, selectedFactory, mode = 'tas'
       filteredShipments = filteredShipments.filter(s => s.division === selectedFactory);
     }
     
-    // 3. Исключаем бетон (только асфальт)
-    filteredShipments = filteredShipments.filter(s => !isConcreteMaterial(s.material));
+    // 3. Фильтруем по типу материала (асфальт/бетон/все)
+    if (materialType === 'asphalt') {
+      filteredShipments = filteredShipments.filter(s => !isConcreteMaterial(s.material));
+    } else if (materialType === 'concrete') {
+      filteredShipments = filteredShipments.filter(s => isConcreteMaterial(s.material));
+    }
+    // если 'all' — показываем всё
     
     // Считаем тонны по периодам
     const activity: { [key: number]: { tons: number } } = {};
@@ -108,13 +126,13 @@ export default function ActivityChart({ shipments, selectedFactory, mode = 'tas'
       const hoursDiff = (now.getTime() - shipmentDate.getTime()) / (1000 * 60 * 60);
       
       // Для текущего блока (последние 2 часа) — только отгрузки за последние 2 часа
-      // Для остальных блоков — все отгрузки за последние 24 часа
       if (blockStart === currentBlockStartNow) {
         if (hoursDiff <= 2) {
           if (!activity[blockStart]) activity[blockStart] = { tons: 0 };
           activity[blockStart].tons += shipment.quantity;
         }
       } else {
+        // Для остальных блоков — все отгрузки за последние 24 часа
         if (hoursDiff <= 24) {
           if (!activity[blockStart]) activity[blockStart] = { tons: 0 };
           activity[blockStart].tons += shipment.quantity;
@@ -142,7 +160,7 @@ export default function ActivityChart({ shipments, selectedFactory, mode = 'tas'
     return () => {
       isMounted.current = false;
     };
-  }, [shipments, selectedFactory, mode]);
+  }, [shipments, selectedFactory, mode, materialType]);
 
   const activeTons = activityData.filter(d => d.hasActivity).map(d => d.totalTons);
   const maxTons = activeTons.length > 0 ? Math.max(...activeTons) : 1;
@@ -189,7 +207,6 @@ export default function ActivityChart({ shipments, selectedFactory, mode = 'tas'
 
 
 
-
 // 'use client';
 
 // import { ShipmentItem } from '@/app/page';
@@ -227,14 +244,24 @@ export default function ActivityChart({ shipments, selectedFactory, mode = 'tas'
 //   return new Date(year, month, day, hour, minute);
 // };
 
-// // Функция для определения бетона (исключаем из активности)
+// // Функция для определения бетона
 // const isConcreteMaterial = (material: string): boolean => {
 //   if (!material) return false;
 //   const lower = material.toLowerCase();
-//   return lower.includes('бст') || 
-//          lower.includes('бетон') ||
-//          lower.includes('раствор') ||
-//          lower.includes('бсм');
+  
+//   // Чёткие маркеры бетона
+//   const concreteMarkers = ['бст', 'бсм', 'бетон', 'раствор'];
+  
+//   // Исключения — что точно НЕ бетон
+//   const notConcreteMarkers = ['пбв', 'гранит', 'асфальт', 'щебень', 'песок', 'битум', 'эмульсия'];
+  
+//   for (const marker of notConcreteMarkers) {
+//     if (lower.includes(marker)) return false;
+//   }
+//   for (const marker of concreteMarkers) {
+//     if (lower.includes(marker)) return true;
+//   }
+//   return false;
 // };
 
 // export default function ActivityChart({ shipments, selectedFactory, mode = 'tas' }: ActivityChartProps) {
@@ -276,18 +303,18 @@ export default function ActivityChart({ shipments, selectedFactory, mode = 'tas'
 //       p.isCurrent = (p.startHour === currentBlockStartNow);
 //     });
     
-//     // Фильтруем по заводу и режиму
-//     let filteredShipments = shipments;
+//     // Фильтруем отгрузки
+//     let filteredShipments = [...shipments];
     
-//     // Фильтруем по выбранному заводу (если выбран конкретный)
+//     // 1. Фильтруем по заводам текущего режима
+//     filteredShipments = filteredShipments.filter(s => validFactories.includes(s.division));
+    
+//     // 2. Фильтруем по выбранному заводу (если выбран конкретный, а не "Все")
 //     if (selectedFactory !== 'all') {
 //       filteredShipments = filteredShipments.filter(s => s.division === selectedFactory);
-//     } else {
-//       // Если выбран "Все заводы", фильтруем по текущему режиму
-//       filteredShipments = filteredShipments.filter(s => validFactories.includes(s.division));
 //     }
     
-//     // Исключаем бетон
+//     // 3. Исключаем бетон (только асфальт)
 //     filteredShipments = filteredShipments.filter(s => !isConcreteMaterial(s.material));
     
 //     // Считаем тонны по периодам
@@ -300,13 +327,13 @@ export default function ActivityChart({ shipments, selectedFactory, mode = 'tas'
 //       const hoursDiff = (now.getTime() - shipmentDate.getTime()) / (1000 * 60 * 60);
       
 //       // Для текущего блока (последние 2 часа) — только отгрузки за последние 2 часа
-//       // Для остальных блоков — все отгрузки за последние 24 часа
 //       if (blockStart === currentBlockStartNow) {
 //         if (hoursDiff <= 2) {
 //           if (!activity[blockStart]) activity[blockStart] = { tons: 0 };
 //           activity[blockStart].tons += shipment.quantity;
 //         }
 //       } else {
+//         // Для остальных блоков — все отгрузки за последние 24 часа
 //         if (hoursDiff <= 24) {
 //           if (!activity[blockStart]) activity[blockStart] = { tons: 0 };
 //           activity[blockStart].tons += shipment.quantity;
@@ -378,4 +405,6 @@ export default function ActivityChart({ shipments, selectedFactory, mode = 'tas'
 //     </div>
 //   );
 // }
+
+
 

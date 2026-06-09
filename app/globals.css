@@ -5730,3 +5730,46 @@ body.iceberg-mode .compact-date-header .today-badge {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
+
+
+
+
+
+
+/* ============================================
+   ИНЕРТНЫЕ МАТЕРИАЛЫ (ПБВ, ГРАНИТ, ПЫЛЬ)
+   ============================================ */
+
+/* Строка с инертными материалами */
+.compact-row.special-row {
+  background: rgba(156, 39, 176, 0.08);
+  border-left: 3px solid #9c27b0;
+}
+
+.compact-row.special-row .col-fact {
+  color: #9c27b0;
+}
+
+/* Бейдж инертных материалов */
+.special-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+  color: white;
+  font-size: 9px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-left: 8px;
+  vertical-align: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+
+/* Для тёмной темы Айсберг */
+body.iceberg-mode .compact-row.special-row {
+  background: rgba(156, 39, 176, 0.15);
+}
+
+body.iceberg-mode .special-badge {
+  background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
+}
