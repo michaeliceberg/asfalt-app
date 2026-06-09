@@ -3434,20 +3434,6 @@ body {
 
 
 
-/* Активная точка (зеленая, мигающая) */
-
-
-.active-dot {
-  display: inline-block;
-  width: 6px;
-  height: 6px;
-  background-color: #28a745;
-  border-radius: 50%;
-  margin-left: 6px;
-  box-shadow: 0 0 6px #28a745;
-  animation: pulse-green 1.5s infinite;
-  vertical-align: middle;
-}
 
 @keyframes pulse-green {
   0% { opacity: 0.5; transform: scale(1); }
@@ -3852,7 +3838,42 @@ body {
 
 
 /* Активная точка */
+
+
+
+
+
+/* Активная точка (зеленая, мигающая) - для всех режимов */
 .active-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background-color: #28a745;
+  border-radius: 50%;
+  margin-left: 6px;
+  box-shadow: 0 0 4px #28a745;
+  animation: pulse-green 1.5s infinite;
+  vertical-align: middle;
+}
+
+/* Для темы Айсберг — такой же зелёный, не меняем */
+body.iceberg-mode .active-dot {
+  background-color: #28a745;
+  box-shadow: 0 0 4px #28a745;
+}
+
+@keyframes pulse-green {
+  0% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.2); }
+  100% { opacity: 0.5; transform: scale(1); }
+}
+
+
+
+
+
+
+/* .active-dot {
   display: inline-block;
   width: 8px;
   height: 8px;
@@ -3868,7 +3889,7 @@ body {
   0% { opacity: 0.5; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.2); }
   100% { opacity: 0.5; transform: scale(1); }
-}
+} */
 
 /* Замочек */
 .closed-lock {
@@ -5054,10 +5075,10 @@ body.iceberg-mode .percent-fill {
 }
 
 /* Активная точка */
-body.iceberg-mode .active-dot {
+/* body.iceberg-mode .active-dot {
   background-color: #6a6a78;
   box-shadow: 0 0 6px #6a6a78;
-}
+} */
 
 /* Цифры Вып - стальной зелёный (строгий) */
 body.iceberg-mode .compact-row .col-fact {
