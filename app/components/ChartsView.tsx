@@ -1,8 +1,11 @@
+// app/components/ChartsView.tsx
+// 
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
 import { ShipmentItem } from '@/app/page';
 import LoadingSpinner from './LoadingSpinner';
+import { isConcreteMaterial } from '@/lib/utils';
 
 interface ChartsViewProps {
   data: ShipmentItem[];
@@ -62,15 +65,16 @@ const getDateKey = (dateString: string): string => {
   return `${day}.${month}.${year}`;
 };
 
+// ISCONCRETEMATERIAL
 // Функция для определения типа материала (асфальт/бетон)
-const isConcreteMaterial = (material: string): boolean => {
-  if (!material) return false;
-  const lower = material.toLowerCase();
-  return lower.includes('бст') || 
-         lower.includes('бетон') ||
-         lower.includes('раствор') ||
-         lower.includes('бсм');
-};
+// const isConcreteMaterial = (material: string): boolean => {
+//   if (!material) return false;
+//   const lower = material.toLowerCase();
+//   return lower.includes('бст') || 
+//          lower.includes('бетон') ||
+//          lower.includes('раствор') ||
+//          lower.includes('бсм');
+// };
 
 export default function ChartsView({ data, mode = 'tas' }: ChartsViewProps) {
   const [dailyData, setDailyData] = useState<DailyData[]>([]);
@@ -326,266 +330,4 @@ export default function ChartsView({ data, mode = 'tas' }: ChartsViewProps) {
   );
 }
 
-
-
-
-// 'use client';
-
-// import { useEffect, useState, useCallback } from 'react';
-// import { ShipmentItem } from '@/app/page';
-// import LoadingSpinner from './LoadingSpinner';
-
-// interface ChartsViewProps {
-//   data: ShipmentItem[];
-//   mode?: 'tas' | 'iceberg';
-// }
-
-// interface DailyData {
-//   date: string;
-//   total: number;
-//   count: number;
-//   factories: { [key: string]: number };
-// }
-
-// // Функция для определения типа материала (асфальт/бетон)
-// const isConcreteMaterial = (material: string): boolean => {
-//   if (!material) return false;
-//   const lower = material.toLowerCase();
-//   return lower.includes('бст') || 
-//          lower.includes('бетон') ||
-//          lower.includes('раствор') ||
-//          lower.includes('бсм');
-// };
-
-// export default function ChartsView({ data, mode = 'tas' }: ChartsViewProps) {
-//   const [dailyData, setDailyData] = useState<DailyData[]>([]);
-//   const [selectedFactory, setSelectedFactory] = useState<string>('all');
-//   const [loading, setLoading] = useState(true);
-
-//   const formatDateShort = (dateStr: string) => {
-//     const parts = dateStr.split('.');
-//     return `${parts[0]}.${parts[1]}`;
-//   };
-
-//   // Доступные заводы в зависимости от режима
-//   const getAvailableFactories = () => {
-//     if (mode === 'tas') {
-//       return ['all', 'ЛХ', 'ЛЮ'];
-//     } else {
-//       return ['all', 'СП', 'Щ'];
-//     }
-//   };
-
-//   // Названия заводов для отображения
-//   const getFactoryLabel = (factory: string) => {
-//     switch (factory) {
-//       case 'ЛХ': return 'Луховицы';
-//       case 'ЛЮ': return 'Люберцы';
-//       case 'СП': return 'Сергиев Посад';
-//       case 'Щ': return 'Щёлково';
-//       default: return 'Все заводы';
-//     }
-//   };
-
-//   const processData = useCallback(() => {
-//     setLoading(true);
-    
-//     // Фильтруем по режиму
-//     let filteredData = data;
-    
-//     // Фильтруем по заводам текущего режима
-//     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
-//     filteredData = filteredData.filter(item => validFactories.includes(item.division));
-    
-//     // Фильтруем по выбранному заводу
-//     if (selectedFactory !== 'all') {
-//       filteredData = filteredData.filter(item => item.division === selectedFactory);
-//     }
-    
-//     // Фильтруем по типу материала (только асфальт для графиков)
-//     filteredData = filteredData.filter(item => !isConcreteMaterial(item.material));
-    
-//     const today = new Date();
-//     const tenDaysAgo = new Date(today);
-//     tenDaysAgo.setDate(today.getDate() - 10);
-//     tenDaysAgo.setHours(0, 0, 0, 0);
-
-//     const recentShipments = filteredData.filter(item => {
-//       const itemDate = new Date(item.date);
-//       return itemDate >= tenDaysAgo;
-//     });
-
-//     const grouped: { [key: string]: DailyData } = {};
-
-//     recentShipments.forEach(shipment => {
-//       const date = new Date(shipment.date);
-//       const dateKey = date.toLocaleDateString('ru-RU');
-//       const factory = shipment.division;
-      
-//       if (!grouped[dateKey]) {
-//         grouped[dateKey] = {
-//           date: dateKey,
-//           total: 0,
-//           count: 0,
-//           factories: { ЛХ: 0, ЛЮ: 0, СП: 0, Щ: 0 }
-//         };
-//       }
-      
-//       grouped[dateKey].total += shipment.quantity;
-//       grouped[dateKey].count += 1;
-//       if (factory) {
-//         grouped[dateKey].factories[factory] = (grouped[dateKey].factories[factory] || 0) + shipment.quantity;
-//       }
-//     });
-
-//     const sorted = Object.values(grouped).sort((a, b) => {
-//       const dateA = new Date(a.date.split('.').reverse().join('-'));
-//       const dateB = new Date(b.date.split('.').reverse().join('-'));
-//       return dateA.getTime() - dateB.getTime();
-//     });
-
-//     setDailyData(sorted);
-//     setLoading(false);
-//   }, [data, selectedFactory, mode]);
-
-//   useEffect(() => {
-//     let isMounted = true;
-    
-//     const loadData = async () => {
-//       if (!isMounted) return;
-//       processData();
-//     };
-    
-//     loadData();
-    
-//     return () => {
-//       isMounted = false;
-//     };
-//   }, [processData]);
-
-//   const getDayLabel = (dateStr: string) => {
-//     const date = new Date(dateStr.split('.').reverse().join('-'));
-//     const today = new Date();
-    
-//     if (date.toDateString() === today.toDateString()) return 'СЕГОДНЯ';
-//     return `${date.getDate()}.${date.getMonth() + 1}`;
-//   };
-
-//   const getFactoryData = () => {
-//     if (selectedFactory === 'all') {
-//       return dailyData;
-//     }
-//     return dailyData.map(day => ({
-//       ...day,
-//       total: day.factories[selectedFactory] || 0
-//     }));
-//   };
-
-//   const filteredDataForChart = getFactoryData();
-//   const filteredMax = Math.max(...filteredDataForChart.map(d => d.total), 0);
-
-//   const getBarHeight = (total: number) => {
-//     if (filteredMax === 0) return 0;
-//     return (total / filteredMax) * 100;
-//   };
-
-//   const availableFactories = getAvailableFactories();
-
-//   if (loading && dailyData.length === 0) {
-//     return <LoadingSpinner message="Загрузка графиков..." size="medium" />;
-//   }
-
-//   if (dailyData.length === 0) {
-//     return (
-//       <div className="empty">
-//         <p>Нет данных за последние 10 дней</p>
-//       </div>
-//     );
-//   }
-
-//   return (
-//     <div className="charts-view">
-//       <div className="charts-header">
-//         <div className="charts-title">
-//           {mode === 'tas' ? '📊 Отгрузки асфальта за 10 дней (ЛХ/ЛЮ)' : '📊 Отгрузки асфальта за 10 дней (СП/Щ)'}
-//         </div>
-//         <div className="factory-filter">
-//           {availableFactories.map(factory => (
-//             <button
-//               key={factory}
-//               className={`factory-filter-btn ${selectedFactory === factory ? 'active' : ''}`}
-//               onClick={() => setSelectedFactory(factory)}
-//             >
-//               {factory === 'all' ? 'Все заводы' : `🏭 ${getFactoryLabel(factory)}`}
-//             </button>
-//           ))}
-//         </div>
-//       </div>
-
-//       <div className="charts-container">
-//         <div className="bars-container">
-//           {filteredDataForChart.map((day, idx) => {
-//             const dayLabel = getDayLabel(day.date);
-//             const isToday = dayLabel === 'СЕГОДНЯ';
-//             const barHeight = getBarHeight(day.total);
-            
-//             return (
-//               <div key={idx} className="bar-column">
-//                 <div className="bar-wrapper">
-//                   <div 
-//                     className="bar"
-//                     style={{ height: `${barHeight}%` }}
-//                   >
-//                     <span className="bar-value">{Math.round(day.total)}</span>
-//                   </div>
-//                 </div>
-//                 <div className={`bar-label ${isToday ? 'today' : ''}`}>
-//                   {dayLabel}
-//                 </div>
-//               </div>
-//             );
-//           })}
-//         </div>
-//       </div>
-
-//       {/* Статистика по дням в табличном виде */}
-//       <div className="charts-stats">
-//         <div className="stats-header">
-//           <span>Дата</span>
-//           <span>Тонны</span>
-//           <span>Машин</span>
-//           {mode === 'tas' ? (
-//             <>
-//               <span>ЛХ</span>
-//               <span>ЛЮ</span>
-//             </>
-//           ) : (
-//             <>
-//               <span>СП</span>
-//               <span>Щ</span>
-//             </>
-//           )}
-//         </div>
-//         {filteredDataForChart.map((day, idx) => (
-//           <div key={idx} className="stats-row">
-//             <span className="stats-date">{formatDateShort(day.date)}</span>
-//             <span className="stats-total">{Math.round(day.total)} т</span>
-//             <span className="stats-count">{day.count}</span>
-//             {mode === 'tas' ? (
-//               <>
-//                 <span className="stats-lx">{Math.round(day.factories.ЛХ || 0)} т</span>
-//                 <span className="stats-ly">{Math.round(day.factories.ЛЮ || 0)} т</span>
-//               </>
-//             ) : (
-//               <>
-//                 <span className="stats-lx">{Math.round(day.factories.СП || 0)} т</span>
-//                 <span className="stats-ly">{Math.round(day.factories.Щ || 0)} т</span>
-//               </>
-//             )}
-//           </div>
-//         ))}
-//       </div>
-//     </div>
-//   );
-// }
 

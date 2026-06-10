@@ -1,3 +1,5 @@
+// app/components/CompactView.tsx
+
 'use client';
 
 import { IncomingItem, ShipmentItem } from '@/app/page';
@@ -5,6 +7,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import ActivityChart from './ActivityChart';
 import LoadingSpinner from './LoadingSpinner';
+import { formatTime, getDateKey, getFactoryBadgeClass, isConcreteMaterial, isSpecialMaterial, parseRussianDate } from '@/lib/utils';
 
 type UnifiedDataItem = IncomingItem | ShipmentItem;
 
@@ -74,82 +77,24 @@ interface GroupedItem {
   }>;
 }
 
-// ============================================
-// ФУНКЦИИ ДЛЯ РАБОТЫ С ДАТАМИ И МАТЕРИАЛАМИ
-// ============================================
 
 
-// Добавьте после функции isConcreteMaterial
-const isSpecialMaterial = (material: string): boolean => {
-  if (!material) return false;
-  const lower = material.toLowerCase();
-  
-  // Если это асфальт — точно не инертный
-  if (lower.includes('асфальт') || lower.includes('а/б') || lower.includes('щма')) {
-    return false;
-  }
-  
-  // Если это бетон — точно не инертный
-  if (lower.includes('бст') || lower.includes('бсм') || lower.includes('бетон')) {
-    return false;
-  }
-  
-  // Маркеры инертных материалов
-  const specialMarkers = ['пбв', 'гранит', 'пыль', 'песок', 'щебень', 'битум', 'эмульсия'];
-  
-  for (const marker of specialMarkers) {
-    if (lower.includes(marker)) return true;
-  }
-  
-  return false;
-};
+// const formatTime = (dateString: string): string => {
+//   const date = parseRussianDate(dateString);
+//   if (isNaN(date.getTime())) return '—';
+//   return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+// };
 
-
-
-
-
-
-const parseRussianDate = (dateString: string): Date => {
-  if (!dateString) return new Date();
+// const getDateKey = (dateString: string): string => {
+//   const date = parseRussianDate(dateString);
+//   if (isNaN(date.getTime())) return dateString;
   
-  if (dateString.includes('T') && !dateString.includes('.')) {
-    const date = new Date(dateString);
-    if (!isNaN(date.getTime())) return date;
-  }
+//   const day = date.getDate().toString().padStart(2, '0');
+//   const month = (date.getMonth() + 1).toString().padStart(2, '0');
+//   const year = date.getFullYear();
   
-  const parts = dateString.split(' ');
-  const dateParts = parts[0].split('.');
-  
-  let hour = 0, minute = 0;
-  if (parts[1]) {
-    const timeParts = parts[1].split(':');
-    hour = parseInt(timeParts[0], 10);
-    minute = parseInt(timeParts[1], 10);
-  }
-  
-  const day = parseInt(dateParts[0], 10);
-  const month = parseInt(dateParts[1], 10) - 1;
-  const year = parseInt(dateParts[2], 10);
-  
-  return new Date(year, month, day, hour, minute);
-};
-
-const formatTime = (dateString: string): string => {
-  const date = parseRussianDate(dateString);
-  if (isNaN(date.getTime())) return '—';
-  return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-};
-
-const getDateKey = (dateString: string): string => {
-  const date = parseRussianDate(dateString);
-  if (isNaN(date.getTime())) return dateString;
-  
-  const day = date.getDate().toString().padStart(2, '0');
-  const month = (date.getMonth() + 1).toString().padStart(2, '0');
-  const year = date.getFullYear();
-  
-  return `${day}.${month}.${year}`;
-};
+//   return `${day}.${month}.${year}`;
+// };
 
 const compareDatesDesc = (dateA: string, dateB: string): number => {
   const a = parseRussianDate(dateA);
@@ -178,30 +123,30 @@ const isDateToday = (dateStr: string): boolean => {
          date.getFullYear() === today.getFullYear();
 };
 
-const getFactoryBadgeClass = (factory: string): string => {
-  switch (factory) {
-    case 'ЛХ': return 'factory-badge-small ЛХ';
-    case 'ЛЮ': return 'factory-badge-small ЛЮ';
-    case 'СП': return 'factory-badge-small СП';
-    case 'Щ': return 'factory-badge-small Щ';
-    default: return 'factory-badge-small Другой';
-  }
-};
 
-const isConcreteMaterial = (material: string): boolean => {
-  if (!material) return false;
-  const lower = material.toLowerCase();
-  
-  const concreteMarkers = ['бст', 'бсм', 'бетон', 'раствор'];
-  const notConcreteMarkers = ['пбв', 'гранит', 'асфальт', 'щебень', 'песок', 'битум', 'эмульсия'];
-  
-  for (const marker of notConcreteMarkers) {
-    if (lower.includes(marker)) return false;
+
+
+
+
+const detectFactory = (item: IncomingItem | ShipmentItem, type: 'incoming' | 'shipment'): string => {
+  if (type === 'incoming') {
+    const incoming = item as IncomingItem;
+    if (incoming.division === 'ЛХ') return 'ЛХ';
+    if (incoming.division === 'ЛЮ') return 'ЛЮ';
+    if (incoming.division === 'СП') return 'СП';
+    if (incoming.division === 'Щ') return 'Щ';
+    if (incoming.number?.startsWith('ЛХ')) return 'ЛХ';
+    if (incoming.number?.startsWith('ЛЮ')) return 'ЛЮ';
+    if (incoming.number?.startsWith('СП')) return 'СП';
+    if (incoming.number?.startsWith('Щ')) return 'Щ';
+  } else if (type === 'shipment') {
+    const shipment = item as ShipmentItem;
+    if (shipment.division === 'ЛХ') return 'ЛХ';
+    if (shipment.division === 'ЛЮ') return 'ЛЮ';
+    if (shipment.division === 'СП') return 'СП';
+    if (shipment.division === 'Щ') return 'Щ';
   }
-  for (const marker of concreteMarkers) {
-    if (lower.includes(marker)) return true;
-  }
-  return false;
+  return 'Другой';
 };
 
 const hasTodayShipments = (shipments: ShipmentItem[], requestNumber: string): boolean => {
@@ -495,173 +440,360 @@ export default function CompactView({
   // ============================================
   
   if (shouldUseCombined) {
-    const groupedByDate = combinedData.reduce((acc, item) => {
-      if (!item.delivery_date) return acc;
-      const dateKey = getDateKey(item.delivery_date);
-      if (!acc[dateKey]) {
-        acc[dateKey] = [];
-      }
-      acc[dateKey].push(item);
-      return acc;
-    }, {} as Record<string, CombinedRequest[]>);
-    
-    const combinedSortedDates = Object.keys(groupedByDate).sort(compareDatesDesc);
-    
-    return (
-      <div className="compact-view">
-        {allShipmentsForChart && allShipmentsForChart.length > 0 && (
-          <ActivityChart 
-            shipments={allShipmentsForChart} 
-            selectedFactory={selectedFactory}
-            mode={mode}
-            materialType={isConcreteOnly ? 'concrete' : 'asphalt'}
-          />
-        )}
-        
-        {combinedSortedDates.map(date => {
-          const items = groupedByDate[date];
-          const sortedItems = [...items].sort((a, b) => {
-            const timeA = a.lastShipmentTime || '00:00';
-            const timeB = b.lastShipmentTime || '00:00';
-            const getMinutes = (time: string) => {
-              const parts = time.split(':');
-              const hours = parseInt(parts[0], 10);
-              const minutes = parseInt(parts[1], 10);
-              return hours * 60 + minutes;
-            };
-            return getMinutes(timeB) - getMinutes(timeA);
-          });
+    // Для отгрузок — используем combinedData
+    if (isShipment) {
+      const groupedByDate = combinedData.reduce((acc, item) => {
+        if (!item.delivery_date) return acc;
+        const dateKey = getDateKey(item.delivery_date);
+        if (!acc[dateKey]) {
+          acc[dateKey] = [];
+        }
+        acc[dateKey].push(item);
+        return acc;
+      }, {} as Record<string, CombinedRequest[]>);
+      
+      const combinedSortedDates = Object.keys(groupedByDate).sort(compareDatesDesc);
+      
+      return (
+        <div className="compact-view">
+          {allShipmentsForChart && allShipmentsForChart.length > 0 && (
+            <ActivityChart 
+              shipments={allShipmentsForChart} 
+              selectedFactory={selectedFactory}
+              mode={mode}
+              materialType={isConcreteOnly ? 'concrete' : 'asphalt'}
+            />
+          )}
           
-          const dayTotal = sortedItems.reduce((sum, item) => sum + item.factQuantity, 0);
-          const dayLabel = getDayLabel(date);
-          const isToday = isDateToday(date);
-          
-          // Определяем единицу измерения для заголовка
-          const firstItem = sortedItems[0];
-          const unitLabel = firstItem?.unit === 'м³' ? '(м³)' : '(т)';
-          
-          return (
-            <div key={date} className="compact-date-group">
-              <div className="compact-date-header">
-                <div className="date-wrapper">
-                  <span className="date-text">{dayLabel}</span>
-                  {isToday && <span className="today-badge">СЕГОДНЯ</span>}
-                </div>
-                <span className="date-total">{dayTotal.toFixed(0)} т</span>
-              </div>
-              
-              <div className="compact-table">
-                <div className="compact-header">
-                  <span className="col-time">Время</span>
-                  <span className="col-fact">Вып</span>
-                  <span className="col-slash"></span>
-                  <span className="col-plan">Заяв {unitLabel}</span>
-                  <span className="col-consignee">Грузополучатель</span>
-                  <span className="col-factory">Завод</span>
-                  <span className="col-trucks">Машин</span>
-                  <span className="col-expand"></span>
+          {combinedSortedDates.map(date => {
+            const items = groupedByDate[date];
+            const sortedItems = [...items].sort((a, b) => {
+              const timeA = a.lastShipmentTime || '00:00';
+              const timeB = b.lastShipmentTime || '00:00';
+              const getMinutes = (time: string) => {
+                const parts = time.split(':');
+                const hours = parseInt(parts[0], 10);
+                const minutes = parseInt(parts[1], 10);
+                return hours * 60 + minutes;
+              };
+              return getMinutes(timeB) - getMinutes(timeA);
+            });
+            
+            const dayTotal = sortedItems.reduce((sum, item) => sum + item.factQuantity, 0);
+            const dayLabel = getDayLabel(date);
+            const isToday = isDateToday(date);
+            
+            const firstItem = sortedItems[0];
+            const unitLabel = firstItem?.unit === 'м³' ? '(м³)' : '(т)';
+            
+            return (
+              <div key={date} className="compact-date-group">
+                <div className="compact-date-header">
+                  <div className="date-wrapper">
+                    <span className="date-text">{dayLabel}</span>
+                    {isToday && <span className="today-badge">СЕГОДНЯ</span>}
+                  </div>
+                  <span className="date-total">{dayTotal.toFixed(0)} т</span>
                 </div>
                 
-                {sortedItems.map((item, idx) => {
-                  const itemKey = `${date}_${idx}`;
-                  const isExpanded = expandedId === itemKey;
-                  const percentComplete = item.planQuantity > 0 ? (item.factQuantity / item.planQuantity) * 100 : 0;
-                  const isWarning = percentComplete < 90 && percentComplete > 0;
-                  const displayTime = item.lastShipmentTime || '—';
+                <div className="compact-table">
+                  <div className="compact-header">
+                    <span className="col-time">Время</span>
+                    <span className="col-fact">Вып</span>
+                    <span className="col-slash"></span>
+                    <span className="col-plan">Заяв {unitLabel}</span>
+                    <span className="col-consignee">Грузополучатель</span>
+                    <span className="col-factory">Завод</span>
+                    <span className="col-trucks">Машин</span>
+                    <span className="col-expand"></span>
+                  </div>
                   
-
-                  // 👇 ДОБАВЬТЕ ЭТУ СТРОКУ 👇
-                  const isSpecial = isSpecialMaterial(item.material);
-
-                  return (
-                    <div key={idx}>
-                      <div 
-                        // className="compact-row compact-clickable"
-                        className={`compact-row compact-clickable ${isSpecial ? 'special-row' : ''}`}  // ← здесь добавляем класс
-
-                        onClick={() => setExpandedId(isExpanded ? null : itemKey)}
-                      >
-                        <span className="col-time">{displayTime}</span>
-                        <span className={`col-fact ${isWarning ? 'warning' : ''}`}>
-                          {item.factQuantity.toFixed(1)}
-                        </span>
-                        <span className="col-slash">/</span>
-                        <span className="col-plan">
-                          {item.planQuantity > 0 ? (
-                            <span style={{ whiteSpace: 'nowrap' }}>
-                              {item.planQuantity.toFixed(0)}
-                              {item.closed ? (
-                                <span className="closed-lock"> 🔒</span>
-                              ) : (
-                                item.factQuantity > 0 && percentComplete < 90 && (
-                                  <span className="active-dot" title="Идут отгрузки"></span>
-                                )
-                              )}
-                            </span>
-                          ) : '—'}
-                        </span>
-                        <span className="col-consignee">
-                          {item.consignee}
-                          {isSpecial && <span className="special-badge">ИНЕРТНЫЕ</span>}  
-                        </span>
-
-                        <span className="col-factory">
-                          <div className="factory-badges-group">
-                            <div className={getFactoryBadgeClass(item.division)}>{item.division}</div>
-                          </div>
-                        </span>
-                        <span className="col-trucks">{item.truckCount}</span>
-                        <span className="col-expand">{isExpanded ? '▲' : '▼'}</span>
-                      </div>
-                      
-                      <AnimatePresence>
-                        {isExpanded && (
-                          <motion.div
-                            className="compact-details"
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            exit={{ opacity: 0, height: 0 }}
-                            transition={{ duration: 0.2 }}
-                          >
-                            <div className="detail-row">
-                              <span className="detail-label">📦 Материал:</span>
-                              <span className="detail-value">{item.material}</span>
+                  {sortedItems.map((item, idx) => {
+                    const itemKey = `${date}_${idx}`;
+                    const isExpanded = expandedId === itemKey;
+                    const percentComplete = item.planQuantity > 0 ? (item.factQuantity / item.planQuantity) * 100 : 0;
+                    const isWarning = percentComplete < 94 && percentComplete > 0;
+                    const displayTime = item.lastShipmentTime || '—';
+                    const isSpecial = isSpecialMaterial(item.material);
+                    
+                    return (
+                      <div key={idx}>
+                        <div 
+                          className={`compact-row compact-clickable ${isSpecial ? 'special-row' : ''}`}
+                          onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+                        >
+                          <span className="col-time">{displayTime}</span>
+                          <span className={`col-fact ${isWarning ? 'warning' : ''}`}>
+                            {item.factQuantity.toFixed(1)}
+                          </span>
+                          <span className="col-slash">/</span>
+                          <span className="col-plan">
+                            {item.planQuantity > 0 ? (
+                              <span style={{ whiteSpace: 'nowrap' }}>
+                                {item.planQuantity.toFixed(0)}
+                                {item.closed ? (
+                                  <span className="closed-lock"> 🔒</span>
+                                ) : (
+                                  item.factQuantity > 0 && percentComplete < 94 && (
+                                    <span className="active-dot" title="Идут отгрузки"></span>
+                                  )
+                                )}
+                              </span>
+                            ) : '—'}
+                          </span>
+                          <span className="col-consignee">
+                            {item.consignee}
+                            {isSpecial && <span className="special-badge">ИНЕРТНЫЕ</span>}
+                          </span>
+                          <span className="col-factory">
+                            <div className="factory-badges-group">
+                              <div className={getFactoryBadgeClass(item.division)}>{item.division}</div>
                             </div>
-                            <div className="detail-row">
-                              <span className="detail-label">🏭 Завод:</span>
-                              <span className="detail-value">{item.division}</span>
-                            </div>
-                            <div className="detail-row">
-                              <span className="detail-label">🚛 Машин:</span>
-                              <span className="detail-value">{item.truckCount}</span>
-                            </div>
-                            {item.vehicles.length > 0 && (
-                              <div className="vehicles-list">
-                                <div className="vehicles-title">🚛 Транспорт:</div>
-                                {item.vehicles.map((vehicle, vIdx) => (
-                                  <div key={vIdx} className="vehicle-item">
-                                    <span className="vehicle-time">{vehicle.fullDateTime || vehicle.time}</span>
-                                    <span className="vehicle-license">{vehicle.licensePlate}</span>
-                                    <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
-                                    <span className="vehicle-quantity">
-                                      {vehicle.quantity.toFixed(1)} {item.unit === 'м³' ? 'м³' : 'т'}
-                                    </span>
-                                  </div>
-                                ))}
+                          </span>
+                          <span className="col-trucks">{item.truckCount}</span>
+                          <span className="col-expand">{isExpanded ? '▲' : '▼'}</span>
+                        </div>
+                        
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div
+                              className="compact-details"
+                              initial={{ opacity: 0, height: 0 }}
+                              animate={{ opacity: 1, height: 'auto' }}
+                              exit={{ opacity: 0, height: 0 }}
+                              transition={{ duration: 0.2 }}
+                            >
+                              <div className="detail-row">
+                                <span className="detail-label">📦 Материал:</span>
+                                <span className="detail-value">{item.material}</span>
                               </div>
-                            )}
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  );
-                })}
+                              <div className="detail-row">
+                                <span className="detail-label">🏭 Завод:</span>
+                                <span className="detail-value">{item.division}</span>
+                              </div>
+                              <div className="detail-row">
+                                <span className="detail-label">🚛 Машин:</span>
+                                <span className="detail-value">{item.truckCount}</span>
+                              </div>
+                              {item.vehicles.length > 0 && (
+                                <div className="vehicles-list">
+                                  <div className="vehicles-title">🚛 Транспорт:</div>
+                                  {item.vehicles.map((vehicle, vIdx) => (
+                                    <div key={vIdx} className="vehicle-item">
+                                      <span className="vehicle-time">{vehicle.fullDateTime || vehicle.time}</span>
+                                      <span className="vehicle-license">{vehicle.licensePlate}</span>
+                                      <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
+                                      <span className="vehicle-quantity">
+                                        {vehicle.quantity.toFixed(1)} {item.unit === 'м³' ? 'м³' : 'т'}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
+            );
+          })}
+        </div>
+      );
+    }
+    
+    // ========== ПОСТУПЛЕНИЯ ДЛЯ АЙСБЕРГ ==========
+ // ========== ПОСТУПЛЕНИЯ ДЛЯ АЙСБЕРГ ==========
+// ========== ПОСТУПЛЕНИЯ ДЛЯ АЙСБЕРГ ==========
+// Группируем данные по: дата + поставщик + материал
+const groupedIncoming = data.reduce((acc, item) => {
+  const incoming = item as IncomingItem;
+  const dateKey = getDateKey(incoming.date);
+  const factory = detectFactory(incoming, 'incoming');
+  
+  // Пропускаем не Айсберг заводы (только СП и Щ)
+  if (factory !== 'СП' && factory !== 'Щ') return acc;
+  
+  // Группируем по: дата + поставщик + материал
+  const supplierKey = (incoming.supplier || 'unknown').trim();
+  const materialKey = incoming.material.trim();
+  const groupKey = `${dateKey}_${supplierKey}_${materialKey}`;
+  
+  if (!acc[dateKey]) {
+    acc[dateKey] = new Map();
+  }
+  
+  const itemTime = formatTime(incoming.date);
+  
+  if (!acc[dateKey].has(groupKey)) {
+    // Новая группа
+    acc[dateKey].set(groupKey, {
+      time: itemTime,
+      factQuantity: incoming.quantity,
+      planQuantity: 0,
+      consignee: incoming.supplier,
+      factories: [factory],
+      truckCount: 1,
+      material: incoming.material,
+      requestNumber: incoming.number,
+      requestDate: incoming.date,
+      closed: false,
+      supplier: incoming.supplier,
+      vehicles: [{
+        licensePlate: incoming.licensePlate || '—',
+        factory: factory,
+        quantity: incoming.quantity,
+        time: itemTime,
+        driver: incoming.driver || '—',
+        material: incoming.material,
+        supplier: incoming.supplier,
+      }],
+    });
+  } else {
+    // Существующая группа - суммируем
+    const existing = acc[dateKey].get(groupKey)!;
+    existing.factQuantity += incoming.quantity;
+    existing.truckCount += 1;
+    if (!existing.factories.includes(factory)) {
+      existing.factories.push(factory);
+    }
+    existing.vehicles.push({
+      licensePlate: incoming.licensePlate || '—',
+      factory: factory,
+      quantity: incoming.quantity,
+      time: itemTime,
+      driver: incoming.driver || '—',
+      material: incoming.material,
+      supplier: incoming.supplier,
+    });
+    // Обновляем время на самое позднее
+    if (itemTime > existing.time) {
+      existing.time = itemTime;
+    }
+  }
+  
+  return acc;
+}, {} as Record<string, Map<string, GroupedItem>>);
+
+const incomingSortedDates = Object.keys(groupedIncoming).sort(compareDatesDesc);
+
+return (
+  <div className="compact-view">
+    {incomingSortedDates.map(date => {
+      const items = Array.from(groupedIncoming[date].values());
+      const sortedItems = [...items].sort((a, b) => {
+        const timeA = a.time.split(':').map(Number);
+        const timeB = b.time.split(':').map(Number);
+        const minutesA = timeA[0] * 60 + timeA[1];
+        const minutesB = timeB[0] * 60 + timeB[1];
+        return minutesB - minutesA;
+      });
+      const dayTotal = sortedItems.reduce((sum, item) => sum + item.factQuantity, 0);
+      const isToday = isDateToday(date);
+      
+      return (
+        <div key={date} className="compact-date-group">
+          <div className="compact-date-header">
+            <div className="date-wrapper">
+              <span className="date-text">{getDayLabel(date)}</span>
+              {isToday && <span className="today-badge">СЕГОДНЯ</span>}
             </div>
-          );
-        })}
-      </div>
-    );
+            <span className="date-total">{dayTotal.toFixed(0)} т</span>
+          </div>
+          
+          <div className="compact-table">
+            <div className="compact-header">
+              <span className="col-time">Время</span>
+              <span className="col-fact">Вып</span>
+              <span className="col-material-header">Материал</span>
+              <span className="col-factory">Завод</span>
+              <span className="col-trucks">Машин</span>
+              <span className="col-expand"></span>
+            </div>
+            
+            {sortedItems.map((item, idx) => {
+              const itemKey = `${date}_${idx}`;
+              const isExpanded = expandedId === itemKey;
+              
+              return (
+                <div key={idx}>
+                  <div 
+                    className="compact-row compact-clickable"
+                    onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+                  >
+                    <span className="col-time">{item.time}</span>
+                    <span className="col-fact">{item.factQuantity.toFixed(1)}</span>
+                    <span className="col-material-header">{item.material}</span>
+                    <span className="col-factory">
+                      <div className="factory-badges-group">
+                        {item.factories.map((factory, i) => (
+                          <div key={i} className={getFactoryBadgeClass(factory)}>
+                            {factory}
+                          </div>
+                        ))}
+                      </div>
+                    </span>
+                    <span className="col-trucks">{item.truckCount}</span>
+                    <span className="col-expand">{isExpanded ? '▲' : '▼'}</span>
+                  </div>
+                  
+                  <AnimatePresence>
+                    {isExpanded && (
+                      <motion.div
+                        className="compact-details"
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: 'auto' }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.2 }}
+                      >
+                        <div className="detail-row">
+                          <span className="detail-label">📦 Материал:</span>
+                          <span className="detail-value">{item.material}</span>
+                        </div>
+                        <div className="detail-row">
+                          <span className="detail-label">🏭 Завод:</span>
+                          <span className="detail-value">{item.factories.join(', ')}</span>
+                        </div>
+                        <div className="detail-row">
+                          <span className="detail-label">🚛 Машин:</span>
+                          <span className="detail-value">{item.truckCount}</span>
+                        </div>
+                        {item.vehicles.length > 0 && (
+                          <div className="vehicles-list">
+                            <div className="vehicles-title">🚛 Транспорт:</div>
+                            {item.vehicles.map((vehicle, i) => (
+                              <div key={i} className="vehicle-item">
+                                <span className="vehicle-time">{vehicle.time}</span>
+                                <span className="vehicle-license">{vehicle.licensePlate}</span>
+                                <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
+                                <span className="vehicle-quantity">{vehicle.quantity.toFixed(1)} т</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      );
+    })}
+  </div>
+);
+
+
+
+
+
+
+
+
+
   }
   
   // ============================================
@@ -728,18 +860,16 @@ export default function CompactView({
                 const itemKey = `${date}_${idx}`;
                 const isExpanded = expandedId === itemKey;
                 const percentComplete = item.planQuantity > 0 ? (item.factQuantity / item.planQuantity) * 100 : 0;
-                const isWarning = percentComplete < 90;
-
+                const isWarning = percentComplete < 94;
                 const isSpecial = isSpecialMaterial(item.material);
-
                 
                 if (isShipment) {
                   return (
                     <div key={idx}>
                       <div 
-                className={`compact-row compact-clickable ${isSpecial ? 'special-row' : ''}`}  // ← здесь добавляем класс
-                onClick={() => setExpandedId(isExpanded ? null : itemKey)}
-              >
+                        className={`compact-row compact-clickable ${isSpecial ? 'special-row' : ''}`}
+                        onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+                      >
                         <span className="col-time">{item.time}</span>
                         <span className={`col-fact ${isWarning ? 'warning' : ''}`}>
                           {item.factQuantity.toFixed(1)}
@@ -752,7 +882,7 @@ export default function CompactView({
                               {item.closed ? (
                                 <span className="closed-lock"> 🔒</span>
                               ) : (
-                                hasTodayShipments(allShipments, item.requestNumber) && percentComplete < 90 && (
+                                hasTodayShipments(allShipments, item.requestNumber) && percentComplete < 94 && (
                                   <span className="active-dot" title="Идут отгрузки"></span>
                                 )
                               )}
@@ -760,13 +890,15 @@ export default function CompactView({
                           ) : '—'}
                         </span>
                         <span className="col-consignee">
-                  {item.consignee}
-                  {isSpecial && <span className="special-badge">ИНЕРТНЫЕ</span>} 
-                </span>
+                          {item.consignee}
+                          {isSpecial && <span className="special-badge">ИНЕРТНЫЕ</span>}
+                        </span>
                         <span className="col-factory">
                           <div className="factory-badges-group">
-                            {item.factories.map((factory, fIdx) => (
-                              <div key={fIdx} className={getFactoryBadgeClass(factory)}>{factory}</div>
+                            {item.factories.map((factory, i) => (
+                              <div key={i} className={getFactoryBadgeClass(factory)}>
+                                {factory}
+                              </div>
                             ))}
                           </div>
                         </span>
@@ -798,8 +930,8 @@ export default function CompactView({
                             {item.vehicles.length > 0 && (
                               <div className="vehicles-list">
                                 <div className="vehicles-title">🚛 Транспорт:</div>
-                                {item.vehicles.map((vehicle, vIdx) => (
-                                  <div key={vIdx} className="vehicle-item">
+                                {item.vehicles.map((vehicle, i) => (
+                                  <div key={i} className="vehicle-item">
                                     <span className="vehicle-time">{vehicle.time}</span>
                                     <span className="vehicle-license">{vehicle.licensePlate}</span>
                                     <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
@@ -827,8 +959,10 @@ export default function CompactView({
                       <span className="col-material-header">{item.material?.substring(0, 20)}</span>
                       <span className="col-factory">
                         <div className="factory-badges-group">
-                          {item.factories.map((factory, fIdx) => (
-                            <div key={fIdx} className={getFactoryBadgeClass(factory)}>{factory}</div>
+                          {item.factories.map((factory, i) => (
+                            <div key={i} className={getFactoryBadgeClass(factory)}>
+                              {factory}
+                            </div>
                           ))}
                         </div>
                       </span>
@@ -860,8 +994,8 @@ export default function CompactView({
                           {item.vehicles.length > 0 && (
                             <div className="vehicles-list">
                               <div className="vehicles-title">🚛 Транспорт:</div>
-                              {item.vehicles.map((vehicle, vIdx) => (
-                                <div key={vIdx} className="vehicle-item">
+                              {item.vehicles.map((vehicle, i) => (
+                                <div key={i} className="vehicle-item">
                                   <span className="vehicle-time">{vehicle.time}</span>
                                   <span className="vehicle-license">{vehicle.licensePlate}</span>
                                   <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
@@ -883,8 +1017,4 @@ export default function CompactView({
     </div>
   );
 }
-
-
-
-
 
