@@ -151,6 +151,104 @@ export const detectFactory = (
 
 
 
+
+
+// lib/utils.ts
+
+export interface ShipmentForCount {
+  date: string;
+  clientRequestNumber: string | null;
+  quantity: number;
+  division: string;
+  material: string;
+}
+
+export interface RequestForCount {
+  number: string;
+  closed: boolean | null;
+  quantity: number;
+  division: string;
+  material: string;
+}
+
+
+
+
+export function countActiveRequests(
+  requests: RequestForCount[],
+  shipments: ShipmentForCount[],
+  mode: Mode,
+  materialType: 'asphalt' | 'concrete'
+): number {
+  // Фильтруем по типу материала
+  const isConcrete = materialType === 'concrete';
+  const filteredRequests = requests.filter(r => isConcreteMaterial(r.material) === isConcrete);
+  const filteredShipments = shipments.filter(s => isConcreteMaterial(s.material) === isConcrete);
+  
+  // Фильтруем по заводам режима
+  const validFactories = mode === 'tas' ? TAS_FACTORIES : ICEBERG_FACTORIES;
+  const filteredRequestsByFactory = filteredRequests.filter(r => validFactories.includes(r.division as FactoryCode));
+  const filteredShipmentsByFactory = filteredShipments.filter(s => validFactories.includes(s.division as FactoryCode));
+  
+  // Сегодня и вчера
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  
+  // Карта планов
+  const planMap = new Map<string, number>();
+  for (const req of filteredRequestsByFactory) {
+    planMap.set(req.number, req.quantity);
+  }
+  
+  // Карта закрытых заявок
+  const closedMap = new Map<string, boolean>();
+  for (const req of filteredRequestsByFactory) {
+    if (req.closed) {
+      closedMap.set(req.number, true);
+    }
+  }
+  
+  // Группируем отгрузки за сегодня и вчера по заявкам
+  const factByRequest = new Map<string, number>();
+  for (const shipment of filteredShipmentsByFactory) {
+    const shipmentDate = parseRussianDate(shipment.date);
+    shipmentDate.setHours(0, 0, 0, 0);
+    
+    const isToday = shipmentDate.getTime() === today.getTime();
+    const isYesterday = shipmentDate.getTime() === yesterday.getTime();
+    
+    if (!isToday && !isYesterday) continue;
+    
+    const requestNumber = shipment.clientRequestNumber;
+    if (requestNumber) {
+      const current = factByRequest.get(requestNumber) || 0;
+      factByRequest.set(requestNumber, current + shipment.quantity);
+    }
+  }
+  
+  // Считаем активные заявки (мигающие точки)
+  let activeCount = 0;
+  for (const [requestNumber, factQuantity] of factByRequest) {
+    const planQuantity = planMap.get(requestNumber) || 0;
+    const isClosed = closedMap.get(requestNumber) || false;
+    
+    if (isClosed) continue;
+    if (planQuantity === 0) continue;
+    
+    const percent = (factQuantity / planQuantity) * 100;
+    if (percent > 0 && percent < 90) {
+      activeCount++;
+    }
+  }
+  
+  return activeCount;
+}
+
+
+
 // // lib/utils.ts
 // export function isConcreteMaterial(material: string): boolean {
 //   if (!material) return false;
