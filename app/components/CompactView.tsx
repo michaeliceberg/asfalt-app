@@ -207,10 +207,18 @@ export default function CompactView({
         
         let filteredResults = allResults;
         if (isConcreteOnly) {
-          filteredResults = allResults.filter(item => isConcreteMaterial(item.material));
-        } else if (mainTab === 'shipment') {
-          filteredResults = allResults.filter(item => !isConcreteMaterial(item.material));
-        }
+  filteredResults = allResults.filter(item => isConcreteMaterial(item.material));
+} else if (mainTab === 'shipment') {
+  // Исключаем и бетон, и инертные
+  filteredResults = allResults.filter(item => {
+    return !isConcreteMaterial(item.material) && !isSpecialMaterial(item.material);
+  });
+}
+        // if (isConcreteOnly) {
+        //   filteredResults = allResults.filter(item => isConcreteMaterial(item.material));
+        // } else if (mainTab === 'shipment') {
+        //   filteredResults = allResults.filter(item => !isConcreteMaterial(item.material));
+        // }
         
         if (isMountedRef.current) {
           setCombinedData(filteredResults);

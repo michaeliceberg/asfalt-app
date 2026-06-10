@@ -3,7 +3,7 @@
 'use client';
 
 import { ShipmentItem } from '@/app/page';
-import { isConcreteMaterial, parseRussianDate } from '@/lib/utils';
+import { isConcreteMaterial, isSpecialMaterial, parseRussianDate } from '@/lib/utils';
 import { useEffect, useState, useRef } from 'react';
 
 interface ActivityChartProps {
@@ -72,11 +72,23 @@ export default function ActivityChart({
     }
     
     // 3. Фильтруем по типу материала (асфальт/бетон/все)
-    if (materialType === 'asphalt') {
-      filteredShipments = filteredShipments.filter(s => !isConcreteMaterial(s.material));
-    } else if (materialType === 'concrete') {
-      filteredShipments = filteredShipments.filter(s => isConcreteMaterial(s.material));
-    }
+    // if (materialType === 'asphalt') {
+    //   filteredShipments = filteredShipments.filter(s => !isConcreteMaterial(s.material));
+    // } else if (materialType === 'concrete') {
+    //   filteredShipments = filteredShipments.filter(s => isConcreteMaterial(s.material));
+    // }
+
+    // 3. Фильтруем по типу материала (асфальт/бетон/все)
+if (materialType === 'asphalt') {
+  filteredShipments = filteredShipments.filter(s => {
+    return !isConcreteMaterial(s.material) && !isSpecialMaterial(s.material);
+  });
+} else if (materialType === 'concrete') {
+  filteredShipments = filteredShipments.filter(s => isConcreteMaterial(s.material));
+}
+
+
+
     // если 'all' — показываем всё
     
     // Считаем тонны по периодам

@@ -17,7 +17,7 @@ import ChartsView from './components/ChartsView';
 import TopCustomersView from './components/TopCustomersView';
 import ModeSwitch from './components/ModeSwitch';
 import LoadingSpinner from './components/LoadingSpinner';
-import { countActiveRequests, getFactoryName, isConcreteMaterial, parseRussianDate } from '@/lib/utils';
+import { countActiveRequests, getFactoryName, isConcreteMaterial, isSpecialMaterial, parseRussianDate } from '@/lib/utils';
 
 // ============================================
 // ИНТЕРФЕЙСЫ
@@ -1085,8 +1085,18 @@ const loadAllData = async () => {
   
   // Отгрузка Асфальт
   if (activeMainTab === 'shipment') {
-    let filtered = shipmentData.filter(item => !isConcreteMaterial(item.material));
-    
+    // let filtered = shipmentData.filter(item => !isConcreteMaterial(item.material));
+
+  // Фильтруем: не бетон И не инертные
+    let filtered = shipmentData.filter(item => {
+      const isConcrete = isConcreteMaterial(item.material);
+      const isSpecial = isSpecialMaterial(item.material);
+      
+      // Исключаем и бетон, и инертные
+      return !isConcrete && !isSpecial;
+    });
+
+
     if (activeFactory !== 'all') {
       filtered = filtered.filter(item => {
         const factory = detectFactory(item, 'shipment');
