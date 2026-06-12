@@ -23,6 +23,23 @@ import { countActiveRequests, getFactoryName, isConcreteMaterial, isSpecialMater
 // ИНТЕРФЕЙСЫ
 // ============================================
 
+
+interface RequestItem {
+  number: string;
+  division: string;
+  closed: boolean | null;
+  delivery_date: string | null;
+  date: string;
+  clientRequestNumber: string | null;
+}
+
+// interface ShipmentItem {
+//   date: string;
+//   division: string;
+//   clientRequestNumber: string | null;
+// }
+
+
 interface ApiOutgoingRequest {
   id: number;
   number: string;
@@ -208,6 +225,54 @@ export default function Home() {
 
 
   const [lastImportInfo, setLastImportInfo] = useState<{ lastImport: string | null; totalRecords: number }>({ lastImport: null, totalRecords: 0 });
+
+
+   // ============================================
+  // PULL-TO-REFRESH (смахивание вниз)
+  // ============================================
+  
+  const [pullStartY, setPullStartY] = useState(0);
+  const [pullOffset, setPullOffset] = useState(0);
+  const [isPulling, setIsPulling] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  const handleTouchStart = (e: React.TouchEvent) => {
+    // Только если скролл вверху страницы
+    if (window.scrollY === 0) {
+      setPullStartY(e.touches[0].clientY);
+      setIsPulling(true);
+    }
+  };
+  
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!isPulling) return;
+    
+    const currentY = e.touches[0].clientY;
+    const diff = currentY - pullStartY;
+    
+    if (diff > 0 && diff < 100) {
+      setPullOffset(diff);
+      e.preventDefault();
+    }
+  };
+  
+  const handleTouchEnd = () => {
+    if (isPulling && pullOffset > 60) {
+      // Сработал pull-to-refresh
+      handleRefresh();
+      // Вибрация на мобильных
+      if (window.navigator && window.navigator.vibrate) {
+        window.navigator.vibrate(50);
+      }
+    }
+    setPullOffset(0);
+    setIsPulling(false);
+  };
+
+
+
+
+
 
 
 
@@ -536,237 +601,6 @@ const loadNewConcreteCount = async () => {
 
 
 
-// const loadNewConcreteCount = async () => {
-//   try {
-//     const [requestsResponse, shipmentsResponse] = await Promise.all([
-//       fetch('/api/outgoing-requests'),
-//       fetch('/api/shipments')
-//     ]);
-    
-//     const allRequests = await requestsResponse.json();
-//     const allShipments = await shipmentsResponse.json();
-    
-//     const activeCount = countActiveRequests(
-//       allRequests,
-//       allShipments,
-//       mode,
-//       'concrete'
-//     );
-    
-//     setNewConcreteCount(activeCount);
-//   } catch (err) {
-//     console.error(err);
-//   }
-// };
-
-
-
-// const loadNewConcreteCount = async () => {
-//   try {
-//     const response = await fetch('/api/shipments');
-//     let allShipments: ShipmentItem[] = await response.json();
-    
-//     // Только бетон
-//     allShipments = allShipments.filter(s => isConcreteMaterial(s.material));
-    
-//     // Только заводы текущего режима (Айсберг)
-//     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
-//     allShipments = allShipments.filter(s => validFactories.includes(s.division));
-    
-//     const today = new Date();
-//     today.setHours(0, 0, 0, 0);
-    
-//     const todayConcrete = allShipments.filter(shipment => {
-//       const shipmentDate = parseRussianDate(shipment.date);
-//       shipmentDate.setHours(0, 0, 0, 0);
-//       return shipmentDate.getTime() === today.getTime();
-//     });
-    
-//     setNewConcreteCount(todayConcrete.length);
-//   } catch (err) {
-//     console.error(err);
-//   }
-// };
-
-// const loadNewConcreteCount = async () => {
-//   try {
-//     const [requestsResponse, shipmentsResponse] = await Promise.all([
-//       fetch('/api/outgoing-requests'),
-//       fetch('/api/shipments')
-//     ]);
-    
-//     let allRequests: OutgoingRequest[] = await requestsResponse.json();
-//     let allShipments: ShipmentItem[] = await shipmentsResponse.json();
-    
-//     // Только бетон
-//     allShipments = allShipments.filter((s: ShipmentItem) => isConcreteMaterial(s.material));
-//     allRequests = allRequests.filter((r: OutgoingRequest) => isConcreteMaterial(r.material));
-    
-//     // Только заводы текущего режима (Айсберг)
-//     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
-//     allShipments = allShipments.filter((s: ShipmentItem) => validFactories.includes(s.division));
-//     allRequests = allRequests.filter((r: OutgoingRequest) => validFactories.includes(r.division));
-    
-//     const today = new Date();
-//     today.setHours(0, 0, 0, 0);
-    
-//     // Группируем отгрузки по заявкам
-//     const shipmentsByRequest = new Map<string, number>();
-//     for (const shipment of allShipments) {
-//       const shipmentDate = parseRussianDate(shipment.date);
-//       shipmentDate.setHours(0, 0, 0, 0);
-      
-//       // Только сегодняшние отгрузки
-//       if (shipmentDate.getTime() !== today.getTime()) continue;
-      
-//       const requestNumber = shipment.clientRequestNumber;
-//       if (requestNumber) {
-//         const current = shipmentsByRequest.get(requestNumber) || 0;
-//         shipmentsByRequest.set(requestNumber, current + shipment.quantity);
-//       }
-//     }
-    
-//     // Создаём карту планов
-//     const planMap = new Map<string, number>();
-//     for (const req of allRequests) {
-//       planMap.set(req.number, req.quantity);
-//     }
-    
-//     // Считаем незавершённые заявки
-//     let activeCount = 0;
-//     for (const [requestNumber, factQuantity] of shipmentsByRequest) {
-//       const planQuantity = planMap.get(requestNumber) || 0;
-//       if (planQuantity > 0) {
-//         const percent = (factQuantity / planQuantity) * 100;
-//         if (percent > 0 && percent < 90) {  // незавершённая
-//           activeCount++;
-//         }
-//       }
-//     }
-    
-//     setNewConcreteCount(activeCount);
-//   } catch (err) {
-//     console.error('Error loading concrete count:', err);
-//   }
-// };
-
-// const loadNewConcreteCount = async () => {
-//   try {
-//     const [requestsResponse, shipmentsResponse] = await Promise.all([
-//       fetch('/api/outgoing-requests'),
-//       fetch('/api/shipments')
-//     ]);
-    
-//     let allRequests: OutgoingRequest[] = await requestsResponse.json();
-//     let allShipments: ShipmentItem[] = await shipmentsResponse.json();
-    
-//     // Только бетон
-//     allShipments = allShipments.filter((s: ShipmentItem) => isConcreteMaterial(s.material));
-//     allRequests = allRequests.filter((r: OutgoingRequest) => isConcreteMaterial(r.material));
-    
-//     // Только заводы текущего режима (Айсберг)
-//     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
-//     allShipments = allShipments.filter((s: ShipmentItem) => validFactories.includes(s.division));
-//     allRequests = allRequests.filter((r: OutgoingRequest) => validFactories.includes(r.division));
-    
-//     // Сегодня и вчера
-//     const today = new Date();
-//     today.setHours(0, 0, 0, 0);
-    
-//     const yesterday = new Date(today);
-//     yesterday.setDate(yesterday.getDate() - 1);
-    
-//     // Группируем отгрузки по заявкам (только сегодня и вчера)
-//     const shipmentsByRequest = new Map<string, number>();
-//     for (const shipment of allShipments) {
-//       const shipmentDate = parseRussianDate(shipment.date);
-//       shipmentDate.setHours(0, 0, 0, 0);
-      
-//       // Проверяем: сегодня ИЛИ вчера
-//       const isToday = shipmentDate.getTime() === today.getTime();
-//       const isYesterday = shipmentDate.getTime() === yesterday.getTime();
-      
-//       if (!isToday && !isYesterday) continue;
-      
-//       const requestNumber = shipment.clientRequestNumber;
-//       if (requestNumber) {
-//         const current = shipmentsByRequest.get(requestNumber) || 0;
-//         shipmentsByRequest.set(requestNumber, current + shipment.quantity);
-//       }
-//     }
-    
-//     // Карта планов
-//     const planMap = new Map<string, number>();
-//     for (const req of allRequests) {
-//       planMap.set(req.number, req.quantity);
-//     }
-    
-//     // Считаем незавершённые заявки (факт > 0 и факт < 90% от плана)
-//     let activeCount = 0;
-//     for (const [requestNumber, factQuantity] of shipmentsByRequest) {
-//       const planQuantity = planMap.get(requestNumber) || 0;
-//       if (planQuantity > 0) {
-//         const percent = (factQuantity / planQuantity) * 100;
-//         if (percent > 0 && percent < 90) {
-//           activeCount++;
-//         }
-//       }
-//     }
-    
-//     setNewConcreteCount(activeCount);
-//   } catch (err) {
-//     console.error('Error loading concrete count:', err);
-//   }
-// };
-
-
-
-
-
-
-
-// const loadFutureRequestsCount = async () => {
-//   try {
-//     const [requestsResponse, shipmentsResponse] = await Promise.all([
-//       fetch('/api/outgoing-requests'),
-//       fetch('/api/shipments')
-//     ]);
-    
-//     let allRequests: ApiRequest[] = await requestsResponse.json();
-//     let allShipments: ShipmentItem[] = await shipmentsResponse.json();
-    
-//     // Фильтруем по заводам текущего режима
-//     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
-//     allRequests = allRequests.filter((r) => validFactories.includes(r.division));
-//     allShipments = allShipments.filter((s) => validFactories.includes(s.division));
-    
-//     const today = new Date();
-//     today.setHours(0, 0, 0, 0);
-    
-//     const activeTodayRequests = new Set();
-//     for (const shipment of allShipments) {
-//       const shipmentDate = parseRussianDate(shipment.date);
-//       shipmentDate.setHours(0, 0, 0, 0);
-//       if (shipmentDate.getTime() === today.getTime() && shipment.clientRequestNumber) {
-//         activeTodayRequests.add(shipment.clientRequestNumber);
-//       }
-//     }
-    
-//     const future = allRequests.filter((req) => {
-//       if (req.closed) return false;
-//       if (!req.delivery_date) return false;
-//       const deliveryDate = parseRussianDate(req.delivery_date);
-//       deliveryDate.setHours(0, 0, 0, 0);
-//       return deliveryDate >= today && !activeTodayRequests.has(req.number);
-//     });
-    
-//     setFutureRequestsCount(future.length);
-//   } catch (err) {
-//     console.error(err);
-//   }
-// };
-
-
 const loadFutureRequestsCount = async () => {
   try {
     const [requestsResponse, shipmentsResponse] = await Promise.all([
@@ -774,16 +608,25 @@ const loadFutureRequestsCount = async () => {
       fetch('/api/shipments')
     ]);
     
-    let allRequests: ApiRequest[] = await requestsResponse.json();
-    let allShipments: ShipmentItem[] = await shipmentsResponse.json();
+    let allRequests = await requestsResponse.json();
+    let allShipments = await shipmentsResponse.json();
+    
+    // ✅ КРИТИЧЕСКИ ВАЖНО: проверка на массив
+    if (!Array.isArray(allRequests)) {
+      console.error('allRequests is not an array:', allRequests);
+      setFutureRequestsCount(0);
+      return;
+    }
+    if (!Array.isArray(allShipments)) {
+      console.error('allShipments is not an array:', allShipments);
+      setFutureRequestsCount(0);
+      return;
+    }
     
     // Фильтруем по заводам текущего режима
     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
     allRequests = allRequests.filter((r) => validFactories.includes(r.division));
     allShipments = allShipments.filter((s) => validFactories.includes(s.division));
-    
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
     
     // Для Айсберга пока НЕТ логики "На будущее"
     if (mode === 'iceberg') {
@@ -792,6 +635,9 @@ const loadFutureRequestsCount = async () => {
     }
     
     // ========== ЛОГИКА ТОЛЬКО ДЛЯ ТАС ==========
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
     const activeTodayRequests = new Set();
     for (const shipment of allShipments) {
       const shipmentDate = parseRussianDate(shipment.date);
@@ -801,7 +647,7 @@ const loadFutureRequestsCount = async () => {
       }
     }
     
-    const future = allRequests.filter((req) => {
+    const future = allRequests.filter((req: RequestItem) => {
       if (req.closed) return false;
       if (!req.delivery_date) return false;
       const deliveryDate = parseRussianDate(req.delivery_date);
@@ -811,11 +657,10 @@ const loadFutureRequestsCount = async () => {
     
     setFutureRequestsCount(future.length);
   } catch (err) {
-    console.error(err);
+    console.error('Error in loadFutureRequestsCount:', err);
     setFutureRequestsCount(0);
   }
 };
-
 
 
 
@@ -1272,122 +1117,420 @@ useEffect(() => {
 
 
 
-  // ============================================
-  // РЕНДЕР
-  // ============================================
+// ============================================
+// РЕНДЕР
+// ============================================
 
-  if (loading) {
-    return <LoadingSpinner message="Загрузка данных..." size="large" fullScreen />;
-  }
+if (loading) {
+  return <LoadingSpinner message="Загрузка данных..." size="large" fullScreen />;
+}
 
-  if (error) {
-    return (
-      <div className="error">
-        <p>⚠️ Ошибка: {error}</p>
-        <button onClick={handleRetry}>Попробовать снова</button>
-      </div>
-    );
-  }
-
+if (error) {
   return (
-    <>
-      <Notification message={notificationMessage} show={showNotification} />
-
-      <div className="container">
-        <header className="header">
-          <Header 
-            refreshing={refreshing} 
-            onRefresh={handleRefresh}
-            onSendPlan={sendPlan}
-          />
-          
-          <ModeSwitch mode={mode} onToggle={toggleMode} />
-
-          <MainTabs 
-            activeTab={activeMainTab} 
-            onTabChange={setActiveMainTab}
-            futureRequestsCount={futureRequestsCount}
-            newShipmentsCount={newShipmentsCount}
-            newConcreteCount={newConcreteCount}
-            showConcreteTab={mode === 'iceberg'}  // ← показываем только в режиме Айсберг
-          />
-
-          <div className="sync-info">
-            <span className="sync-label">🔄 Синхронизация с 1С (ЛХ/ЛЮ):</span>
-            <span className="sync-time">{formatSyncTime(currentSyncInfo.lastSync)}</span>
-          </div>
-
-          {/* 👇 ДОБАВЬТЕ ЭТОТ БЛОК 👇 */}
-          <div className="sync-info">
-            <span className="sync-label">📁 Импорт Excel (СП/Щ):</span>
-            <span className="sync-time">{formatSyncTime(lastImportInfo.lastImport)}</span>
-          </div>
-
-          {activeMainTab !== 'summary' && (
-            <>
-              <FactoryFilter 
-                factories={availableFactories} 
-                activeFactory={activeFactory} 
-                onFactoryChange={setActiveFactory} 
-              />
-              
-              <ViewTabs activeTab={activeViewTab} onTabChange={setActiveViewTab} />
-              
-              <div className="stats">
-                Всего записей: <strong>{filteredData.length}</strong>
-                {activeFactory !== 'all' && ` (${getFactoryName(activeFactory)})`}
-              </div>
-            </>
-          )}
-        </header>
-
-        <motion.div
-          key={contentKey}
-          initial={{ opacity: 0, x: mode === 'tas' ? -20 : 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          exit={{ opacity: 0, x: mode === 'tas' ? 20 : -20 }}
-          transition={{ duration: 0.3, type: 'spring', stiffness: 400, damping: 30 }}
-        >
-          {/* {activeMainTab === 'summary' && <SummaryView />} */}
-          {activeMainTab === 'summary' && <SummaryView mode={mode} />}
-          
-{activeMainTab !== 'summary' && activeViewTab === 'list' && (
-  <ListView 
-    data={getCurrentData()}
-    mainTab={activeMainTab}
-  />
-)}
-
-{activeMainTab !== 'summary' && activeViewTab === 'compact' && (
-  <CompactView 
-    data={getCurrentData()}
-    mainTab={activeMainTab}
-    outgoingRequests={outgoingRequestsForCompact}
-    allShipments={shipmentData}
-    allShipmentsForChart={shipmentData}
-    selectedFactory={activeFactory}
-    mode={mode}
-  />
-)}
-
-          {/* {activeMainTab !== 'summary' && activeViewTab === 'charts' && (
-            <ChartsView data={shipmentData} />
-          )} */}
-
-
-{activeMainTab !== 'summary' && activeViewTab === 'charts' && (
-  <ChartsView data={shipmentData} mode={mode} />
-)}
-
-          {activeMainTab !== 'summary' && activeViewTab === 'topCustomers' && (
-            <TopCustomersView 
-              data={shipmentData} 
-              mode={mode} 
-            />
-          )}
-        </motion.div>
-      </div>
-    </>
+    <div className="error">
+      <p>⚠️ Ошибка: {error}</p>
+      <button onClick={handleRetry}>Попробовать снова</button>
+    </div>
   );
 }
 
+return (
+  <div 
+    ref={containerRef}
+    onTouchStart={handleTouchStart}
+    onTouchMove={handleTouchMove}
+    onTouchEnd={handleTouchEnd}
+    className="app-container"
+  >
+    {/* Индикатор pull-to-refresh */}
+    <div 
+      className="pull-to-refresh-indicator"
+      style={{ 
+        transform: `translateY(${Math.min(pullOffset, 80)}px)`,
+        opacity: Math.min(pullOffset / 60, 1)
+      }}
+    >
+      {pullOffset > 60 ? '🔄 Отпустите для обновления' : '👇 Тяните вниз для обновления'}
+    </div>
+    
+    <Notification message={notificationMessage} show={showNotification} />
+
+    <div className="container">
+      <header className="header">
+        <Header 
+          refreshing={refreshing} 
+          onRefresh={handleRefresh}
+          onSendPlan={sendPlan}
+        />
+        
+        <ModeSwitch mode={mode} onToggle={toggleMode} />
+
+        <MainTabs 
+          activeTab={activeMainTab} 
+          onTabChange={setActiveMainTab}
+          futureRequestsCount={futureRequestsCount}
+          newShipmentsCount={newShipmentsCount}
+          newConcreteCount={newConcreteCount}
+          showConcreteTab={mode === 'iceberg'}
+        />
+
+        <div className="sync-info">
+          <span className="sync-label">🔄 Синхронизация с 1С (ЛХ/ЛЮ):</span>
+          <span className="sync-time">{formatSyncTime(currentSyncInfo.lastSync)}</span>
+        </div>
+
+        <div className="sync-info">
+          <span className="sync-label">📁 Импорт Excel (СП/Щ):</span>
+          <span className="sync-time">{formatSyncTime(lastImportInfo.lastImport)}</span>
+        </div>
+
+        {activeMainTab !== 'summary' && (
+          <>
+            <FactoryFilter 
+              factories={availableFactories} 
+              activeFactory={activeFactory} 
+              onFactoryChange={setActiveFactory} 
+            />
+            
+            <ViewTabs activeTab={activeViewTab} onTabChange={setActiveViewTab} />
+            
+            <div className="stats">
+              Всего записей: <strong>{filteredData.length}</strong>
+              {activeFactory !== 'all' && ` (${getFactoryName(activeFactory)})`}
+            </div>
+          </>
+        )}
+      </header>
+
+      <motion.div
+        key={contentKey}
+        initial={{ opacity: 0, x: mode === 'tas' ? -20 : 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: mode === 'tas' ? 20 : -20 }}
+        transition={{ duration: 0.3, type: 'spring', stiffness: 400, damping: 30 }}
+      >
+        {activeMainTab === 'summary' && <SummaryView mode={mode} />}
+        
+        {activeMainTab !== 'summary' && activeViewTab === 'list' && (
+          <ListView 
+            data={getCurrentData()}
+            mainTab={activeMainTab}
+          />
+        )}
+
+        {activeMainTab !== 'summary' && activeViewTab === 'compact' && (
+          <CompactView 
+            data={getCurrentData()}
+            mainTab={activeMainTab}
+            outgoingRequests={outgoingRequestsForCompact}
+            allShipments={shipmentData}
+            allShipmentsForChart={shipmentData}
+            selectedFactory={activeFactory}
+            mode={mode}
+          />
+        )}
+
+        {activeMainTab !== 'summary' && activeViewTab === 'charts' && (
+          <ChartsView data={shipmentData} mode={mode} />
+        )}
+
+        {activeMainTab !== 'summary' && activeViewTab === 'topCustomers' && (
+          <TopCustomersView 
+            data={shipmentData} 
+            mode={mode} 
+          />
+        )}
+      </motion.div>
+    </div>
+  </div>
+);
+}
+
+
+
+
+
+
+
+
+
+
+// const loadNewConcreteCount = async () => {
+//   try {
+//     const [requestsResponse, shipmentsResponse] = await Promise.all([
+//       fetch('/api/outgoing-requests'),
+//       fetch('/api/shipments')
+//     ]);
+    
+//     const allRequests = await requestsResponse.json();
+//     const allShipments = await shipmentsResponse.json();
+    
+//     const activeCount = countActiveRequests(
+//       allRequests,
+//       allShipments,
+//       mode,
+//       'concrete'
+//     );
+    
+//     setNewConcreteCount(activeCount);
+//   } catch (err) {
+//     console.error(err);
+//   }
+// };
+
+
+
+// const loadNewConcreteCount = async () => {
+//   try {
+//     const response = await fetch('/api/shipments');
+//     let allShipments: ShipmentItem[] = await response.json();
+    
+//     // Только бетон
+//     allShipments = allShipments.filter(s => isConcreteMaterial(s.material));
+    
+//     // Только заводы текущего режима (Айсберг)
+//     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
+//     allShipments = allShipments.filter(s => validFactories.includes(s.division));
+    
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+    
+//     const todayConcrete = allShipments.filter(shipment => {
+//       const shipmentDate = parseRussianDate(shipment.date);
+//       shipmentDate.setHours(0, 0, 0, 0);
+//       return shipmentDate.getTime() === today.getTime();
+//     });
+    
+//     setNewConcreteCount(todayConcrete.length);
+//   } catch (err) {
+//     console.error(err);
+//   }
+// };
+
+// const loadNewConcreteCount = async () => {
+//   try {
+//     const [requestsResponse, shipmentsResponse] = await Promise.all([
+//       fetch('/api/outgoing-requests'),
+//       fetch('/api/shipments')
+//     ]);
+    
+//     let allRequests: OutgoingRequest[] = await requestsResponse.json();
+//     let allShipments: ShipmentItem[] = await shipmentsResponse.json();
+    
+//     // Только бетон
+//     allShipments = allShipments.filter((s: ShipmentItem) => isConcreteMaterial(s.material));
+//     allRequests = allRequests.filter((r: OutgoingRequest) => isConcreteMaterial(r.material));
+    
+//     // Только заводы текущего режима (Айсберг)
+//     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
+//     allShipments = allShipments.filter((s: ShipmentItem) => validFactories.includes(s.division));
+//     allRequests = allRequests.filter((r: OutgoingRequest) => validFactories.includes(r.division));
+    
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+    
+//     // Группируем отгрузки по заявкам
+//     const shipmentsByRequest = new Map<string, number>();
+//     for (const shipment of allShipments) {
+//       const shipmentDate = parseRussianDate(shipment.date);
+//       shipmentDate.setHours(0, 0, 0, 0);
+      
+//       // Только сегодняшние отгрузки
+//       if (shipmentDate.getTime() !== today.getTime()) continue;
+      
+//       const requestNumber = shipment.clientRequestNumber;
+//       if (requestNumber) {
+//         const current = shipmentsByRequest.get(requestNumber) || 0;
+//         shipmentsByRequest.set(requestNumber, current + shipment.quantity);
+//       }
+//     }
+    
+//     // Создаём карту планов
+//     const planMap = new Map<string, number>();
+//     for (const req of allRequests) {
+//       planMap.set(req.number, req.quantity);
+//     }
+    
+//     // Считаем незавершённые заявки
+//     let activeCount = 0;
+//     for (const [requestNumber, factQuantity] of shipmentsByRequest) {
+//       const planQuantity = planMap.get(requestNumber) || 0;
+//       if (planQuantity > 0) {
+//         const percent = (factQuantity / planQuantity) * 100;
+//         if (percent > 0 && percent < 90) {  // незавершённая
+//           activeCount++;
+//         }
+//       }
+//     }
+    
+//     setNewConcreteCount(activeCount);
+//   } catch (err) {
+//     console.error('Error loading concrete count:', err);
+//   }
+// };
+
+// const loadNewConcreteCount = async () => {
+//   try {
+//     const [requestsResponse, shipmentsResponse] = await Promise.all([
+//       fetch('/api/outgoing-requests'),
+//       fetch('/api/shipments')
+//     ]);
+    
+//     let allRequests: OutgoingRequest[] = await requestsResponse.json();
+//     let allShipments: ShipmentItem[] = await shipmentsResponse.json();
+    
+//     // Только бетон
+//     allShipments = allShipments.filter((s: ShipmentItem) => isConcreteMaterial(s.material));
+//     allRequests = allRequests.filter((r: OutgoingRequest) => isConcreteMaterial(r.material));
+    
+//     // Только заводы текущего режима (Айсберг)
+//     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
+//     allShipments = allShipments.filter((s: ShipmentItem) => validFactories.includes(s.division));
+//     allRequests = allRequests.filter((r: OutgoingRequest) => validFactories.includes(r.division));
+    
+//     // Сегодня и вчера
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+    
+//     const yesterday = new Date(today);
+//     yesterday.setDate(yesterday.getDate() - 1);
+    
+//     // Группируем отгрузки по заявкам (только сегодня и вчера)
+//     const shipmentsByRequest = new Map<string, number>();
+//     for (const shipment of allShipments) {
+//       const shipmentDate = parseRussianDate(shipment.date);
+//       shipmentDate.setHours(0, 0, 0, 0);
+      
+//       // Проверяем: сегодня ИЛИ вчера
+//       const isToday = shipmentDate.getTime() === today.getTime();
+//       const isYesterday = shipmentDate.getTime() === yesterday.getTime();
+      
+//       if (!isToday && !isYesterday) continue;
+      
+//       const requestNumber = shipment.clientRequestNumber;
+//       if (requestNumber) {
+//         const current = shipmentsByRequest.get(requestNumber) || 0;
+//         shipmentsByRequest.set(requestNumber, current + shipment.quantity);
+//       }
+//     }
+    
+//     // Карта планов
+//     const planMap = new Map<string, number>();
+//     for (const req of allRequests) {
+//       planMap.set(req.number, req.quantity);
+//     }
+    
+//     // Считаем незавершённые заявки (факт > 0 и факт < 90% от плана)
+//     let activeCount = 0;
+//     for (const [requestNumber, factQuantity] of shipmentsByRequest) {
+//       const planQuantity = planMap.get(requestNumber) || 0;
+//       if (planQuantity > 0) {
+//         const percent = (factQuantity / planQuantity) * 100;
+//         if (percent > 0 && percent < 90) {
+//           activeCount++;
+//         }
+//       }
+//     }
+    
+//     setNewConcreteCount(activeCount);
+//   } catch (err) {
+//     console.error('Error loading concrete count:', err);
+//   }
+// };
+
+
+
+
+
+
+
+// const loadFutureRequestsCount = async () => {
+//   try {
+//     const [requestsResponse, shipmentsResponse] = await Promise.all([
+//       fetch('/api/outgoing-requests'),
+//       fetch('/api/shipments')
+//     ]);
+    
+//     let allRequests: ApiRequest[] = await requestsResponse.json();
+//     let allShipments: ShipmentItem[] = await shipmentsResponse.json();
+    
+//     // Фильтруем по заводам текущего режима
+//     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
+//     allRequests = allRequests.filter((r) => validFactories.includes(r.division));
+//     allShipments = allShipments.filter((s) => validFactories.includes(s.division));
+    
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+    
+//     const activeTodayRequests = new Set();
+//     for (const shipment of allShipments) {
+//       const shipmentDate = parseRussianDate(shipment.date);
+//       shipmentDate.setHours(0, 0, 0, 0);
+//       if (shipmentDate.getTime() === today.getTime() && shipment.clientRequestNumber) {
+//         activeTodayRequests.add(shipment.clientRequestNumber);
+//       }
+//     }
+    
+//     const future = allRequests.filter((req) => {
+//       if (req.closed) return false;
+//       if (!req.delivery_date) return false;
+//       const deliveryDate = parseRussianDate(req.delivery_date);
+//       deliveryDate.setHours(0, 0, 0, 0);
+//       return deliveryDate >= today && !activeTodayRequests.has(req.number);
+//     });
+    
+//     setFutureRequestsCount(future.length);
+//   } catch (err) {
+//     console.error(err);
+//   }
+// };
+
+
+// const loadFutureRequestsCount = async () => {
+//   try {
+//     const [requestsResponse, shipmentsResponse] = await Promise.all([
+//       fetch('/api/outgoing-requests'),
+//       fetch('/api/shipments')
+//     ]);
+    
+//     let allRequests: ApiRequest[] = await requestsResponse.json();
+//     let allShipments: ShipmentItem[] = await shipmentsResponse.json();
+    
+//     // Фильтруем по заводам текущего режима
+//     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
+//     allRequests = allRequests.filter((r) => validFactories.includes(r.division));
+//     allShipments = allShipments.filter((s) => validFactories.includes(s.division));
+    
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+    
+//     // Для Айсберга пока НЕТ логики "На будущее"
+//     if (mode === 'iceberg') {
+//       setFutureRequestsCount(0);
+//       return;
+//     }
+    
+//     // ========== ЛОГИКА ТОЛЬКО ДЛЯ ТАС ==========
+//     const activeTodayRequests = new Set();
+//     for (const shipment of allShipments) {
+//       const shipmentDate = parseRussianDate(shipment.date);
+//       shipmentDate.setHours(0, 0, 0, 0);
+//       if (shipmentDate.getTime() === today.getTime() && shipment.clientRequestNumber) {
+//         activeTodayRequests.add(shipment.clientRequestNumber);
+//       }
+//     }
+    
+//     const future = allRequests.filter((req) => {
+//       if (req.closed) return false;
+//       if (!req.delivery_date) return false;
+//       const deliveryDate = parseRussianDate(req.delivery_date);
+//       deliveryDate.setHours(0, 0, 0, 0);
+//       return deliveryDate >= today && !activeTodayRequests.has(req.number);
+//     });
+    
+//     setFutureRequestsCount(future.length);
+//   } catch (err) {
+//     console.error(err);
+//     setFutureRequestsCount(0);
+//   }
+// };
