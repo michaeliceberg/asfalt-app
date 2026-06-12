@@ -1,3 +1,5 @@
+// app/api/cron/route.ts
+
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { incomingMaterials } from '@/lib/db/schema';

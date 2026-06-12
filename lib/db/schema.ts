@@ -99,7 +99,8 @@ export const users = sqliteTable('users', {
   last_login_at: integer('last_login_at'),
   login_count: integer('login_count').default(0),
   is_active: integer('is_active', { mode: 'boolean' }).default(true),
-  created_at: integer('created_at').default(Date.now()),
+  // created_at: integer('created_at').default(Date.now()),
+  created_at: integer('created_at').notNull(),
 });
 
 // Доступ групп к заводам
@@ -117,6 +118,7 @@ export const userLoginLogs = sqliteTable('user_login_logs', {
   ip_address: text('ip_address'),
   user_agent: text('user_agent'),
   session_duration: integer('session_duration'),
+  created_at: integer('created_at').notNull(),
 });
 
 // Сессии
@@ -124,7 +126,8 @@ export const userSessions = sqliteTable('user_sessions', {
   id: text('id').primaryKey(),
   user_id: integer('user_id').references(() => users.id),
   expires_at: integer('expires_at').notNull(),
-  created_at: integer('created_at').default(Date.now()),
+  // created_at: integer('created_at').default(Date.now()),
+  created_at: integer('created_at').notNull(),
 });
 
 // ============================================

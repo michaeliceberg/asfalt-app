@@ -54,6 +54,7 @@ export async function POST(request: Request) {
                         consignee: record.consignee || record.customer || null,
                         material: record.material || '',
                         quantity: record.quantity || 0,
+                        unit: record.unit || null,  // ← ДОБАВИТЬ ЭТУ СТРОКУ
                         driver: record.driver || null,
                         licensePlate: record.licensePlate || null,
                         clientRequestNumber: record.clientRequestNumber || null,
@@ -73,6 +74,7 @@ export async function POST(request: Request) {
                     supplier: record.supplier || '',
                     material: record.material || '',
                     quantity: record.quantity || 0,
+                    unit: record.unit || null,  // ← ДОБАВИТЬ ЭТУ СТРОКУ
                     driver: record.driver || null,
                     licensePlate: record.licensePlate || null,
                     createdAt: Date.now(),
@@ -98,6 +100,7 @@ export async function POST(request: Request) {
                     consignee: record.consignee || null,
                     material: record.material || '',
                     quantity: planQty,
+                    unit: record.unit || null,  // ← ДОБАВИТЬ ЭТУ СТРОКУ
                     clientRequestNumber: record.number,
                     clientRequestDate: record.date || null,
                     closed: false,
