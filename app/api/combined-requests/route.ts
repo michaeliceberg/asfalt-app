@@ -161,29 +161,26 @@ export async function GET(request: Request) {
       };
       
       // Определяем, является ли материал бетоном
-      const isConcrete = isConcreteMaterial(req.material);
-      
-      // Конвертируем ТОЛЬКО план (тонны → кубометры)
-      // Факт уже в кубометрах, его не трогаем
-      let planQuantity = req.quantity;
-      const factQuantity = shipmentData.factQuantity;  // уже в м³, не делим
-      
-      if (isConcrete) {
-        planQuantity = req.quantity / 2.4;  // только план переводим
-        // factQuantity оставляем как есть
-      }
-      
-      let lastShipmentTime = null;
-      let lastShipmentFullDate = null;
-      let effectiveDeliveryDate = req.delivery_date;
-      
-      if (shipmentData.lastTime && !isNaN(shipmentData.lastTime.getTime())) {
-        const hours = shipmentData.lastTime.getHours();
-        const minutes = shipmentData.lastTime.getMinutes();
-        lastShipmentTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
-        lastShipmentFullDate = `${shipmentData.lastTime.getDate().toString().padStart(2, '0')}.${(shipmentData.lastTime.getMonth() + 1).toString().padStart(2, '0')}.${shipmentData.lastTime.getFullYear()}`;
-        effectiveDeliveryDate = lastShipmentFullDate;
-      }
+  const isConcrete = isConcreteMaterial(req.material);
+  
+  // НИКАКОЙ КОНВЕРТАЦИИ! Данные уже в правильных единицах
+  const planQuantity = req.quantity;
+  const factQuantity = shipmentData.factQuantity;
+  
+  // Просто устанавливаем правильную единицу измерения для отображения
+  const unit = isConcrete ? 'м³' : 'т';
+  
+  let lastShipmentTime = null;
+  let lastShipmentFullDate = null;
+  let effectiveDeliveryDate = req.delivery_date;
+  
+  if (shipmentData.lastTime && !isNaN(shipmentData.lastTime.getTime())) {
+    const hours = shipmentData.lastTime.getHours();
+    const minutes = shipmentData.lastTime.getMinutes();
+    lastShipmentTime = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+    lastShipmentFullDate = `${shipmentData.lastTime.getDate().toString().padStart(2, '0')}.${(shipmentData.lastTime.getMonth() + 1).toString().padStart(2, '0')}.${shipmentData.lastTime.getFullYear()}`;
+    effectiveDeliveryDate = lastShipmentFullDate;
+  }
       
       return {
         requestNumber: req.number,

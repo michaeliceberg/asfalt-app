@@ -248,3 +248,116 @@ export function countActiveRequests(
 }
 
 
+
+
+
+
+
+
+export function getMaterialType(material: string): 'asphalt' | 'concrete' | 'other' {
+  if (!material) return 'other';
+  const lower = material.toLowerCase();
+  
+  if (lower.includes('асфальт') || lower.includes('а/б') || lower.includes('щма')) {
+    return 'asphalt';
+  }
+  if (lower.includes('бст') || lower.includes('бетон') || lower.includes('бсм')) {
+    return 'concrete';
+  }
+  return 'other';
+}
+
+
+
+export interface FormattedValue {
+  value: number;
+  unit: string;
+}
+
+
+
+
+
+// export function formatWithUnit(
+//   quantity: number,
+//   unit: string | null | undefined,
+//   material: string
+// ): { value: number; unit: string } {
+//   // Определяем реальную единицу измерения
+//   let effectiveUnit = unit || null;
+  
+//   // Если unit не указан, но значение очень большое - это килограммы
+//   if (!effectiveUnit && quantity > 10000) {
+//     effectiveUnit = 'кг';
+//   }
+  
+//   // Если всё ещё нет unit - определяем по материалу
+//   if (!effectiveUnit) {
+//     effectiveUnit = detectUnitByMaterial(material);
+//   }
+  
+//   let value = quantity;
+//   let displayUnit = effectiveUnit;
+
+//   // Только конвертация кг → тонны (если нужно)
+//   if (effectiveUnit === 'кг') {
+//     value = quantity / 1000;
+//     displayUnit = 'т';
+//   }
+  
+//   // НИКАКОЙ другой конвертации!
+//   // Асфальт в тоннах, Бетон в м³ — оставляем как есть
+
+//   return { value, unit: displayUnit };
+// }
+
+
+
+
+export function formatWithUnit(
+  quantity: number,
+  unit: string | null | undefined,
+  material: string
+): { value: number; unit: string } {
+  let effectiveUnit = unit || null;
+  let value = quantity;
+  
+  // Если unit не указан или указан как 'т', но значение огромное — это килограммы
+  if ((!effectiveUnit || effectiveUnit === 'т') && quantity > 10000) {
+    effectiveUnit = 'кг';
+  }
+  
+  // Если всё ещё нет unit — определяем по материалу
+  if (!effectiveUnit) {
+    effectiveUnit = detectUnitByMaterial(material);
+  }
+  
+  let displayUnit = effectiveUnit;
+
+  // Конвертация кг → тонны (для асфальта и инертных)
+  if (effectiveUnit === 'кг') {
+    value = quantity / 1000;
+    displayUnit = 'т';
+  }
+  
+  // Для бетона: если пришли тонны — переводим в м³
+  if (effectiveUnit === 'т' && getMaterialType(material) === 'concrete') {
+    value = quantity / 2.4;
+    displayUnit = 'м³';
+  }
+
+  return { value, unit: displayUnit };
+}
+
+
+
+function detectUnitByMaterial(material: string): string {
+  const lower = material.toLowerCase();
+  if (lower.includes('асфальт') || lower.includes('а/б') || lower.includes('щма')) {
+    return 'т';
+  }
+  if (lower.includes('бст') || lower.includes('бетон') || lower.includes('бсм')) {
+    return 'м³';
+  }
+  return 'т';
+}
