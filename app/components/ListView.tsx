@@ -16,28 +16,6 @@ interface ListViewProps {
 
 
 
-
-
-// const formatTime = (dateStr: string): string => {
-//   const date = parseRussianDate(dateStr);
-//   if (isNaN(date.getTime())) return '—';
-//   return date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-// };
-
-// const getDateKey = (dateString: string): string => {
-//   const date = parseRussianDate(dateString);
-//   if (isNaN(date.getTime())) return dateString;
-  
-//   const day = date.getDate().toString().padStart(2, '0');
-//   const month = (date.getMonth() + 1).toString().padStart(2, '0');
-//   const year = date.getFullYear();
-  
-//   return `${day}.${month}.${year}`;
-// };
-
-
-
-
 const getDayLabel = (dateStr: string): string => {
   const date = parseRussianDate(dateStr);
   if (isNaN(date.getTime())) return dateStr;

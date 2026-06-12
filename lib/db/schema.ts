@@ -17,27 +17,13 @@ export const incomingMaterials = sqliteTable('incoming_materials', {
   gross: real('gross'),
   tara: real('tara'),
   quantity: real('quantity').notNull(),
+  unit: text('unit'), // ← ДОБАВИТЬ
   driver: text('driver'),
   licensePlate: text('license_plate'),
   createdAt: integer('created_at').notNull(),
 });
 
 
-
-// export const incomingMaterials = sqliteTable('incoming_materials', {
-//   id: integer('id').primaryKey({ autoIncrement: true }),
-//   number: text('number').notNull(),
-//   date: text('date').notNull(),
-//   division: text('division'),                    // ← добавить для СП/Щ
-//   supplier: text('supplier').notNull(),
-//   material: text('material').notNull(),
-//   gross: real('gross'),
-//   tara: real('tara'),
-//   quantity: real('quantity').notNull(),
-//   driver: text('driver'),
-//   licensePlate: text('license_plate'),
-//   createdAt: integer('created_at').notNull(),
-// });
 
 // Отгрузки (для всех заводов)
 export const shipments = sqliteTable('shipments', {
@@ -51,6 +37,7 @@ export const shipments = sqliteTable('shipments', {
   gross: real('gross'),
   tara: real('tara'),
   quantity: real('quantity').notNull(),
+  unit: text('unit'), // ← ДОБАВИТЬ
   driver: text('driver'),
   licensePlate: text('license_plate'),
   clientRequestNumber: text('client_request_number'),
@@ -68,6 +55,7 @@ export const outgoingRequests = sqliteTable('outgoing_requests', {
   consignee: text('consignee'),
   material: text('material').notNull(),
   quantity: real('quantity').notNull(),
+  unit: text('unit'), // ← ДОБАВИТЬ
   clientRequestNumber: text('client_request_number'),
   clientRequestDate: text('client_request_date'),
   closed: integer('closed', { mode: 'boolean' }).default(false),
