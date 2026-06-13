@@ -35,6 +35,7 @@ interface CombinedRequest {
   lastShipmentFullDate?: string | null;
   truckCount: number;
   unit?: string;
+  lastFullDateTime?: string;  // ← ДОБАВИТЬ
   vehicles: Array<{
     time: string;
     fullDateTime?: string;
@@ -75,6 +76,7 @@ interface GroupedItem {
   closed: boolean | null;
   supplier?: string;
   unit?: string;
+  lastFullDateTime?: string;  // ← добавить
   vehicles: Array<{
     licensePlate: string;
     factory: string;
@@ -85,6 +87,8 @@ interface GroupedItem {
     material?: string;
     supplier?: string;
   }>;
+  
+
 }
 
 // ============================================
@@ -281,6 +285,8 @@ export default function CompactView({
       if (!acc[dateKey].has(groupKey)) {
         acc[dateKey].set(groupKey, {
           time: itemTime,
+
+
           factQuantity: incoming.quantity,
           planQuantity: 0,
           consignee: incoming.supplier,
@@ -474,7 +480,14 @@ export default function CompactView({
             };
             return getMinutes(timeB) - getMinutes(timeA);
           });
-          
+          // const sortedItems = [...items].sort((a, b) => {
+          //   // Используем lastFullDateTime или первую запись из vehicles
+          //   const dateTimeA = a.lastFullDateTime || (a.vehicles[0]?.fullDateTime) || a.time;
+          //   const dateTimeB = b.lastFullDateTime || (b.vehicles[0]?.fullDateTime) || b.time;
+          //   // Сравниваем как строки в формате "ДД.ММ.ГГГГ ЧЧ:ММ"
+          //   return dateTimeB.localeCompare(dateTimeA);
+          // });
+
           const dayTotal = sortedItems.reduce((sum, item) => sum + item.factQuantity, 0);
           const dayLabel = formatDateLabel(date);
           // const dayLabel = formatIncomingDateLabel(incoming.date);
@@ -838,54 +851,122 @@ if (mode === 'iceberg' && mainTab === 'incoming') {
     const itemTime = formatTime(incoming.date);
     const fullDateTime = formatFullDateTime(incoming.date);
     
-    if (!acc[dateKey].has(groupKey)) {
-      // Новая группа
-      acc[dateKey].set(groupKey, {
-        time: itemTime,
-        factQuantity: incoming.quantity,
-        planQuantity: 0,
-        consignee: incoming.supplier,
-        factories: [factory],
-        truckCount: 1,
-        material: incoming.material,
-        requestNumber: orderNumber,
-        requestDate: incoming.date,
-        closed: false,
-        supplier: incoming.supplier,
-        vehicles: [{
-          licensePlate: incoming.licensePlate || '—',
-          factory: factory,
-          quantity: incoming.quantity,
-          time: itemTime,
-          fullDateTime: fullDateTime,
-          driver: incoming.driver || '—',
-          material: incoming.material,
-          supplier: incoming.supplier,
-        }],
-      });
-    } else {
-      // Существующая группа - суммируем
-      const existing = acc[dateKey].get(groupKey)!;
-      existing.factQuantity += incoming.quantity;
-      existing.truckCount += 1;
-      if (!existing.factories.includes(factory)) {
-        existing.factories.push(factory);
-      }
-      existing.vehicles.push({
-        licensePlate: incoming.licensePlate || '—',
-        factory: factory,
-        quantity: incoming.quantity,
-        time: itemTime,
-        fullDateTime: fullDateTime,
-        driver: incoming.driver || '—',
-        material: incoming.material,
-        supplier: incoming.supplier,
-      });
-      // Обновляем время на самое позднее
-      if (itemTime > existing.time) {
-        existing.time = itemTime;
-      }
-    }
+    // if (!acc[dateKey].has(groupKey)) {
+    //   // Новая группа
+    //   acc[dateKey].set(groupKey, {
+    //     // time: itemTime,
+    //       time: itemTime,  // для отображения
+    //     lastFullDateTime: fullDateTime,  // для сравнения
+    //     factQuantity: incoming.quantity,
+    //     planQuantity: 0,
+    //     consignee: incoming.supplier,
+    //     factories: [factory],
+    //     truckCount: 1,
+    //     material: incoming.material,
+    //     requestNumber: orderNumber,
+    //     requestDate: incoming.date,
+    //     closed: false,
+    //     supplier: incoming.supplier,
+    //     vehicles: [{
+    //       licensePlate: incoming.licensePlate || '—',
+    //       factory: factory,
+    //       quantity: incoming.quantity,
+    //       time: itemTime,
+    //       fullDateTime: fullDateTime,
+    //       driver: incoming.driver || '—',
+    //       material: incoming.material,
+    //       supplier: incoming.supplier,
+    //     }],
+    //   });
+    // } else {
+    //   // Существующая группа - суммируем
+    //   const existing = acc[dateKey].get(groupKey)!;
+    //   existing.factQuantity += incoming.quantity;
+    //   existing.truckCount += 1;
+    //   if (!existing.factories.includes(factory)) {
+    //     existing.factories.push(factory);
+    //   }
+    //   existing.vehicles.push({
+    //     licensePlate: incoming.licensePlate || '—',
+    //     factory: factory,
+    //     quantity: incoming.quantity,
+    //     time: itemTime,
+    //     fullDateTime: fullDateTime,
+    //     driver: incoming.driver || '—',
+    //     material: incoming.material,
+    //     supplier: incoming.supplier,
+    //   });
+    //   // Обновляем время на самое позднее
+    //   if (itemTime > existing.time) {
+    //     existing.time = itemTime;
+    //   }
+    // }
+if (!acc[dateKey].has(groupKey)) {
+  // Новая группа
+  acc[dateKey].set(groupKey, {
+    time: itemTime,
+    lastFullDateTime: fullDateTime,  // ← добавить
+    factQuantity: incoming.quantity,
+    planQuantity: 0,
+    consignee: incoming.supplier,
+    factories: [factory],
+    truckCount: 1,
+    material: incoming.material,
+    requestNumber: orderNumber,
+    requestDate: incoming.date,
+    closed: false,
+    supplier: incoming.supplier,
+    vehicles: [{
+      licensePlate: incoming.licensePlate || '—',
+      factory: factory,
+      quantity: incoming.quantity,
+      time: itemTime,
+      fullDateTime: fullDateTime,
+      driver: incoming.driver || '—',
+      material: incoming.material,
+      supplier: incoming.supplier,
+    }],
+  });
+} else {
+  // Существующая группа - суммируем
+  const existing = acc[dateKey].get(groupKey)!;
+  existing.factQuantity += incoming.quantity;
+  existing.truckCount += 1;
+  if (!existing.factories.includes(factory)) {
+    existing.factories.push(factory);
+  }
+  
+  // ✅ ГРУППИРУЕМ ТРАНСПОРТ ПО НОМЕРУ МАШИНЫ + ВРЕМЕНИ
+  const vehicleKey = `${incoming.licensePlate || '—'}_${fullDateTime}`;
+  const existingVehicle = existing.vehicles.find(v => 
+    `${v.licensePlate}_${v.fullDateTime}` === vehicleKey
+  );
+  
+  if (existingVehicle) {
+    // Если такая машина с таким временем уже есть - суммируем количество
+    existingVehicle.quantity += incoming.quantity;
+  } else {
+    // Иначе добавляем новую запись
+    existing.vehicles.push({
+      licensePlate: incoming.licensePlate || '—',
+      factory: factory,
+      quantity: incoming.quantity,
+      time: itemTime,
+      fullDateTime: fullDateTime,
+      driver: incoming.driver || '—',
+      material: incoming.material,
+      supplier: incoming.supplier,
+    });
+  }
+  
+  // Обновляем время на самое позднее
+  if (fullDateTime > (existing.lastFullDateTime || existing.time)) {
+    existing.lastFullDateTime = fullDateTime;
+    existing.time = itemTime;
+  }
+}
+
+
     
     return acc;
   }, {} as Record<string, Map<string, GroupedItem>>);
@@ -897,13 +978,22 @@ if (mode === 'iceberg' && mainTab === 'incoming') {
       {incomingSortedDates.map(dateKey => {
         const items = Array.from(groupedIncoming[dateKey].values());
         // Сортируем по времени (новые сверху)
+        // const sortedItems = [...items].sort((a, b) => {
+        //   const timeA = a.time.split(':').map(Number);
+        //   const timeB = b.time.split(':').map(Number);
+        //   const minutesA = timeA[0] * 60 + timeA[1];
+        //   const minutesB = timeB[0] * 60 + timeB[1];
+        //   return minutesB - minutesA;
+        // });
+
         const sortedItems = [...items].sort((a, b) => {
-          const timeA = a.time.split(':').map(Number);
-          const timeB = b.time.split(':').map(Number);
-          const minutesA = timeA[0] * 60 + timeA[1];
-          const minutesB = timeB[0] * 60 + timeB[1];
-          return minutesB - minutesA;
+          // Используем lastFullDateTime или первую запись из vehicles
+          const dateTimeA = a.lastFullDateTime || (a.vehicles[0]?.fullDateTime) || a.time;
+          const dateTimeB = b.lastFullDateTime || (b.vehicles[0]?.fullDateTime) || b.time;
+          // Сравниваем как строки в формате "ДД.ММ.ГГГГ ЧЧ:ММ"
+          return dateTimeB.localeCompare(dateTimeA);
         });
+
         const isToday = isIncomingDateToday(dateKey);
         
         return (
