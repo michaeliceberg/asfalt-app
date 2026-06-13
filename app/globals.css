@@ -5884,3 +5884,114 @@ body.iceberg-mode .pull-to-refresh-indicator {
     font-size: 13px;
   }
 }
+
+
+
+
+
+
+/* Стили для бейджа синхронизации внутри кнопки режима */
+.mode-sync-badge {
+  display: inline-block;
+  margin-left: 8px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 600;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+/* Адаптив для телефонов */
+@media (max-width: 550px) {
+  .mode-sync-badge {
+    font-size: 8px;
+    padding: 1px 6px;
+    margin-left: 4px;
+  }
+  
+  .mode-option {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+}
+
+
+
+
+
+/* Переключатель режимов с вертикальным расположением */
+.mode-option {
+  flex: 1;
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 10px 8px;
+  transition: color 0.2s ease;
+  border-radius: 40px;
+}
+
+.mode-option-top {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.mode-icon {
+  font-size: 20px;
+  transition: transform 0.2s ease;
+}
+
+.mode-label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.mode-location {
+  font-size: 9px;
+  opacity: 0.7;
+  text-align: center;
+}
+
+.mode-sync-badge {
+  display: inline-block;
+  margin-top: 4px;
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 9px;
+  font-weight: 600;
+  font-family: monospace;
+  white-space: nowrap;
+}
+
+/* Адаптив для телефонов */
+@media (max-width: 550px) {
+  .mode-option {
+    padding: 8px 4px;
+  }
+  
+  .mode-icon {
+    font-size: 16px;
+  }
+  
+  .mode-label {
+    font-size: 12px;
+  }
+  
+  .mode-location {
+    font-size: 8px;
+  }
+  
+  .mode-sync-badge {
+    font-size: 8px;
+    padding: 1px 6px;
+  }
+}

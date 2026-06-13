@@ -1164,7 +1164,15 @@ return (
           onSendPlan={sendPlan}
         />
         
-        <ModeSwitch mode={mode} onToggle={toggleMode} />
+        {/* <ModeSwitch mode={mode} onToggle={toggleMode} /> */}
+
+        <ModeSwitch 
+          mode={mode} 
+          onToggle={toggleMode}
+          tasSyncTime={currentSyncInfo.lastSync}
+          icebergSyncTime={lastImportInfo.lastImport}
+        />
+
 
         <MainTabs 
           activeTab={activeMainTab} 
@@ -1175,7 +1183,7 @@ return (
           showConcreteTab={mode === 'iceberg'}
         />
 
-        <div className="sync-info">
+        {/* <div className="sync-info">
           <span className="sync-label">🔄 Синхронизация с 1С (ЛХ/ЛЮ):</span>
           <span className="sync-time">{formatSyncTime(currentSyncInfo.lastSync)}</span>
         </div>
@@ -1183,7 +1191,7 @@ return (
         <div className="sync-info">
           <span className="sync-label">🔄 Синхронизация с 1С (СП/Щ):</span>
           <span className="sync-time">{formatSyncTime(lastImportInfo.lastImport)}</span>
-        </div>
+        </div> */}
 
         {activeMainTab !== 'summary' && (
           <>
