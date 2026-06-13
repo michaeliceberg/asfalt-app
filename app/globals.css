@@ -5823,3 +5823,64 @@ body.iceberg-mode .pull-to-refresh-indicator {
     padding: 10px;
   }
 }
+
+
+
+
+
+
+
+
+
+
+
+/* Жирный шрифт для всего */
+.compact-view {
+  font-weight: 600;
+}
+
+.compact-header {
+  font-weight: 700;
+}
+
+/* Колонка контрагента */
+.col-supplier {
+  flex: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 4px;
+  text-align: left;
+  min-width: 70px;
+  font-size: 12px;
+}
+
+/* Уменьшенный размер колонки машин */
+.col-trucks {
+  width: 30px;
+  text-align: center;
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 13px;
+}
+
+/* Уменьшенный размер колонки завода */
+.col-factory {
+  width: 35px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+/* Адаптив для телефонов */
+@media (max-width: 550px) {
+  .col-supplier {
+    min-width: 60px;
+    font-size: 10px;
+  }
+  .col-material-header {
+    font-size: 11px;
+  }
+  .col-fact {
+    font-size: 13px;
+  }
+}

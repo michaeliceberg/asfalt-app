@@ -1181,7 +1181,7 @@ return (
         </div>
 
         <div className="sync-info">
-          <span className="sync-label">📁 Импорт Excel (СП/Щ):</span>
+          <span className="sync-label">🔄 Синхронизация с 1С (СП/Щ):</span>
           <span className="sync-time">{formatSyncTime(lastImportInfo.lastImport)}</span>
         </div>
 
