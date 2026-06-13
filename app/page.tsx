@@ -85,6 +85,7 @@ export interface IncomingItem {
   driver: string | null;
   licensePlate: string | null;
   createdAt: number;
+  clientRequestNumber: string | null;  // ← ДОБАВИТЬ
 }
 
 export interface ShipmentItem {

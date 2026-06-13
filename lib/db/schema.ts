@@ -20,6 +20,7 @@ export const incomingMaterials = sqliteTable('incoming_materials', {
   unit: text('unit'), // ← ДОБАВИТЬ
   driver: text('driver'),
   licensePlate: text('license_plate'),
+  clientRequestNumber: text('client_request_number'),  // ← ДОБАВИТЬ
   createdAt: integer('created_at').notNull(),
 });
 

@@ -78,6 +78,7 @@ export async function POST(request: Request) {
                     driver: record.driver || null,
                     licensePlate: record.licensePlate || null,
                     createdAt: Date.now(),
+                    clientRequestNumber: record.clientRequestNumber || null,  // ← ДОБАВИТЬ
                 });
                 processed++;
             }

@@ -67,6 +67,7 @@ export async function GET() {
           driver: record.Водитель || null,
           licensePlate: record.ГосНомер || null,
           createdAt: Date.now(),
+          
         });
         insertedCount++;
       }

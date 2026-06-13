@@ -627,72 +627,225 @@ const { value: factValue } = formatWithUnit(
       );
     }
     
+    
+
     // ========== ПОСТУПЛЕНИЯ ДЛЯ АЙСБЕРГ ==========
-    const groupedIncoming = data.reduce((acc, item) => {
-      const incoming = item as IncomingItem;
-      const dateKey = getDateKey(incoming.date);
-      const factory = detectFactory(incoming, 'incoming');
+const groupedIncoming = data.reduce((acc, item) => {
+  const incoming = item as IncomingItem;
+  const dateKey = getDateKey(incoming.date);
+  const factory = detectFactory(incoming, 'incoming');
+  
+  // Пропускаем не Айсберг заводы (только СП и Щ)
+  if (factory !== 'СП' && factory !== 'Щ') return acc;
+  
+  // ✅ ГРУППИРУЕМ ПО НОМЕРУ ЗАКАЗА (clientRequestNumber) или номеру документа
+  const orderNumber = incoming.clientRequestNumber || incoming.number || 'unknown';
+  const groupKey = `${dateKey}_${orderNumber}`;
+  
+  if (!acc[dateKey]) {
+    acc[dateKey] = new Map();
+  }
+  
+  const itemTime = formatTime(incoming.date);
+  
+  if (!acc[dateKey].has(groupKey)) {
+    // Новая группа
+    acc[dateKey].set(groupKey, {
+      time: itemTime,
+      factQuantity: incoming.quantity,
+      planQuantity: 0,
+      consignee: incoming.supplier,
+      factories: [factory],
+      truckCount: 1,
+      material: incoming.material,
+      requestNumber: orderNumber,
+      requestDate: incoming.date,
+      closed: false,
+      supplier: incoming.supplier,
+      vehicles: [{
+        licensePlate: incoming.licensePlate || '—',
+        factory: factory,
+        quantity: incoming.quantity,
+        time: itemTime,
+        driver: incoming.driver || '—',
+        material: incoming.material,
+        supplier: incoming.supplier,
+      }],
+    });
+  } else {
+    // Существующая группа - суммируем
+    const existing = acc[dateKey].get(groupKey)!;
+    existing.factQuantity += incoming.quantity;
+    existing.truckCount += 1;
+    if (!existing.factories.includes(factory)) {
+      existing.factories.push(factory);
+    }
+    existing.vehicles.push({
+      licensePlate: incoming.licensePlate || '—',
+      factory: factory,
+      quantity: incoming.quantity,
+      time: itemTime,
+      driver: incoming.driver || '—',
+      material: incoming.material,
+      supplier: incoming.supplier,
+    });
+    // Обновляем время на самое позднее
+    if (itemTime > existing.time) {
+      existing.time = itemTime;
+    }
+  }
+  
+  return acc;
+}, {} as Record<string, Map<string, GroupedItem>>);
+
+
+
+
+
+
+
+    // const groupedIncoming = data.reduce((acc, item) => {
+//   const incoming = item as IncomingItem;
+//   const dateKey = getDateKey(incoming.date);
+//   const factory = detectFactory(incoming, 'incoming');
+  
+//   // Пропускаем не Айсберг заводы (только СП и Щ)
+//   if (factory !== 'СП' && factory !== 'Щ') return acc;
+  
+//   // ГРУППИРУЕМ ПО НОМЕРУ ДОКУМЕНТА (как в отгрузках)
+//   const documentNumber = incoming.number || 'unknown';
+//   const groupKey = `${dateKey}_${documentNumber}`;
+  
+//   if (!acc[dateKey]) {
+//     acc[dateKey] = new Map();
+//   }
+  
+//   const itemTime = formatTime(incoming.date);
+  
+//   if (!acc[dateKey].has(groupKey)) {
+//     // Новая группа
+//     acc[dateKey].set(groupKey, {
+//       time: itemTime,
+//       factQuantity: incoming.quantity,
+//       planQuantity: 0,
+//       consignee: incoming.supplier,  // поставщик
+//       factories: [factory],
+//       truckCount: 1,
+//       material: incoming.material,
+//       requestNumber: documentNumber,
+//       requestDate: incoming.date,
+//       closed: false,
+//       supplier: incoming.supplier,
+//       vehicles: [{
+//         licensePlate: incoming.licensePlate || '—',
+//         factory: factory,
+//         quantity: incoming.quantity,
+//         time: itemTime,
+//         driver: incoming.driver || '—',
+//         material: incoming.material,
+//         supplier: incoming.supplier,
+//       }],
+//     });
+//   } else {
+//     // Существующая группа - суммируем
+//     const existing = acc[dateKey].get(groupKey)!;
+//     existing.factQuantity += incoming.quantity;
+//     existing.truckCount += 1;
+//     if (!existing.factories.includes(factory)) {
+//       existing.factories.push(factory);
+//     }
+//     existing.vehicles.push({
+//       licensePlate: incoming.licensePlate || '—',
+//       factory: factory,
+//       quantity: incoming.quantity,
+//       time: itemTime,
+//       driver: incoming.driver || '—',
+//       material: incoming.material,
+//       supplier: incoming.supplier,
+//     });
+//     // Обновляем время на самое позднее
+//     if (itemTime > existing.time) {
+//       existing.time = itemTime;
+//     }
+//   }
+  
+//   return acc;
+// }, {} as Record<string, Map<string, GroupedItem>>);
+
+
+// // ========== ПОСТУПЛЕНИЯ ДЛЯ АЙСБЕРГ ==========
+    // const groupedIncoming = data.reduce((acc, item) => {
+    //   const incoming = item as IncomingItem;
+    //   const dateKey = getDateKey(incoming.date);
+    //   const factory = detectFactory(incoming, 'incoming');
       
-      // Пропускаем не Айсберг заводы (только СП и Щ)
-      if (factory !== 'СП' && factory !== 'Щ') return acc;
+    //   // Пропускаем не Айсберг заводы (только СП и Щ)
+    //   if (factory !== 'СП' && factory !== 'Щ') return acc;
       
-      // Группируем по: дата + поставщик + материал
-      const supplierKey = (incoming.supplier || 'unknown').trim();
-      const materialKey = incoming.material.trim();
-      const groupKey = `${dateKey}_${supplierKey}_${materialKey}`;
+    //   // Группируем по: дата + поставщик + материал
+    //   const supplierKey = (incoming.supplier || 'unknown').trim();
+    //   const materialKey = incoming.material.trim();
+    //   const groupKey = `${dateKey}_${supplierKey}_${materialKey}`;
       
-      if (!acc[dateKey]) {
-        acc[dateKey] = new Map();
-      }
+    //   if (!acc[dateKey]) {
+    //     acc[dateKey] = new Map();
+    //   }
       
-      const itemTime = formatTime(incoming.date);
+    //   const itemTime = formatTime(incoming.date);
       
-      if (!acc[dateKey].has(groupKey)) {
-        acc[dateKey].set(groupKey, {
-          time: itemTime,
-          factQuantity: incoming.quantity,
-          planQuantity: 0,
-          consignee: incoming.supplier,
-          factories: [factory],
-          truckCount: 1,
-          material: incoming.material,
-          requestNumber: incoming.number,
-          requestDate: incoming.date,
-          closed: false,
-          supplier: incoming.supplier,
-          vehicles: [{
-            licensePlate: incoming.licensePlate || '—',
-            factory: factory,
-            quantity: incoming.quantity,
-            time: itemTime,
-            driver: incoming.driver || '—',
-            material: incoming.material,
-            supplier: incoming.supplier,
-          }],
-        });
-      } else {
-        const existing = acc[dateKey].get(groupKey)!;
-        existing.factQuantity += incoming.quantity;
-        existing.truckCount += 1;
-        if (!existing.factories.includes(factory)) {
-          existing.factories.push(factory);
-        }
-        existing.vehicles.push({
-          licensePlate: incoming.licensePlate || '—',
-          factory: factory,
-          quantity: incoming.quantity,
-          time: itemTime,
-          driver: incoming.driver || '—',
-          material: incoming.material,
-          supplier: incoming.supplier,
-        });
-        if (itemTime > existing.time) {
-          existing.time = itemTime;
-        }
-      }
+    //   if (!acc[dateKey].has(groupKey)) {
+    //     acc[dateKey].set(groupKey, {
+    //       time: itemTime,
+    //       factQuantity: incoming.quantity,
+    //       planQuantity: 0,
+    //       consignee: incoming.supplier,
+    //       factories: [factory],
+    //       truckCount: 1,
+    //       material: incoming.material,
+    //       requestNumber: incoming.number,
+    //       requestDate: incoming.date,
+    //       closed: false,
+    //       supplier: incoming.supplier,
+    //       vehicles: [{
+    //         licensePlate: incoming.licensePlate || '—',
+    //         factory: factory,
+    //         quantity: incoming.quantity,
+    //         time: itemTime,
+    //         driver: incoming.driver || '—',
+    //         material: incoming.material,
+    //         supplier: incoming.supplier,
+    //       }],
+    //     });
+    //   } else {
+    //     const existing = acc[dateKey].get(groupKey)!;
+    //     existing.factQuantity += incoming.quantity;
+    //     existing.truckCount += 1;
+    //     if (!existing.factories.includes(factory)) {
+    //       existing.factories.push(factory);
+    //     }
+    //     existing.vehicles.push({
+    //       licensePlate: incoming.licensePlate || '—',
+    //       factory: factory,
+    //       quantity: incoming.quantity,
+    //       time: itemTime,
+    //       driver: incoming.driver || '—',
+    //       material: incoming.material,
+    //       supplier: incoming.supplier,
+    //     });
+    //     if (itemTime > existing.time) {
+    //       existing.time = itemTime;
+    //     }
+    //   }
       
-      return acc;
-    }, {} as Record<string, Map<string, GroupedItem>>);
+    //   return acc;
+    // }, {} as Record<string, Map<string, GroupedItem>>);
+
+
+
+
+
+
+
     
     const incomingSortedDates = Object.keys(groupedIncoming).sort(compareDatesDesc);
     
