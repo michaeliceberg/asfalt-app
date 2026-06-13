@@ -361,3 +361,167 @@ function detectUnitByMaterial(material: string): string {
   }
   return 'т';
 }
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * Возвращает ключ даты для группировки поступлений
+ * Окно: с 08:00 текущего дня до 08:00 следующего дня
+ */
+export function getIncomingDateKey(dateString: string): string {
+  const date = parseRussianDate(dateString);
+  if (isNaN(date.getTime())) return dateString;
+  
+  // Если время меньше 8 часов - относим к предыдущему дню
+  if (date.getHours() < 8) {
+    date.setDate(date.getDate() - 1);
+  }
+  
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  
+  return `${day}.${month}.${year}`;
+}
+
+/**
+ * Форматирует дату для отображения с учётом окна 08:00
+ */
+// export function formatIncomingDateLabel(dateStr: string): string {
+//   const date = parseRussianDate(dateStr);
+//   if (isNaN(date.getTime())) return dateStr;
+  
+//   // Если время меньше 8 часов - относим к предыдущему дню
+//   if (date.getHours() < 8) {
+//     date.setDate(date.getDate() - 1);
+//   }
+  
+//   const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+//   const day = date.getDate();
+//   const month = months[date.getMonth()];
+  
+//   return `${day} ${month}`;
+// }
+
+
+/**
+ * Форматирует дату для отображения с учётом окна 08:00
+ * Принимает ключ даты в формате DD.MM.YYYY
+ */
+
+
+// СУПЕР РАБОТАЕТ 
+// export function formatIncomingDateLabel(dateKey: string): string {
+//   const parts = dateKey.split('.');
+//   if (parts.length !== 3) return dateKey;
+  
+//   const day = parseInt(parts[0], 10);
+//   const month = parseInt(parts[1], 10) - 1;
+//   const year = parseInt(parts[2], 10);
+  
+//   const date = new Date(year, month, day);
+//   const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+  
+//   return `${day} ${months[month]}`;
+// }
+
+
+
+/**
+ * Форматирует дату для отображения с учётом окна 08:00
+ * Возвращает "13 июня 8:00 → 14 июня 8:00"
+ */
+export function formatIncomingDateLabel(dateKey: string): string {
+  const parts = dateKey.split('.');
+  if (parts.length !== 3) return dateKey;
+  
+  const day = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  const year = parseInt(parts[2], 10);
+  
+  const startDate = new Date(year, month, day, 8, 0);
+  const endDate = new Date(year, month, day + 1, 8, 0);
+  
+  const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+  
+  const startDay = startDate.getDate();
+  const startMonth = months[startDate.getMonth()];
+  const endDay = endDate.getDate();
+  const endMonth = months[endDate.getMonth()];
+  
+  // Если месяц не меняется
+  if (startMonth === endMonth) {
+    return `${startDay} ${startMonth} 8:00 → ${endDay} ${endMonth} 8:00`;
+  }
+  
+  // Если месяц меняется
+  return `${startDay} ${startMonth} 8:00 → ${endDay} ${endMonth} 8:00`;
+}
+
+
+
+
+
+/**
+ * Проверяет, относится ли дата к сегодняшнему окну (с 08:00)
+ * Принимает ключ даты в формате DD.MM.YYYY
+ */
+export function isIncomingDateToday(dateKey: string): boolean {
+  const today = new Date();
+  const todayKey = getIncomingDateKey(today.toISOString());
+  return dateKey === todayKey;
+}
+
+/**
+ * Проверяет, относится ли дата к сегодняшнему окну (с 08:00)
+//  */
+// export function isIncomingDateToday(dateStr: string): boolean {
+//   const date = parseRussianDate(dateStr);
+//   if (isNaN(date.getTime())) return false;
+  
+//   // Если время меньше 8 часов - относим к предыдущему дню
+//   let dateForCheck = new Date(date);
+//   if (date.getHours() < 8) {
+//     dateForCheck = new Date(date);
+//     dateForCheck.setDate(date.getDate() - 1);
+//   }
+  
+//   const today = new Date();
+//   const todayForCheck = new Date(today);
+//   if (today.getHours() < 8) {
+//     todayForCheck.setDate(today.getDate() - 1);
+//   }
+  
+//   return dateForCheck.getDate() === todayForCheck.getDate() &&
+//          dateForCheck.getMonth() === todayForCheck.getMonth() &&
+//          dateForCheck.getFullYear() === todayForCheck.getFullYear();
+// }
+
+
+
+
+/**
+ * Форматирует дату и время для отображения в деталях
+ * Возвращает "ДД.ММ.ГГГГ ЧЧ:ММ"
+ */
+export function formatFullDateTime(dateString: string): string {
+  const date = parseRussianDate(dateString);
+  if (isNaN(date.getTime())) return '—';
+  
+  const day = date.getDate().toString().padStart(2, '0');
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const year = date.getFullYear();
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  
+  return `${day}.${month}.${year} ${hours}:${minutes}`;
+}
