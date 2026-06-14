@@ -13,10 +13,10 @@ import {
   getDateKey,
   getFactoryBadgeClass,
   formatWithUnit,
+  formatFullDateTime,
   getIncomingDateKey,
   formatIncomingDateLabel,
-  isIncomingDateToday,
-  formatFullDateTime
+  isIncomingDateToday
 } from '@/lib/utils';
 
 type UnifiedDataItem = IncomingItem | ShipmentItem;
@@ -35,7 +35,6 @@ interface CombinedRequest {
   lastShipmentFullDate?: string | null;
   truckCount: number;
   unit?: string;
-  lastFullDateTime?: string;  // ← ДОБАВИТЬ
   vehicles: Array<{
     time: string;
     fullDateTime?: string;
@@ -63,8 +62,20 @@ interface CompactViewProps {
   mode?: 'tas' | 'iceberg';
 }
 
+interface VehicleItem {
+  licensePlate: string;
+  factory: string;
+  quantity: number;
+  time: string;
+  fullDateTime?: string;
+  driver?: string;
+  material?: string;
+  supplier?: string;
+}
+
 interface GroupedItem {
   time: string;
+  lastFullDateTime?: string;
   factQuantity: number;
   planQuantity: number;
   consignee: string;
@@ -76,19 +87,8 @@ interface GroupedItem {
   closed: boolean | null;
   supplier?: string;
   unit?: string;
-  lastFullDateTime?: string;  // ← добавить
-  vehicles: Array<{
-    licensePlate: string;
-    factory: string;
-    quantity: number;
-    time: string;
-    fullDateTime?: string;
-    driver?: string;
-    material?: string;
-    supplier?: string;
-  }>;
-  
-
+  vehicles: VehicleItem[];
+  vehiclesMap?: Map<string, VehicleItem>;
 }
 
 // ============================================
@@ -219,7 +219,6 @@ export default function CompactView({
         if (isConcreteOnly) {
           filteredResults = allResults.filter(item => isConcreteMaterial(item.material));
         } else if (mainTab === 'shipment') {
-          // Исключаем и бетон, и инертные
           filteredResults = allResults.filter(item => {
             return !isConcreteMaterial(item.material) && !isSpecialMaterial(item.material);
           });
@@ -285,8 +284,6 @@ export default function CompactView({
       if (!acc[dateKey].has(groupKey)) {
         acc[dateKey].set(groupKey, {
           time: itemTime,
-
-
           factQuantity: incoming.quantity,
           planQuantity: 0,
           consignee: incoming.supplier,
@@ -480,20 +477,10 @@ export default function CompactView({
             };
             return getMinutes(timeB) - getMinutes(timeA);
           });
-          // const sortedItems = [...items].sort((a, b) => {
-          //   // Используем lastFullDateTime или первую запись из vehicles
-          //   const dateTimeA = a.lastFullDateTime || (a.vehicles[0]?.fullDateTime) || a.time;
-          //   const dateTimeB = b.lastFullDateTime || (b.vehicles[0]?.fullDateTime) || b.time;
-          //   // Сравниваем как строки в формате "ДД.ММ.ГГГГ ЧЧ:ММ"
-          //   return dateTimeB.localeCompare(dateTimeA);
-          // });
-
+          
           const dayTotal = sortedItems.reduce((sum, item) => sum + item.factQuantity, 0);
           const dayLabel = formatDateLabel(date);
-          // const dayLabel = formatIncomingDateLabel(incoming.date);
-
           const isToday = isDateToday(date);
-          // const isToday = isIncomingDateToday(incoming.date);
           
           const firstItem = sortedItems[0];
           const unitLabel = firstItem?.unit === 'м³' ? '(м³)' : '(т)';
@@ -629,535 +616,251 @@ export default function CompactView({
     );
   }
   
-  // // ============================================
-  // // РЕНДЕР ДЛЯ АЙСБЕРГ (СП, Щ) - ПОСТУПЛЕНИЯ
-  // // ============================================
+  // ============================================
+  // РЕНДЕР ДЛЯ АЙСБЕРГ (СП, Щ) - ПОСТУПЛЕНИЯ
+  // ============================================
   
-  // if (mode === 'iceberg' && mainTab === 'incoming') {
-  //   const groupedIncoming = data.reduce((acc, item) => {
-  //     const incoming = item as IncomingItem;
-  //     // const dateKey = getDateKey(incoming.date);
-  //     const dateKey = getIncomingDateKey(incoming.date);
-  //     const factory = detectFactory(incoming, 'incoming');
+  if (mode === 'iceberg' && mainTab === 'incoming') {
+    const groupedIncoming = data.reduce((acc, item) => {
+      const incoming = item as IncomingItem;
+      const dateKey = getIncomingDateKey(incoming.date);
+      const factory = detectFactory(incoming, 'incoming');
       
-  //     // Пропускаем не Айсберг заводы (только СП и Щ)
-  //     if (factory !== 'СП' && factory !== 'Щ') return acc;
+      // Пропускаем не Айсберг заводы (только СП и Щ)
+      if (factory !== 'СП' && factory !== 'Щ') return acc;
       
-  //     // ГРУППИРУЕМ ПО НОМЕРУ ЗАКАЗА (clientRequestNumber) или номеру документа
-  //     const orderNumber = incoming.clientRequestNumber || incoming.number || 'unknown';
-  //     const groupKey = `${dateKey}_${orderNumber}`;
+      // ГРУППИРУЕМ ПО НОМЕРУ ЗАКАЗА (clientRequestNumber) или номеру документа
+      const orderNumber = incoming.clientRequestNumber || incoming.number || 'unknown';
+      const groupKey = `${dateKey}_${orderNumber}`;
       
-  //     if (!acc[dateKey]) {
-  //       acc[dateKey] = new Map();
-  //     }
+      if (!acc[dateKey]) {
+        acc[dateKey] = new Map();
+      }
       
-  //     const itemTime = formatTime(incoming.date);
+      const itemTime = formatTime(incoming.date);
+      const fullDateTime = formatFullDateTime(incoming.date);
       
-  //     if (!acc[dateKey].has(groupKey)) {
-  //       // Новая группа
-  //       acc[dateKey].set(groupKey, {
-  //         time: itemTime,
-  //         factQuantity: incoming.quantity,
-  //         planQuantity: 0,
-  //         consignee: incoming.supplier,
-  //         factories: [factory],
-  //         truckCount: 1,
-  //         material: incoming.material,
-  //         requestNumber: orderNumber,
-  //         requestDate: incoming.date,
-  //         closed: false,
-  //         supplier: incoming.supplier,
-  //         vehicles: [{
-  //           licensePlate: incoming.licensePlate || '—',
-  //           factory: factory,
-  //           quantity: incoming.quantity,
-  //           time: itemTime,
-  //           driver: incoming.driver || '—',
-  //           material: incoming.material,
-  //           supplier: incoming.supplier,
-  //         }],
-  //       });
-  //     } else {
-  //       // Существующая группа - суммируем
-  //       const existing = acc[dateKey].get(groupKey)!;
-  //       existing.factQuantity += incoming.quantity;
-  //       existing.truckCount += 1;
-  //       if (!existing.factories.includes(factory)) {
-  //         existing.factories.push(factory);
-  //       }
-  //       existing.vehicles.push({
-  //         licensePlate: incoming.licensePlate || '—',
-  //         factory: factory,
-  //         quantity: incoming.quantity,
-  //         time: itemTime,
-  //         driver: incoming.driver || '—',
-  //         material: incoming.material,
-  //         supplier: incoming.supplier,
-  //       });
-  //       // Обновляем время на самое позднее
-  //       if (itemTime > existing.time) {
-  //         existing.time = itemTime;
-  //       }
-  //     }
+      if (!acc[dateKey].has(groupKey)) {
+        // Новая группа
+        const newGroup: GroupedItem = {
+          time: itemTime,
+          lastFullDateTime: fullDateTime,
+          factQuantity: incoming.quantity,
+          planQuantity: 0,
+          consignee: incoming.supplier,
+          factories: [factory],
+          truckCount: 1,
+          material: incoming.material,
+          requestNumber: orderNumber,
+          requestDate: incoming.date,
+          closed: false,
+          supplier: incoming.supplier,
+          vehicles: [],
+          vehiclesMap: new Map(),
+        };
+        
+        const vehicleKey = `${incoming.licensePlate || '—'}_${fullDateTime}`;
+        newGroup.vehiclesMap!.set(vehicleKey, {  // ✅ используем ! (non-null assertion)
+          licensePlate: incoming.licensePlate || '—',
+          factory: factory,
+          quantity: incoming.quantity,
+          time: itemTime,
+          fullDateTime: fullDateTime,
+          driver: incoming.driver || '—',
+          material: incoming.material,
+          supplier: incoming.supplier,
+        });
+        
+        acc[dateKey].set(groupKey, newGroup);
+      } else {
+        // Существующая группа - суммируем
+        const existing = acc[dateKey].get(groupKey)!;
+        existing.factQuantity += incoming.quantity;
+        existing.truckCount += 1;
+        if (!existing.factories.includes(factory)) {
+          existing.factories.push(factory);
+        }
+
+
+          // ✅ ДОБАВЬТЕ ЭТОТ console.log ЗДЕСЬ
+  console.log('Vehicles before dedup:', { 
+    mapSize: existing.vehiclesMap?.size, 
+    arrayLength: existing.vehicles.length,
+    vehicleKey: `${incoming.licensePlate || '—'}_${fullDateTime}`
+  });
+
+        // ✅ Убеждаемся, что vehiclesMap существует
+        if (!existing.vehiclesMap) {
+          existing.vehiclesMap = new Map();
+        }
+        
+        // ДЕДУПЛИКАЦИЯ ТРАНСПОРТА через Map
+        const vehicleKey = `${incoming.licensePlate || '—'}_${fullDateTime}`;
+        const existingVehicle = existing.vehiclesMap?.get(vehicleKey);
+        
+        if (existingVehicle) {
+              console.log('✅ Found duplicate, summing quantity:', existingVehicle.quantity, '+', incoming.quantity);
+          existingVehicle.quantity += incoming.quantity;
+        } else {
+          if (!existing.vehiclesMap) {
+            existing.vehiclesMap = new Map();
+          }
+          existing.vehiclesMap.set(vehicleKey, {
+            licensePlate: incoming.licensePlate || '—',
+            factory: factory,
+            quantity: incoming.quantity,
+            time: itemTime,
+            fullDateTime: fullDateTime,
+            driver: incoming.driver || '—',
+            material: incoming.material,
+            supplier: incoming.supplier,
+          });
+        }
+        
+        // Обновляем время на самое позднее
+        if (fullDateTime > (existing.lastFullDateTime || existing.time)) {
+          existing.lastFullDateTime = fullDateTime;
+          existing.time = itemTime;
+        }
+      }
       
-  //     return acc;
-  //   }, {} as Record<string, Map<string, GroupedItem>>);
+      return acc;
+    }, {} as Record<string, Map<string, GroupedItem>>);
     
-  //   const incomingSortedDates = Object.keys(groupedIncoming).sort(compareDatesDesc);
-    
-  //   return (
-  //     <div className="compact-view">
-  //       {incomingSortedDates.map(date => {
-  //         const items = Array.from(groupedIncoming[date].values());
-  //         const sortedItems = [...items].sort((a, b) => {
-  //           const timeA = a.time.split(':').map(Number);
-  //           const timeB = b.time.split(':').map(Number);
-  //           const minutesA = timeA[0] * 60 + timeA[1];
-  //           const minutesB = timeB[0] * 60 + timeB[1];
-  //           return minutesB - minutesA;
-  //         });
-  //         const dayTotal = sortedItems.reduce((sum, item) => sum + item.factQuantity, 0);
-  //         const isToday = isDateToday(date);
-          
-  //         return (
-  //           <div key={date} className="compact-date-group">
-  //             <div className="compact-date-header">
-  //               <div className="date-wrapper">
-  //                 <span className="date-text" style={{ fontWeight: 'bold' }}>{formatDateLabel(date)}</span>
-  //                 {isToday && <span className="today-badge">СЕГОДНЯ</span>}
-  //               </div>
-  //               {/* <span className="date-total" style={{ fontWeight: 'bold' }}>{Math.round(dayTotal)} т</span> */}
-  //             </div>
-              
-  //             <div className="compact-table">
-  //               <div className="compact-header" style={{ fontWeight: 'bold' }}>
-  //                 <span className="col-time">Время</span>
-  //                 <span className="col-fact">Вып</span>
-  //                 <span className="col-material-header">Материал</span>
-  //                 <span className="col-supplier">Контрагент</span>
-  //                 <span className="col-factory">🏭</span>
-  //                 <span className="col-trucks">🚛</span>
-  //               </div>
-                
-  //               {sortedItems.map((item, idx) => {
-  //                 const itemKey = `${date}_${idx}`;
-  //                 const isExpanded = expandedId === itemKey;
-                  
-  //                 const { value: factValue } = formatWithUnit(
-  //                   item.factQuantity,
-  //                   item.unit ?? null,
-  //                   item.material
-  //                 );
-  //                 const displayFact = Math.round(factValue);
-                  
-  //                 return (
-  //                   <div key={idx}>
-  //                     <div 
-  //                       className="compact-row compact-clickable"
-  //                       style={{ fontWeight: 'bold', cursor: 'pointer' }}
-  //                       onClick={() => setExpandedId(isExpanded ? null : itemKey)}
-  //                     >
-  //                       <span className="col-time">{item.time}</span>
-  //                       <span className="col-fact">{displayFact}</span>
-  //                       <span className="col-material-header" style={{ fontSize: '13px' }}>{item.material}</span>
-  //                       <span className="col-supplier" style={{ fontSize: '12px' }}>{item.consignee}</span>
-  //                       <span className="col-factory">
-  //                         <div className="factory-badges-group">
-  //                           {item.factories.map((factory, i) => (
-  //                             <div key={i} className={getFactoryBadgeClass(factory)}>
-  //                               {factory}
-  //                             </div>
-  //                           ))}
-  //                         </div>
-  //                       </span>
-  //                       <span className="col-trucks">{item.truckCount}</span>
-  //                     </div>
-                      
-  //                     <AnimatePresence>
-  //                       {isExpanded && (
-  //                         <motion.div
-  //                           className="compact-details"
-  //                           initial={{ opacity: 0, height: 0 }}
-  //                           animate={{ opacity: 1, height: 'auto' }}
-  //                           exit={{ opacity: 0, height: 0 }}
-  //                           transition={{ duration: 0.2 }}
-  //                         >
-  //                           <div className="detail-row">
-  //                             <span className="detail-label">📦 Материал:</span>
-  //                             <span className="detail-value">{item.material}</span>
-  //                           </div>
-  //                           <div className="detail-row">
-  //                             <span className="detail-label">🏭 Завод:</span>
-  //                             <span className="detail-value">{item.factories.join(', ')}</span>
-  //                           </div>
-  //                           <div className="detail-row">
-  //                             <span className="detail-label">🚛 Машин:</span>
-  //                             <span className="detail-value">{item.truckCount}</span>
-  //                           </div>
-  //                           {item.vehicles.length > 0 && (
-  //                             <div className="vehicles-list">
-  //                               <div className="vehicles-title">🚛 Транспорт:</div>
-  //                               {item.vehicles.map((vehicle, i) => {
-  //                                 const vehicleQty = vehicle.quantity;
-  //                                 return (
-  //                                   <div key={i} className="vehicle-item">
-  //                                     <span className="vehicle-time">{vehicle.time}</span>
-  //                                     <span className="vehicle-license">{vehicle.licensePlate}</span>
-  //                                     <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
-  //                                     <span className="vehicle-quantity">{Math.round(vehicleQty)} т</span>
-  //                                   </div>
-  //                                 );
-  //                               })}
-  //                             </div>
-  //                           )}
-  //                         </motion.div>
-  //                       )}
-  //                     </AnimatePresence>
-  //                   </div>
-  //                 );
-  //               })}
-  //             </div>
-  //           </div>
-  //         );
-  //       })}
-  //     </div>
-  //   );
-  // }
-
-
-
-
-
-
-// ========== ПОСТУПЛЕНИЯ ДЛЯ АЙСБЕРГ ==========
-
-if (mode === 'iceberg' && mainTab === 'incoming') {
-  const groupedIncoming = data.reduce((acc, item) => {
-    const incoming = item as IncomingItem;
-    const dateKey = getIncomingDateKey(incoming.date);
-    const factory = detectFactory(incoming, 'incoming');
-    
-    // Пропускаем не Айсберг заводы (только СП и Щ)
-    if (factory !== 'СП' && factory !== 'Щ') return acc;
-    
-    // ГРУППИРУЕМ ПО НОМЕРУ ЗАКАЗА (clientRequestNumber) или номеру документа
-    const orderNumber = incoming.clientRequestNumber || incoming.number || 'unknown';
-    const groupKey = `${dateKey}_${orderNumber}`;
-    
-    if (!acc[dateKey]) {
-      acc[dateKey] = new Map();
+    // Преобразуем Map в массив для каждого dateKey
+    for (const dateKey of Object.keys(groupedIncoming)) {
+      for (const [groupKey, group] of groupedIncoming[dateKey]) {
+        if (group.vehiclesMap) {
+          group.vehicles = Array.from(group.vehiclesMap.values());
+          console.log('After conversion:', group.vehicles.length); // ← добавить
+          delete group.vehiclesMap;
+        }
+      }
     }
     
-    const itemTime = formatTime(incoming.date);
-    const fullDateTime = formatFullDateTime(incoming.date);
+    const incomingSortedDates = Object.keys(groupedIncoming).sort(compareDatesDesc);
     
-    // if (!acc[dateKey].has(groupKey)) {
-    //   // Новая группа
-    //   acc[dateKey].set(groupKey, {
-    //     // time: itemTime,
-    //       time: itemTime,  // для отображения
-    //     lastFullDateTime: fullDateTime,  // для сравнения
-    //     factQuantity: incoming.quantity,
-    //     planQuantity: 0,
-    //     consignee: incoming.supplier,
-    //     factories: [factory],
-    //     truckCount: 1,
-    //     material: incoming.material,
-    //     requestNumber: orderNumber,
-    //     requestDate: incoming.date,
-    //     closed: false,
-    //     supplier: incoming.supplier,
-    //     vehicles: [{
-    //       licensePlate: incoming.licensePlate || '—',
-    //       factory: factory,
-    //       quantity: incoming.quantity,
-    //       time: itemTime,
-    //       fullDateTime: fullDateTime,
-    //       driver: incoming.driver || '—',
-    //       material: incoming.material,
-    //       supplier: incoming.supplier,
-    //     }],
-    //   });
-    // } else {
-    //   // Существующая группа - суммируем
-    //   const existing = acc[dateKey].get(groupKey)!;
-    //   existing.factQuantity += incoming.quantity;
-    //   existing.truckCount += 1;
-    //   if (!existing.factories.includes(factory)) {
-    //     existing.factories.push(factory);
-    //   }
-    //   existing.vehicles.push({
-    //     licensePlate: incoming.licensePlate || '—',
-    //     factory: factory,
-    //     quantity: incoming.quantity,
-    //     time: itemTime,
-    //     fullDateTime: fullDateTime,
-    //     driver: incoming.driver || '—',
-    //     material: incoming.material,
-    //     supplier: incoming.supplier,
-    //   });
-    //   // Обновляем время на самое позднее
-    //   if (itemTime > existing.time) {
-    //     existing.time = itemTime;
-    //   }
-    // }
-if (!acc[dateKey].has(groupKey)) {
-  // Новая группа
-  acc[dateKey].set(groupKey, {
-    time: itemTime,
-    lastFullDateTime: fullDateTime,  // ← добавить
-    factQuantity: incoming.quantity,
-    planQuantity: 0,
-    consignee: incoming.supplier,
-    factories: [factory],
-    truckCount: 1,
-    material: incoming.material,
-    requestNumber: orderNumber,
-    requestDate: incoming.date,
-    closed: false,
-    supplier: incoming.supplier,
-    vehicles: [{
-      licensePlate: incoming.licensePlate || '—',
-      factory: factory,
-      quantity: incoming.quantity,
-      time: itemTime,
-      fullDateTime: fullDateTime,
-      driver: incoming.driver || '—',
-      material: incoming.material,
-      supplier: incoming.supplier,
-    }],
-  });
-} else {
-  // Существующая группа - суммируем
-  const existing = acc[dateKey].get(groupKey)!;
-  existing.factQuantity += incoming.quantity;
-  existing.truckCount += 1;
-  if (!existing.factories.includes(factory)) {
-    existing.factories.push(factory);
-  }
-  
-  // ✅ ГРУППИРУЕМ ТРАНСПОРТ ПО НОМЕРУ МАШИНЫ + ВРЕМЕНИ
-  const vehicleKey = `${incoming.licensePlate || '—'}_${fullDateTime}`;
-  const existingVehicle = existing.vehicles.find(v => 
-    `${v.licensePlate}_${v.fullDateTime}` === vehicleKey
-  );
-  
-  if (existingVehicle) {
-    // Если такая машина с таким временем уже есть - суммируем количество
-    existingVehicle.quantity += incoming.quantity;
-  } else {
-    // Иначе добавляем новую запись
-    existing.vehicles.push({
-      licensePlate: incoming.licensePlate || '—',
-      factory: factory,
-      quantity: incoming.quantity,
-      time: itemTime,
-      fullDateTime: fullDateTime,
-      driver: incoming.driver || '—',
-      material: incoming.material,
-      supplier: incoming.supplier,
-    });
-  }
-  
-  // Обновляем время на самое позднее
-  if (fullDateTime > (existing.lastFullDateTime || existing.time)) {
-    existing.lastFullDateTime = fullDateTime;
-    existing.time = itemTime;
-  }
-}
-
-
-    
-    return acc;
-  }, {} as Record<string, Map<string, GroupedItem>>);
-  
-  const incomingSortedDates = Object.keys(groupedIncoming).sort(compareDatesDesc);
-  
-  return (
-    <div className="compact-view">
-      {incomingSortedDates.map(dateKey => {
-        const items = Array.from(groupedIncoming[dateKey].values());
-        // Сортируем по времени (новые сверху)
-        // const sortedItems = [...items].sort((a, b) => {
-        //   const timeA = a.time.split(':').map(Number);
-        //   const timeB = b.time.split(':').map(Number);
-        //   const minutesA = timeA[0] * 60 + timeA[1];
-        //   const minutesB = timeB[0] * 60 + timeB[1];
-        //   return minutesB - minutesA;
-        // });
-
-        const sortedItems = [...items].sort((a, b) => {
-          // Используем lastFullDateTime или первую запись из vehicles
-          const dateTimeA = a.lastFullDateTime || (a.vehicles[0]?.fullDateTime) || a.time;
-          const dateTimeB = b.lastFullDateTime || (b.vehicles[0]?.fullDateTime) || b.time;
-          // Сравниваем как строки в формате "ДД.ММ.ГГГГ ЧЧ:ММ"
-          return dateTimeB.localeCompare(dateTimeA);
-        });
-
-        const isToday = isIncomingDateToday(dateKey);
-        
-        return (
-          <div key={dateKey} className="compact-date-group">
-            <div className="compact-date-header">
-              <div className="date-wrapper">
-                <span className="date-text" style={{ fontWeight: 'bold' }}>{formatIncomingDateLabel(dateKey)}</span>
-                {isToday && <span className="today-badge">СЕГОДНЯ</span>}
-              </div>
-            </div>
-            
-            <div className="compact-table">
-              <div className="compact-header" style={{ fontWeight: 'bold' }}>
-                <span className="col-time">Время</span>
-                <span className="col-fact">Вып</span>
-                <span className="col-material-header">Материал</span>
-                <span className="col-supplier">Контрагент</span>
-                <span className="col-factory">🏭</span>
-                <span className="col-trucks">🚛</span>
+    return (
+      <div className="compact-view">
+        {incomingSortedDates.map(dateKey => {
+          const items = Array.from(groupedIncoming[dateKey].values());
+          // Сортируем по полной дате (новые сверху)
+          const sortedItems = [...items].sort((a, b) => {
+            const dateTimeA = a.lastFullDateTime || (a.vehicles[0]?.fullDateTime) || a.time;
+            const dateTimeB = b.lastFullDateTime || (b.vehicles[0]?.fullDateTime) || b.time;
+            return dateTimeB.localeCompare(dateTimeA);
+          });
+          const isToday = isIncomingDateToday(dateKey);
+          
+          return (
+            <div key={dateKey} className="compact-date-group">
+              <div className="compact-date-header">
+                <div className="date-wrapper">
+                  <span className="date-text" style={{ fontWeight: 'bold' }}>{formatIncomingDateLabel(dateKey)}</span>
+                  {isToday && <span className="today-badge">СЕГОДНЯ</span>}
+                </div>
               </div>
               
-              {sortedItems.map((item, idx) => {
-                const itemKey = `${dateKey}_${idx}`;
-                const isExpanded = expandedId === itemKey;
+              <div className="compact-table">
+                <div className="compact-header" style={{ fontWeight: 'bold' }}>
+                  <span className="col-time">Время</span>
+                  <span className="col-fact">Вып</span>
+                  <span className="col-material-header">Материал</span>
+                  <span className="col-supplier">Контрагент</span>
+                  <span className="col-factory">🏭</span>
+                  <span className="col-trucks">🚛</span>
+                </div>
                 
-                const { value: factValue } = formatWithUnit(
-                  item.factQuantity,
-                  item.unit ?? null,
-                  item.material
-                );
-                const displayFact = Math.round(factValue);
-                
-                // Сортируем транспорт по времени (новые сверху)
-                // const sortedVehicles = [...item.vehicles].sort((a, b) => {
-                //   const timeA = a.time.split(':').map(Number);
-                //   const timeB = b.time.split(':').map(Number);
-                //   const minutesA = timeA[0] * 60 + timeA[1];
-                //   const minutesB = timeB[0] * 60 + timeB[1];
-                //   return minutesB - minutesA;
-                // });
-                const sortedVehicles = [...item.vehicles].sort((a, b) => {
-                  const dateTimeA = a.fullDateTime || a.time;
-                  const dateTimeB = b.fullDateTime || b.time;
-                  // Преобразуем в Date объекты для корректного сравнения
-                  const dateA = parseRussianDate(dateTimeA);
-                  const dateB = parseRussianDate(dateTimeB);
-                  return dateB.getTime() - dateA.getTime(); // новые сверху
-                });
-
-
-                return (
-                  <div key={idx}>
-                    <div 
-                      className="compact-row compact-clickable"
-                      style={{ fontWeight: 'bold', cursor: 'pointer' }}
-                      onClick={() => setExpandedId(isExpanded ? null : itemKey)}
-                    >
-                      <span className="col-time">{item.time}</span>
-                      <span className="col-fact">{displayFact}</span>
-                      <span className="col-material-header" style={{ fontSize: '13px' }}>{item.material}</span>
-                      <span className="col-supplier" style={{ fontSize: '12px' }}>{item.consignee}</span>
-                      <span className="col-factory">
-                        <div className="factory-badges-group">
-                          {item.factories.map((factory, i) => (
-                            <div key={i} className={getFactoryBadgeClass(factory)}>
-                              {factory}
+                {sortedItems.map((item, idx) => {
+                  const itemKey = `${dateKey}_${idx}`;
+                  const isExpanded = expandedId === itemKey;
+                  
+                  const { value: factValue } = formatWithUnit(
+                    item.factQuantity,
+                    item.unit ?? null,
+                    item.material
+                  );
+                  const displayFact = Math.round(factValue);
+                  
+                  // Сортируем транспорт по полной дате (новые сверху)
+                  const sortedVehicles = [...item.vehicles].sort((a, b) => {
+                    const dateA = a.fullDateTime || a.time;
+                    const dateB = b.fullDateTime || b.time;
+                    return dateB.localeCompare(dateA);
+                  });
+                  
+                  return (
+                    <div key={idx}>
+                      <div 
+                        className="compact-row compact-clickable"
+                        style={{ fontWeight: 'bold', cursor: 'pointer' }}
+                        onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+                      >
+                        <span className="col-time">{item.time}</span>
+                        <span className="col-fact">{displayFact}</span>
+                        <span className="col-material-header" style={{ fontSize: '13px' }}>{item.material}</span>
+                        <span className="col-supplier" style={{ fontSize: '12px' }}>{item.consignee}</span>
+                        <span className="col-factory">
+                          <div className="factory-badges-group">
+                            {item.factories.map((factory, i) => (
+                              <div key={i} className={getFactoryBadgeClass(factory)}>
+                                {factory}
+                              </div>
+                            ))}
+                          </div>
+                        </span>
+                        <span className="col-trucks">{item.truckCount}</span>
+                      </div>
+                      
+                      <AnimatePresence>
+                        {isExpanded && (
+                          <motion.div
+                            className="compact-details"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            transition={{ duration: 0.2 }}
+                          >
+                            <div className="detail-row">
+                              <span className="detail-label">📦 Материал:</span>
+                              <span className="detail-value">{item.material}</span>
                             </div>
-                          ))}
-                        </div>
-                      </span>
-                      <span className="col-trucks">{item.truckCount}</span>
+                            <div className="detail-row">
+                              <span className="detail-label">🏭 Завод:</span>
+                              <span className="detail-value">{item.factories.join(', ')}</span>
+                            </div>
+                            <div className="detail-row">
+                              <span className="detail-label">🚛 Машин:</span>
+                              <span className="detail-value">{item.truckCount}</span>
+                            </div>
+                            {sortedVehicles.length > 0 && (
+                              <div className="vehicles-list">
+                                <div className="vehicles-title">🚛 Транспорт:</div>
+                                {sortedVehicles.map((vehicle, i) => (
+                                  <div key={i} className="vehicle-item">
+                                    <span className="vehicle-time">{vehicle.fullDateTime || vehicle.time}</span>
+                                    <span className="vehicle-license">{vehicle.licensePlate}</span>
+                                    <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
+                                    <span className="vehicle-quantity">
+                                      {Math.round(vehicle.quantity)} т
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                     </div>
-                    
-                    <AnimatePresence>
-                      {isExpanded && (
-                        <motion.div
-                          className="compact-details"
-                          initial={{ opacity: 0, height: 0 }}
-                          animate={{ opacity: 1, height: 'auto' }}
-                          exit={{ opacity: 0, height: 0 }}
-                          transition={{ duration: 0.2 }}
-                        >
-                          <div className="detail-row">
-                            <span className="detail-label">📦 Материал:</span>
-                            <span className="detail-value">{item.material}</span>
-                          </div>
-                          <div className="detail-row">
-                            <span className="detail-label">🏭 Завод:</span>
-                            <span className="detail-value">{item.factories.join(', ')}</span>
-                          </div>
-                          <div className="detail-row">
-                            <span className="detail-label">🚛 Машин:</span>
-                            <span className="detail-value">{item.truckCount}</span>
-                          </div>
-                          
-                          
-                          {/* {sortedVehicles.length > 0 && (
-                            <div className="vehicles-list">
-                              <div className="vehicles-title">🚛 Транспорт:</div>
-                              {sortedVehicles.map((vehicle, i) => (
-                                <div key={i} className="vehicle-item">
-                                  <span className="vehicle-time">{vehicle.fullDateTime || vehicle.time}</span>
-                                  <span className="vehicle-license">{vehicle.licensePlate}</span>
-                                  <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
-                                  <span className="vehicle-quantity">
-                                    {Math.round(vehicle.quantity)} т
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          )} */}
-                        {sortedVehicles.length > 0 && (
-  <div className="vehicles-list">
-    <div className="vehicles-title">🚛 Транспорт:</div>
-    {[...item.vehicles]
-      .sort((a, b) => {
-        const dateTimeA = a.fullDateTime || a.time;
-        const dateTimeB = b.fullDateTime || b.time;
-        // Строковое сравнение: "14.06.2026 00:43" > "13.06.2026 23:48"
-        return dateTimeB.localeCompare(dateTimeA);
-      })
-      .map((vehicle, i) => (
-        <div key={i} className="vehicle-item">
-          <span className="vehicle-time">{vehicle.fullDateTime || vehicle.time}</span>
-          <span className="vehicle-license">{vehicle.licensePlate}</span>
-          <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
-          <span className="vehicle-quantity">
-            {Math.round(vehicle.quantity)} т
-          </span>
-        </div>
-      ))}
-  </div>
-)}
-
-
-
-
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+          );
+        })}
+      </div>
+    );
+  }
   
   // ============================================
   // РЕНДЕР ДЛЯ ТАС (ЛХ, ЛЮ) - ПОСТУПЛЕНИЯ И ОТГРУЗКИ
@@ -1395,13 +1098,6 @@ if (!acc[dateKey].has(groupKey)) {
 
 
 
-
-
-
-
-
-
-
 // 'use client';
 
 // import { IncomingItem, ShipmentItem } from '@/app/page';
@@ -1416,7 +1112,11 @@ if (!acc[dateKey].has(groupKey)) {
 //   formatTime,
 //   getDateKey,
 //   getFactoryBadgeClass,
-//   formatWithUnit
+//   formatWithUnit,
+//   getIncomingDateKey,
+//   formatIncomingDateLabel,
+//   isIncomingDateToday,
+//   formatFullDateTime
 // } from '@/lib/utils';
 
 // type UnifiedDataItem = IncomingItem | ShipmentItem;
@@ -1435,6 +1135,7 @@ if (!acc[dateKey].has(groupKey)) {
 //   lastShipmentFullDate?: string | null;
 //   truckCount: number;
 //   unit?: string;
+//   lastFullDateTime?: string;  // ← ДОБАВИТЬ
 //   vehicles: Array<{
 //     time: string;
 //     fullDateTime?: string;
@@ -1475,6 +1176,7 @@ if (!acc[dateKey].has(groupKey)) {
 //   closed: boolean | null;
 //   supplier?: string;
 //   unit?: string;
+//   lastFullDateTime?: string;  // ← добавить
 //   vehicles: Array<{
 //     licensePlate: string;
 //     factory: string;
@@ -1485,6 +1187,8 @@ if (!acc[dateKey].has(groupKey)) {
 //     material?: string;
 //     supplier?: string;
 //   }>;
+  
+
 // }
 
 // // ============================================
@@ -1563,14 +1267,6 @@ if (!acc[dateKey].has(groupKey)) {
 //   selectedFactory = 'all',
 //   mode = 'tas'
 // }: CompactViewProps) {
-
-//   console.log('🔍 CompactView:', { 
-//     mode, 
-//     mainTab, 
-//     dataLength: data.length,
-//     isIceberg: mode === 'iceberg',
-//     isIncoming: mainTab === 'incoming'
-//   });
 
 //   const [expandedId, setExpandedId] = useState<string | null>(null);
 //   const [combinedData, setCombinedData] = useState<CombinedRequest[]>([]);
@@ -1689,6 +1385,8 @@ if (!acc[dateKey].has(groupKey)) {
 //       if (!acc[dateKey].has(groupKey)) {
 //         acc[dateKey].set(groupKey, {
 //           time: itemTime,
+
+
 //           factQuantity: incoming.quantity,
 //           planQuantity: 0,
 //           consignee: incoming.supplier,
@@ -1882,10 +1580,20 @@ if (!acc[dateKey].has(groupKey)) {
 //             };
 //             return getMinutes(timeB) - getMinutes(timeA);
 //           });
-          
+//           // const sortedItems = [...items].sort((a, b) => {
+//           //   // Используем lastFullDateTime или первую запись из vehicles
+//           //   const dateTimeA = a.lastFullDateTime || (a.vehicles[0]?.fullDateTime) || a.time;
+//           //   const dateTimeB = b.lastFullDateTime || (b.vehicles[0]?.fullDateTime) || b.time;
+//           //   // Сравниваем как строки в формате "ДД.ММ.ГГГГ ЧЧ:ММ"
+//           //   return dateTimeB.localeCompare(dateTimeA);
+//           // });
+
 //           const dayTotal = sortedItems.reduce((sum, item) => sum + item.factQuantity, 0);
 //           const dayLabel = formatDateLabel(date);
+//           // const dayLabel = formatIncomingDateLabel(incoming.date);
+
 //           const isToday = isDateToday(date);
+//           // const isToday = isIncomingDateToday(incoming.date);
           
 //           const firstItem = sortedItems[0];
 //           const unitLabel = firstItem?.unit === 'м³' ? '(м³)' : '(т)';
@@ -1894,22 +1602,21 @@ if (!acc[dateKey].has(groupKey)) {
 //             <div key={date} className="compact-date-group">
 //               <div className="compact-date-header">
 //                 <div className="date-wrapper">
-//                   <span className="date-text">{dayLabel}</span>
+//                   <span className="date-text" style={{ fontWeight: 'bold' }}>{dayLabel}</span>
 //                   {isToday && <span className="today-badge">СЕГОДНЯ</span>}
 //                 </div>
-//                 <span className="date-total">{dayTotal.toFixed(0)} т</span>
+//                 <span className="date-total" style={{ fontWeight: 'bold' }}>{dayTotal.toFixed(0)} т</span>
 //               </div>
               
 //               <div className="compact-table">
-//                 <div className="compact-header">
+//                 <div className="compact-header" style={{ fontWeight: 'bold' }}>
 //                   <span className="col-time">Время</span>
 //                   <span className="col-fact">Вып</span>
 //                   <span className="col-slash"></span>
 //                   <span className="col-plan">Заяв {unitLabel}</span>
 //                   <span className="col-consignee">Грузополучатель</span>
-//                   <span className="col-factory">Завод</span>
-//                   <span className="col-trucks">Машин</span>
-//                   <span className="col-expand"></span>
+//                   <span className="col-factory">🏭</span>
+//                   <span className="col-trucks">🚛</span>
 //                 </div>
                 
 //                 {sortedItems.map((item, idx) => {
@@ -1938,6 +1645,7 @@ if (!acc[dateKey].has(groupKey)) {
 //                     <div key={idx}>
 //                       <div 
 //                         className="compact-row compact-clickable"
+//                         style={{ fontWeight: 'bold', cursor: 'pointer' }}
 //                         onClick={() => setExpandedId(isExpanded ? null : itemKey)}
 //                       >
 //                         <span className="col-time">{displayTime}</span>
@@ -1959,17 +1667,13 @@ if (!acc[dateKey].has(groupKey)) {
 //                             </span>
 //                           ) : '—'}
 //                         </span>
-//                         <span className="col-consignee">
-//                           {item.consignee}
-//                           {isSpecial && <span className="special-badge">ИНЕРТНЫЕ</span>}
-//                         </span>
+//                         <span className="col-consignee" style={{ fontSize: '12px' }}>{item.consignee}</span>
 //                         <span className="col-factory">
 //                           <div className="factory-badges-group">
 //                             <div className={getFactoryBadgeClass(item.division)}>{item.division}</div>
 //                           </div>
 //                         </span>
 //                         <span className="col-trucks">{item.truckCount}</span>
-//                         <span className="col-expand">{isExpanded ? '▲' : '▼'}</span>
 //                       </div>
                       
 //                       <AnimatePresence>
@@ -2025,23 +1729,15 @@ if (!acc[dateKey].has(groupKey)) {
 //     );
 //   }
   
-
-
-
-
-
-
-
 //   // // ============================================
 //   // // РЕНДЕР ДЛЯ АЙСБЕРГ (СП, Щ) - ПОСТУПЛЕНИЯ
 //   // // ============================================
   
 //   // if (mode === 'iceberg' && mainTab === 'incoming') {
-//   //   // console.log('📦 Processing incoming for iceberg, data length:', data.length);
-    
 //   //   const groupedIncoming = data.reduce((acc, item) => {
 //   //     const incoming = item as IncomingItem;
-//   //     const dateKey = getDateKey(incoming.date);
+//   //     // const dateKey = getDateKey(incoming.date);
+//   //     const dateKey = getIncomingDateKey(incoming.date);
 //   //     const factory = detectFactory(incoming, 'incoming');
       
 //   //     // Пропускаем не Айсберг заводы (только СП и Щ)
@@ -2127,26 +1823,25 @@ if (!acc[dateKey].has(groupKey)) {
 //   //           <div key={date} className="compact-date-group">
 //   //             <div className="compact-date-header">
 //   //               <div className="date-wrapper">
-//   //                 <span className="date-text">{formatDateLabel(date)}</span>
+//   //                 <span className="date-text" style={{ fontWeight: 'bold' }}>{formatDateLabel(date)}</span>
 //   //                 {isToday && <span className="today-badge">СЕГОДНЯ</span>}
 //   //               </div>
-//   //               <span className="date-total">{Math.round(dayTotal)} т</span>
+//   //               {/* <span className="date-total" style={{ fontWeight: 'bold' }}>{Math.round(dayTotal)} т</span> */}
 //   //             </div>
               
 //   //             <div className="compact-table">
-//   //               <div className="compact-header">
+//   //               <div className="compact-header" style={{ fontWeight: 'bold' }}>
 //   //                 <span className="col-time">Время</span>
 //   //                 <span className="col-fact">Вып</span>
 //   //                 <span className="col-material-header">Материал</span>
-//   //                 <span className="col-factory">Завод</span>
-//   //                 <span className="col-trucks">Машин</span>
-//   //                 <span className="col-expand"></span>
+//   //                 <span className="col-supplier">Контрагент</span>
+//   //                 <span className="col-factory">🏭</span>
+//   //                 <span className="col-trucks">🚛</span>
 //   //               </div>
                 
 //   //               {sortedItems.map((item, idx) => {
 //   //                 const itemKey = `${date}_${idx}`;
 //   //                 const isExpanded = expandedId === itemKey;
-//   //                 const isSpecial = isSpecialMaterial(item.material);
                   
 //   //                 const { value: factValue } = formatWithUnit(
 //   //                   item.factQuantity,
@@ -2159,11 +1854,13 @@ if (!acc[dateKey].has(groupKey)) {
 //   //                   <div key={idx}>
 //   //                     <div 
 //   //                       className="compact-row compact-clickable"
+//   //                       style={{ fontWeight: 'bold', cursor: 'pointer' }}
 //   //                       onClick={() => setExpandedId(isExpanded ? null : itemKey)}
 //   //                     >
 //   //                       <span className="col-time">{item.time}</span>
 //   //                       <span className="col-fact">{displayFact}</span>
-//   //                       <span className="col-material-header">{item.material}</span>
+//   //                       <span className="col-material-header" style={{ fontSize: '13px' }}>{item.material}</span>
+//   //                       <span className="col-supplier" style={{ fontSize: '12px' }}>{item.consignee}</span>
 //   //                       <span className="col-factory">
 //   //                         <div className="factory-badges-group">
 //   //                           {item.factories.map((factory, i) => (
@@ -2174,7 +1871,6 @@ if (!acc[dateKey].has(groupKey)) {
 //   //                         </div>
 //   //                       </span>
 //   //                       <span className="col-trucks">{item.truckCount}</span>
-//   //                       <span className="col-expand">{isExpanded ? '▲' : '▼'}</span>
 //   //                     </div>
                       
 //   //                     <AnimatePresence>
@@ -2227,13 +1923,288 @@ if (!acc[dateKey].has(groupKey)) {
 //   //     </div>
 //   //   );
 //   // }
+
+
+
+
+
+
+// // ========== ПОСТУПЛЕНИЯ ДЛЯ АЙСБЕРГ ==========
+
+// if (mode === 'iceberg' && mainTab === 'incoming') {
+//   const groupedIncoming = data.reduce((acc, item) => {
+//     const incoming = item as IncomingItem;
+//     const dateKey = getIncomingDateKey(incoming.date);
+//     const factory = detectFactory(incoming, 'incoming');
+    
+//     // Пропускаем не Айсберг заводы (только СП и Щ)
+//     if (factory !== 'СП' && factory !== 'Щ') return acc;
+    
+//     // ГРУППИРУЕМ ПО НОМЕРУ ЗАКАЗА (clientRequestNumber) или номеру документа
+//     const orderNumber = incoming.clientRequestNumber || incoming.number || 'unknown';
+//     const groupKey = `${dateKey}_${orderNumber}`;
+    
+//     if (!acc[dateKey]) {
+//       acc[dateKey] = new Map();
+//     }
+    
+//     const itemTime = formatTime(incoming.date);
+//     const fullDateTime = formatFullDateTime(incoming.date);
+    
+
+// if (!acc[dateKey].has(groupKey)) {
+//   // Новая группа
+//   acc[dateKey].set(groupKey, {
+//     time: itemTime,
+//     lastFullDateTime: fullDateTime,  // ← добавить
+//     factQuantity: incoming.quantity,
+//     planQuantity: 0,
+//     consignee: incoming.supplier,
+//     factories: [factory],
+//     truckCount: 1,
+//     material: incoming.material,
+//     requestNumber: orderNumber,
+//     requestDate: incoming.date,
+//     closed: false,
+//     supplier: incoming.supplier,
+//     vehicles: [{
+//       licensePlate: incoming.licensePlate || '—',
+//       factory: factory,
+//       quantity: incoming.quantity,
+//       time: itemTime,
+//       fullDateTime: fullDateTime,
+//       driver: incoming.driver || '—',
+//       material: incoming.material,
+//       supplier: incoming.supplier,
+//     }],
+//   });
+// } else {
+//   // Существующая группа - суммируем
+//   const existing = acc[dateKey].get(groupKey)!;
+//   existing.factQuantity += incoming.quantity;
+//   existing.truckCount += 1;
+//   if (!existing.factories.includes(factory)) {
+//     existing.factories.push(factory);
+//   }
   
+//   // ✅ ГРУППИРУЕМ ТРАНСПОРТ ПО НОМЕРУ МАШИНЫ + ВРЕМЕНИ
+//   const vehicleKey = `${incoming.licensePlate || '—'}_${fullDateTime}`;
+//   const existingVehicle = existing.vehicles.find(v => 
+//     `${v.licensePlate}_${v.fullDateTime}` === vehicleKey
+//   );
+  
+//   if (existingVehicle) {
+//     // Если такая машина с таким временем уже есть - суммируем количество
+//     existingVehicle.quantity += incoming.quantity;
+//   } else {
+//     // Иначе добавляем новую запись
+//     existing.vehicles.push({
+//       licensePlate: incoming.licensePlate || '—',
+//       factory: factory,
+//       quantity: incoming.quantity,
+//       time: itemTime,
+//       fullDateTime: fullDateTime,
+//       driver: incoming.driver || '—',
+//       material: incoming.material,
+//       supplier: incoming.supplier,
+//     });
+//   }
+  
+//   // Обновляем время на самое позднее
+//   if (fullDateTime > (existing.lastFullDateTime || existing.time)) {
+//     existing.lastFullDateTime = fullDateTime;
+//     existing.time = itemTime;
+//   }
+// }
+
+
+    
+//     return acc;
+//   }, {} as Record<string, Map<string, GroupedItem>>);
+  
+//   const incomingSortedDates = Object.keys(groupedIncoming).sort(compareDatesDesc);
+  
+//   return (
+//     <div className="compact-view">
+//       {incomingSortedDates.map(dateKey => {
+//         const items = Array.from(groupedIncoming[dateKey].values());
+
+
+//         const sortedItems = [...items].sort((a, b) => {
+//           // Используем lastFullDateTime или первую запись из vehicles
+//           const dateTimeA = a.lastFullDateTime || (a.vehicles[0]?.fullDateTime) || a.time;
+//           const dateTimeB = b.lastFullDateTime || (b.vehicles[0]?.fullDateTime) || b.time;
+//           // Сравниваем как строки в формате "ДД.ММ.ГГГГ ЧЧ:ММ"
+//           return dateTimeB.localeCompare(dateTimeA);
+//         });
+
+//         const isToday = isIncomingDateToday(dateKey);
+        
+//         return (
+//           <div key={dateKey} className="compact-date-group">
+//             <div className="compact-date-header">
+//               <div className="date-wrapper">
+//                 <span className="date-text" style={{ fontWeight: 'bold' }}>{formatIncomingDateLabel(dateKey)}</span>
+//                 {isToday && <span className="today-badge">СЕГОДНЯ</span>}
+//               </div>
+//             </div>
+            
+//             <div className="compact-table">
+//               <div className="compact-header" style={{ fontWeight: 'bold' }}>
+//                 <span className="col-time">Время</span>
+//                 <span className="col-fact">Вып</span>
+//                 <span className="col-material-header">Материал</span>
+//                 <span className="col-supplier">Контрагент</span>
+//                 <span className="col-factory">🏭</span>
+//                 <span className="col-trucks">🚛</span>
+//               </div>
+              
+//               {sortedItems.map((item, idx) => {
+//                 const itemKey = `${dateKey}_${idx}`;
+//                 const isExpanded = expandedId === itemKey;
+                
+//                 const { value: factValue } = formatWithUnit(
+//                   item.factQuantity,
+//                   item.unit ?? null,
+//                   item.material
+//                 );
+//                 const displayFact = Math.round(factValue);
+                
+//                 // Сортируем транспорт по времени (новые сверху)
+//                 // const sortedVehicles = [...item.vehicles].sort((a, b) => {
+//                 //   const timeA = a.time.split(':').map(Number);
+//                 //   const timeB = b.time.split(':').map(Number);
+//                 //   const minutesA = timeA[0] * 60 + timeA[1];
+//                 //   const minutesB = timeB[0] * 60 + timeB[1];
+//                 //   return minutesB - minutesA;
+//                 // });
+//                 const sortedVehicles = [...item.vehicles].sort((a, b) => {
+//                   const dateTimeA = a.fullDateTime || a.time;
+//                   const dateTimeB = b.fullDateTime || b.time;
+//                   // Преобразуем в Date объекты для корректного сравнения
+//                   const dateA = parseRussianDate(dateTimeA);
+//                   const dateB = parseRussianDate(dateTimeB);
+//                   return dateB.getTime() - dateA.getTime(); // новые сверху
+//                 });
+
+
+//                 return (
+//                   <div key={idx}>
+//                     <div 
+//                       className="compact-row compact-clickable"
+//                       style={{ fontWeight: 'bold', cursor: 'pointer' }}
+//                       onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+//                     >
+//                       <span className="col-time">{item.time}</span>
+//                       <span className="col-fact">{displayFact}</span>
+//                       <span className="col-material-header" style={{ fontSize: '13px' }}>{item.material}</span>
+//                       <span className="col-supplier" style={{ fontSize: '12px' }}>{item.consignee}</span>
+//                       <span className="col-factory">
+//                         <div className="factory-badges-group">
+//                           {item.factories.map((factory, i) => (
+//                             <div key={i} className={getFactoryBadgeClass(factory)}>
+//                               {factory}
+//                             </div>
+//                           ))}
+//                         </div>
+//                       </span>
+//                       <span className="col-trucks">{item.truckCount}</span>
+//                     </div>
+                    
+//                     <AnimatePresence>
+//                       {isExpanded && (
+//                         <motion.div
+//                           className="compact-details"
+//                           initial={{ opacity: 0, height: 0 }}
+//                           animate={{ opacity: 1, height: 'auto' }}
+//                           exit={{ opacity: 0, height: 0 }}
+//                           transition={{ duration: 0.2 }}
+//                         >
+//                           <div className="detail-row">
+//                             <span className="detail-label">📦 Материал:</span>
+//                             <span className="detail-value">{item.material}</span>
+//                           </div>
+//                           <div className="detail-row">
+//                             <span className="detail-label">🏭 Завод:</span>
+//                             <span className="detail-value">{item.factories.join(', ')}</span>
+//                           </div>
+//                           <div className="detail-row">
+//                             <span className="detail-label">🚛 Машин:</span>
+//                             <span className="detail-value">{item.truckCount}</span>
+//                           </div>
+                          
+                          
+//                           {/* {sortedVehicles.length > 0 && (
+//                             <div className="vehicles-list">
+//                               <div className="vehicles-title">🚛 Транспорт:</div>
+//                               {sortedVehicles.map((vehicle, i) => (
+//                                 <div key={i} className="vehicle-item">
+//                                   <span className="vehicle-time">{vehicle.fullDateTime || vehicle.time}</span>
+//                                   <span className="vehicle-license">{vehicle.licensePlate}</span>
+//                                   <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
+//                                   <span className="vehicle-quantity">
+//                                     {Math.round(vehicle.quantity)} т
+//                                   </span>
+//                                 </div>
+//                               ))}
+//                             </div>
+//                           )} */}
+//                         {sortedVehicles.length > 0 && (
+//   <div className="vehicles-list">
+//     <div className="vehicles-title">🚛 Транспорт:</div>
+//     {[...item.vehicles]
+//       .sort((a, b) => {
+//         const dateTimeA = a.fullDateTime || a.time;
+//         const dateTimeB = b.fullDateTime || b.time;
+//         // Строковое сравнение: "14.06.2026 00:43" > "13.06.2026 23:48"
+//         return dateTimeB.localeCompare(dateTimeA);
+//       })
+//       .map((vehicle, i) => (
+//         <div key={i} className="vehicle-item">
+//           <span className="vehicle-time">{vehicle.fullDateTime || vehicle.time}</span>
+//           <span className="vehicle-license">{vehicle.licensePlate}</span>
+//           <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
+//           <span className="vehicle-quantity">
+//             {Math.round(vehicle.quantity)} т
+//           </span>
+//         </div>
+//       ))}
+//   </div>
+// )}
+
+
+
+
+//                         </motion.div>
+//                       )}
+//                     </AnimatePresence>
+//                   </div>
+//                 );
+//               })}
+//             </div>
+//           </div>
+//         );
+//       })}
+//     </div>
+//   );
+// }
+
+
+
+
+
+
+
+
+
+
+
 
 
 
   
 //   // ============================================
-//   // РЕНДЕР ДЛЯ ТАС (ЛХ, ЛЮ)
+//   // РЕНДЕР ДЛЯ ТАС (ЛХ, ЛЮ) - ПОСТУПЛЕНИЯ И ОТГРУЗКИ
 //   // ============================================
   
 //   return (
@@ -2250,39 +2221,39 @@ if (!acc[dateKey].has(groupKey)) {
 //       {sortedDates.map(date => {
 //         const items = Array.from(groupedByDateAndRequest[date].values());
 //         const dayTotal = items.reduce((sum, item) => sum + item.factQuantity, 0);
+//         const isToday = isDateToday(date);
         
 //         return (
 //           <div key={date} className="compact-date-group">
 //             <div className="compact-date-header">
 //               <div className="date-wrapper">
-//                 <span className="date-text">{formatDateLabel(date)}</span>
-//                 {isDateToday(date) && <span className="today-badge">СЕГОДНЯ</span>}
+//                 <span className="date-text" style={{ fontWeight: 'bold' }}>{formatDateLabel(date)}</span>
+//                 {isToday && <span className="today-badge">СЕГОДНЯ</span>}
 //               </div>
-//               {isShipment && <span className="date-total">{dayTotal.toFixed(0)} т</span>}
+//               {isShipment && <span className="date-total" style={{ fontWeight: 'bold' }}>{Math.round(dayTotal)} т</span>}
 //             </div>
             
 //             <div className="compact-table">
 //               {isShipment && (
-//                 <div className="compact-header">
+//                 <div className="compact-header" style={{ fontWeight: 'bold' }}>
 //                   <span className="col-time">Время</span>
 //                   <span className="col-fact">Вып</span>
 //                   <span className="col-slash"></span>
 //                   <span className="col-plan">Заяв (т)</span>
 //                   <span className="col-consignee">Грузополучатель</span>
-//                   <span className="col-factory">Завод</span>
-//                   <span className="col-trucks">Машин</span>
-//                   <span className="col-expand"></span>
+//                   <span className="col-factory">🏭</span>
+//                   <span className="col-trucks">🚛</span>
 //                 </div>
 //               )}
               
 //               {!isShipment && (
-//                 <div className="compact-header">
+//                 <div className="compact-header" style={{ fontWeight: 'bold' }}>
 //                   <span className="col-time">Время</span>
 //                   <span className="col-fact">Вып</span>
 //                   <span className="col-material-header">Материал</span>
-//                   <span className="col-factory">Завод</span>
-//                   <span className="col-trucks">Машин</span>
-//                   <span className="col-expand"></span>
+//                   <span className="col-supplier">Контрагент</span>
+//                   <span className="col-factory">🏭</span>
+//                   <span className="col-trucks">🚛</span>
 //                 </div>
 //               )}
               
@@ -2297,7 +2268,6 @@ if (!acc[dateKey].has(groupKey)) {
 //                 const isExpanded = expandedId === itemKey;
 //                 const percentComplete = item.planQuantity > 0 ? (item.factQuantity / item.planQuantity) * 100 : 0;
 //                 const isWarning = percentComplete < 90;
-//                 const isSpecial = isSpecialMaterial(item.material);
                 
 //                 const { value: factValue } = formatWithUnit(
 //                   item.factQuantity,
@@ -2311,6 +2281,7 @@ if (!acc[dateKey].has(groupKey)) {
 //                     <div key={idx}>
 //                       <div 
 //                         className="compact-row compact-clickable"
+//                         style={{ fontWeight: 'bold', cursor: 'pointer' }}
 //                         onClick={() => setExpandedId(isExpanded ? null : itemKey)}
 //                       >
 //                         <span className="col-time">{item.time}</span>
@@ -2332,10 +2303,7 @@ if (!acc[dateKey].has(groupKey)) {
 //                             </span>
 //                           ) : '—'}
 //                         </span>
-//                         <span className="col-consignee">
-//                           {item.consignee}
-//                           {isSpecial && <span className="special-badge">ИНЕРТНЫЕ</span>}
-//                         </span>
+//                         <span className="col-consignee" style={{ fontSize: '12px' }}>{item.consignee}</span>
 //                         <span className="col-factory">
 //                           <div className="factory-badges-group">
 //                             {item.factories.map((factory, i) => (
@@ -2346,7 +2314,6 @@ if (!acc[dateKey].has(groupKey)) {
 //                           </div>
 //                         </span>
 //                         <span className="col-trucks">{item.truckCount}</span>
-//                         <span className="col-expand">{isExpanded ? '▲' : '▼'}</span>
 //                       </div>
                       
 //                       <AnimatePresence>
@@ -2398,11 +2365,13 @@ if (!acc[dateKey].has(groupKey)) {
 //                   <div key={idx}>
 //                     <div 
 //                       className="compact-row compact-clickable"
+//                       style={{ fontWeight: 'bold', cursor: 'pointer' }}
 //                       onClick={() => setExpandedId(isExpanded ? null : itemKey)}
 //                     >
 //                       <span className="col-time">{item.time}</span>
 //                       <span className="col-fact">{displayFact}</span>
-//                       <span className="col-material-header">{item.material?.substring(0, 20)}</span>
+//                       <span className="col-material-header" style={{ fontSize: '13px' }}>{item.material}</span>
+//                       <span className="col-supplier" style={{ fontSize: '12px' }}>{item.consignee}</span>
 //                       <span className="col-factory">
 //                         <div className="factory-badges-group">
 //                           {item.factories.map((factory, i) => (
@@ -2413,7 +2382,6 @@ if (!acc[dateKey].has(groupKey)) {
 //                         </div>
 //                       </span>
 //                       <span className="col-trucks">{item.truckCount}</span>
-//                       <span className="col-expand">{isExpanded ? '▲' : '▼'}</span>
 //                     </div>
                     
 //                     <AnimatePresence>
@@ -2426,8 +2394,8 @@ if (!acc[dateKey].has(groupKey)) {
 //                           transition={{ duration: 0.2 }}
 //                         >
 //                           <div className="detail-row">
-//                             <span className="detail-label">📦 Поставщик:</span>
-//                             <span className="detail-value">{item.consignee}</span>
+//                             <span className="detail-label">📦 Материал:</span>
+//                             <span className="detail-value">{item.material}</span>
 //                           </div>
 //                           <div className="detail-row">
 //                             <span className="detail-label">🏭 Завод:</span>
@@ -2466,1096 +2434,5 @@ if (!acc[dateKey].has(groupKey)) {
 //     </div>
 //   );
 // }
-
-
-
-
-// 'use client';
-
-// import { IncomingItem, ShipmentItem } from '@/app/page';
-// import { useState, useEffect, useRef } from 'react';
-// import { motion, AnimatePresence } from 'framer-motion';
-// import ActivityChart from './ActivityChart';
-// import LoadingSpinner from './LoadingSpinner';
-// import { 
-//   isConcreteMaterial, 
-//   isSpecialMaterial,
-//   parseRussianDate,
-//   formatTime,
-//   getDateKey,
-//   getFactoryBadgeClass,
-//   formatWithUnit
-// } from '@/lib/utils';
-
-// type UnifiedDataItem = IncomingItem | ShipmentItem;
-
-// interface CombinedRequest {
-//   requestNumber: string;
-//   requestDate: string;
-//   material: string;
-//   planQuantity: number;
-//   factQuantity: number;
-//   consignee: string;
-//   division: string;
-//   closed: boolean | null;
-//   delivery_date: string | null;
-//   lastShipmentTime: string | null;
-//   lastShipmentFullDate?: string | null;
-//   truckCount: number;
-//   unit?: string;
-//   vehicles: Array<{
-//     time: string;
-//     fullDateTime?: string;
-//     licensePlate: string;
-//     driver: string;
-//     quantity: number;
-//   }>;
-// }
-
-// interface CompactViewProps {
-//   data: UnifiedDataItem[];
-//   mainTab: 'incoming' | 'shipment' | 'shipmentConcrete';
-//   outgoingRequests?: Array<{
-//     number: string;
-//     date: string;
-//     division: string;
-//     quantity: number;
-//     consignee: string;
-//     material: string;
-//     closed?: boolean | null;
-//   }>;
-//   allShipments?: ShipmentItem[];
-//   allShipmentsForChart?: ShipmentItem[];
-//   selectedFactory?: string;
-//   mode?: 'tas' | 'iceberg';
-// }
-
-// interface GroupedItem {
-//   time: string;
-//   factQuantity: number;
-//   planQuantity: number;
-//   consignee: string;
-//   factories: string[];
-//   truckCount: number;
-//   material: string;
-//   requestNumber: string;
-//   requestDate: string;
-//   closed: boolean | null;
-//   supplier?: string;
-//   unit?: string;
-//   vehicles: Array<{
-//     licensePlate: string;
-//     factory: string;
-//     quantity: number;
-//     time: string;
-//     fullDateTime?: string;
-//     driver?: string;
-//     material?: string;
-//     supplier?: string;
-//   }>;
-// }
-
-// // ============================================
-// // ФУНКЦИИ ДЛЯ РАБОТЫ С ДАТАМИ
-// // ============================================
-
-// const formatDateLabel = (dateStr: string): string => {
-//   const date = parseRussianDate(dateStr);
-//   if (isNaN(date.getTime())) return dateStr;
-  
-//   const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
-//   const day = date.getDate();
-//   const month = months[date.getMonth()];
-  
-//   return `${day} ${month}`;
-// };
-
-// const isDateToday = (dateStr: string): boolean => {
-//   const date = parseRussianDate(dateStr);
-//   if (isNaN(date.getTime())) return false;
-  
-//   const today = new Date();
-//   return date.getDate() === today.getDate() &&
-//          date.getMonth() === today.getMonth() &&
-//          date.getFullYear() === today.getFullYear();
-// };
-
-// const compareDatesDesc = (dateA: string, dateB: string): number => {
-//   const a = parseRussianDate(dateA);
-//   const b = parseRussianDate(dateB);
-//   return b.getTime() - a.getTime();
-// };
-
-// const detectFactory = (item: IncomingItem | ShipmentItem, type: 'incoming' | 'shipment'): string => {
-//   if (type === 'incoming') {
-//     const incoming = item as IncomingItem;
-//     if (incoming.division === 'ЛХ') return 'ЛХ';
-//     if (incoming.division === 'ЛЮ') return 'ЛЮ';
-//     if (incoming.division === 'СП') return 'СП';
-//     if (incoming.division === 'Щ') return 'Щ';
-//     if (incoming.number?.startsWith('ЛХ')) return 'ЛХ';
-//     if (incoming.number?.startsWith('ЛЮ')) return 'ЛЮ';
-//     if (incoming.number?.startsWith('СП')) return 'СП';
-//     if (incoming.number?.startsWith('Щ')) return 'Щ';
-//   } else if (type === 'shipment') {
-//     const shipment = item as ShipmentItem;
-//     if (shipment.division === 'ЛХ') return 'ЛХ';
-//     if (shipment.division === 'ЛЮ') return 'ЛЮ';
-//     if (shipment.division === 'СП') return 'СП';
-//     if (shipment.division === 'Щ') return 'Щ';
-//   }
-//   return 'Другой';
-// };
-
-// const hasTodayShipments = (shipments: ShipmentItem[], requestNumber: string): boolean => {
-//   const today = new Date();
-//   return shipments.some(ship => {
-//     const shipDate = parseRussianDate(ship.date);
-//     const isToday = shipDate.getDate() === today.getDate() &&
-//                     shipDate.getMonth() === today.getMonth() &&
-//                     shipDate.getFullYear() === today.getFullYear();
-//     return ship.clientRequestNumber === requestNumber && isToday;
-//   });
-// };
-
-// // ============================================
-// // ОСНОВНОЙ КОМПОНЕНТ
-// // ============================================
-
-// export default function CompactView({ 
-//   data, 
-//   mainTab, 
-//   outgoingRequests = [], 
-//   allShipments = [],
-//   allShipmentsForChart = [],
-//   selectedFactory = 'all',
-//   mode = 'tas'
-// }: CompactViewProps) {
-
-
-//    console.log('🔍 CompactView:', { 
-//     mode, 
-//     mainTab, 
-//     dataLength: data.length,
-//     isIceberg: mode === 'iceberg',
-//     isIncoming: mainTab === 'incoming'
-//   });
-  
-
-//   const [expandedId, setExpandedId] = useState<string | null>(null);
-//   const [combinedData, setCombinedData] = useState<CombinedRequest[]>([]);
-//   const [combinedLoading, setCombinedLoading] = useState(false);
-//   const isMountedRef = useRef(true);
-  
-//   const isShipment = mainTab === 'shipment' || mainTab === 'shipmentConcrete';
-//   const isConcreteOnly = mainTab === 'shipmentConcrete';
-//   const shouldUseCombined = mode === 'iceberg' && isShipment;
-//   const effectiveData = shouldUseCombined ? [] : data;
-  
-//   // Загрузка объединённых данных для Айсберг
-//   useEffect(() => {
-//     isMountedRef.current = true;
-    
-//     const fetchCombinedData = async () => {
-//       if (!shouldUseCombined) {
-//         if (isMountedRef.current) {
-//           setCombinedData([]);
-//           setCombinedLoading(false);
-//         }
-//         return;
-//       }
-      
-//       if (isMountedRef.current) {
-//         setCombinedLoading(true);
-//       }
-      
-//       try {
-//         let factoriesToLoad: string[] = [];
-//         if (selectedFactory === 'all') {
-//           factoriesToLoad = ['СП', 'Щ'];
-//         } else {
-//           factoriesToLoad = [selectedFactory];
-//         }
-        
-//         const allResults: CombinedRequest[] = [];
-        
-//         for (const factory of factoriesToLoad) {
-//           const encodedFactory = encodeURIComponent(factory);
-//           const response = await fetch(`/api/combined-requests?factory=${encodedFactory}`);
-//           const result = await response.json();
-          
-//           if (isMountedRef.current && !result.error && Array.isArray(result)) {
-//             allResults.push(...result);
-//           }
-//         }
-        
-//         let filteredResults = allResults;
-//         if (isConcreteOnly) {
-//           filteredResults = allResults.filter(item => isConcreteMaterial(item.material));
-//         } else if (mainTab === 'shipment') {
-//           // Исключаем и бетон, и инертные
-//           filteredResults = allResults.filter(item => {
-//             return !isConcreteMaterial(item.material) && !isSpecialMaterial(item.material);
-//           });
-//         }
-        
-//         if (isMountedRef.current) {
-//           setCombinedData(filteredResults);
-//           setCombinedLoading(false);
-//         }
-//       } catch (err) {
-//         console.error('Error loading combined data:', err);
-//         if (isMountedRef.current) {
-//           setCombinedData([]);
-//           setCombinedLoading(false);
-//         }
-//       }
-//     };
-    
-//     fetchCombinedData();
-    
-//     return () => {
-//       isMountedRef.current = false;
-//     };
-//   }, [shouldUseCombined, selectedFactory, isConcreteOnly, mainTab]);
-  
-//   // ============================================
-//   // ЛОГИКА ДЛЯ ТАС (ЛХ, ЛЮ)
-//   // ============================================
-  
-//   const requestsMap = new Map<string, { quantity: number; closed: boolean | null }>();
-//   outgoingRequests.forEach(req => {
-//     const key = `${req.number}_${req.date}_${req.division}`;
-//     requestsMap.set(key, { quantity: req.quantity, closed: req.closed || false });
-//   });
-  
-//   const groupedByDateAndRequest = !shouldUseCombined ? data.reduce((acc, item) => {
-//     const dateKey = getDateKey(item.date);
-    
-//     if (mainTab === 'incoming') {
-//       const incoming = item as IncomingItem;
-      
-//       let factory = '—';
-//       if (incoming.number?.startsWith('ЛХ')) factory = 'ЛХ';
-//       else if (incoming.number?.startsWith('ЛЮ')) factory = 'ЛЮ';
-//       else if (incoming.number?.startsWith('СП')) factory = 'СП';
-//       else if (incoming.number?.startsWith('Щ')) factory = 'Щ';
-//       else if (incoming.division === 'ЛХ') factory = 'ЛХ';
-//       else if (incoming.division === 'ЛЮ') factory = 'ЛЮ';
-//       else if (incoming.division === 'СП') factory = 'СП';
-//       else if (incoming.division === 'Щ') factory = 'Щ';
-      
-//       const documentNumber = incoming.number || 'unknown';
-//       const vehicleId = incoming.licensePlate || incoming.driver || 'unknown';
-//       const groupKey = `${dateKey}_${factory}_${incoming.material}_${incoming.supplier}_${documentNumber}_${vehicleId}`;
-      
-//       if (!acc[dateKey]) {
-//         acc[dateKey] = new Map<string, GroupedItem>();
-//       }
-      
-//       const itemTime = formatTime(incoming.date);
-//       const itemUnit = 'т';
-      
-//       if (!acc[dateKey].has(groupKey)) {
-//         acc[dateKey].set(groupKey, {
-//           time: itemTime,
-//           factQuantity: incoming.quantity,
-//           planQuantity: 0,
-//           consignee: incoming.supplier,
-//           factories: [factory],
-//           truckCount: 1,
-//           material: incoming.material,
-//           requestNumber: '',
-//           requestDate: '',
-//           closed: false,
-//           supplier: incoming.supplier,
-//           unit: itemUnit,
-//           vehicles: [{
-//             licensePlate: incoming.licensePlate || '—',
-//             factory: factory,
-//             quantity: incoming.quantity,
-//             time: itemTime,
-//             driver: incoming.driver || '—',
-//             material: incoming.material,
-//             supplier: incoming.supplier,
-//           }],
-//         });
-//       } else {
-//         const existing = acc[dateKey].get(groupKey)!;
-//         existing.factQuantity += incoming.quantity;
-//         existing.truckCount += 1;
-//         if (!existing.factories.includes(factory) && factory !== '—') {
-//           existing.factories.push(factory);
-//         }
-//         existing.vehicles.push({
-//           licensePlate: incoming.licensePlate || '—',
-//           factory: factory,
-//           quantity: incoming.quantity,
-//           time: itemTime,
-//           driver: incoming.driver || '—',
-//           material: incoming.material,
-//           supplier: incoming.supplier,
-//         });
-//         if (itemTime > existing.time) {
-//           existing.time = itemTime;
-//         }
-//       }
-//     } else {
-//       const shipment = item as ShipmentItem;
-      
-//       if (isConcreteOnly && !isConcreteMaterial(shipment.material)) return acc;
-//       if (mainTab === 'shipment' && isConcreteMaterial(shipment.material)) return acc;
-      
-//       const requestNumber = shipment.clientRequestNumber || '';
-//       const requestDate = shipment.clientRequestDate || '';
-//       const division = shipment.division || '';
-//       const requestKey = `${requestNumber}_${requestDate}_${division}`;
-      
-//       let factory = '—';
-//       if (shipment.division === 'ЛХ') factory = 'ЛХ';
-//       else if (shipment.division === 'ЛЮ') factory = 'ЛЮ';
-//       else if (shipment.division === 'СП') factory = 'СП';
-//       else if (shipment.division === 'Щ') factory = 'Щ';
-
-//       const consigneeKey = shipment.consignee || shipment.customer || '—';
-//       const groupKey = `${dateKey}_${requestKey}_${consigneeKey}_${shipment.material}`;
-      
-//       let planQuantity = 0;
-//       let requestClosed = false;
-//       const request = requestsMap.get(requestKey);
-//       if (request) {
-//         planQuantity = request.quantity;
-//         requestClosed = request.closed || false;
-//       }
-      
-//       if (!acc[dateKey]) {
-//         acc[dateKey] = new Map<string, GroupedItem>();
-//       }
-      
-//       const itemTime = formatTime(shipment.date);
-//       const itemUnit = isConcreteMaterial(shipment.material) ? 'м³' : 'т';
-      
-//       if (!acc[dateKey].has(groupKey)) {
-//         acc[dateKey].set(groupKey, {
-//           time: itemTime,
-//           factQuantity: shipment.quantity,
-//           planQuantity: planQuantity,
-//           consignee: consigneeKey,
-//           factories: [factory],
-//           truckCount: 1,
-//           material: shipment.material,
-//           closed: requestClosed,
-//           requestNumber: requestNumber,
-//           requestDate: requestDate,
-//           unit: itemUnit,
-//           vehicles: [{
-//             licensePlate: shipment.licensePlate || '—',
-//             factory: factory,
-//             quantity: shipment.quantity,
-//             time: itemTime,
-//             driver: shipment.driver || '—',
-//           }],
-//         });
-//       } else {
-//         const existing = acc[dateKey].get(groupKey)!;
-//         existing.factQuantity += shipment.quantity;
-//         existing.truckCount += 1;
-//         if (planQuantity > existing.planQuantity) {
-//           existing.planQuantity = planQuantity;
-//         }
-//         if (!existing.factories.includes(factory) && factory !== '—') {
-//           existing.factories.push(factory);
-//         }
-//         existing.vehicles.push({
-//           licensePlate: shipment.licensePlate || '—',
-//           factory: factory,
-//           quantity: shipment.quantity,
-//           time: itemTime,
-//           driver: shipment.driver || '—',
-//         });
-//         if (itemTime > existing.time) {
-//           existing.time = itemTime;
-//         }
-//       }
-//     }
-    
-//     return acc;
-//   }, {} as Record<string, Map<string, GroupedItem>>) : {};
-  
-//   const sortedDates = !shouldUseCombined 
-//     ? Object.keys(groupedByDateAndRequest).sort(compareDatesDesc)
-//     : [];
-  
-//   if (!shouldUseCombined && effectiveData.length === 0) {
-//     return (
-//       <div className="empty">
-//         <p>Нет данных</p>
-//       </div>
-//     );
-//   }
-  
-//   if (shouldUseCombined && combinedLoading) {
-//     return (
-//       <div className="compact-view">
-//         <ActivityChart shipments={[]} selectedFactory={selectedFactory} mode={mode} materialType={isConcreteOnly ? 'concrete' : 'asphalt'} />
-//         <LoadingSpinner message="Загрузка отгрузок..." size="medium" />
-//       </div>
-//     );
-//   }
-  
-//   if (shouldUseCombined && combinedData.length === 0) {
-//     return (
-//       <div className="empty">
-//         <p>Нет данных по заявкам</p>
-//       </div>
-//     );
-//   }
-  
-//   // ============================================
-//   // РЕНДЕР ДЛЯ АЙСБЕРГ (СП, Щ)
-//   // ============================================
-  
-//   if (shouldUseCombined) {
-//     // Для отгрузок — используем combinedData
-//     if (isShipment) {
-//       const groupedByDate = combinedData.reduce((acc, item) => {
-//         if (!item.delivery_date) return acc;
-//         const dateKey = getDateKey(item.delivery_date);
-//         if (!acc[dateKey]) {
-//           acc[dateKey] = [];
-//         }
-//         acc[dateKey].push(item);
-//         return acc;
-//       }, {} as Record<string, CombinedRequest[]>);
-      
-//       const combinedSortedDates = Object.keys(groupedByDate).sort(compareDatesDesc);
-      
-//       return (
-//         <div className="compact-view">
-//           {allShipmentsForChart && allShipmentsForChart.length > 0 && (
-//             <ActivityChart 
-//               shipments={allShipmentsForChart} 
-//               selectedFactory={selectedFactory}
-//               mode={mode}
-//               materialType={isConcreteOnly ? 'concrete' : 'asphalt'}
-//             />
-//           )}
-          
-//           {combinedSortedDates.map(date => {
-//             const items = groupedByDate[date];
-//             const sortedItems = [...items].sort((a, b) => {
-//               const timeA = a.lastShipmentTime || '00:00';
-//               const timeB = b.lastShipmentTime || '00:00';
-//               const getMinutes = (time: string) => {
-//                 const parts = time.split(':');
-//                 const hours = parseInt(parts[0], 10);
-//                 const minutes = parseInt(parts[1], 10);
-//                 return hours * 60 + minutes;
-//               };
-//               return getMinutes(timeB) - getMinutes(timeA);
-//             });
-            
-//             const dayTotal = sortedItems.reduce((sum, item) => sum + item.factQuantity, 0);
-//             const dayLabel = formatDateLabel(date);
-//             const isToday = isDateToday(date);
-            
-//             const firstItem = sortedItems[0];
-//             const unitLabel = firstItem?.unit === 'м³' ? '(м³)' : '(т)';
-            
-//             return (
-//               <div key={date} className="compact-date-group">
-//                 <div className="compact-date-header">
-//                   <div className="date-wrapper">
-//                     <span className="date-text">{dayLabel}</span>
-//                     {isToday && <span className="today-badge">СЕГОДНЯ</span>}
-//                   </div>
-//                   <span className="date-total">{dayTotal.toFixed(0)} т</span>
-//                 </div>
-                
-//                 <div className="compact-table">
-//                   <div className="compact-header">
-//                     <span className="col-time">Время</span>
-//                     <span className="col-fact">Вып</span>
-//                     <span className="col-slash"></span>
-//                     <span className="col-plan">Заяв {unitLabel}</span>
-//                     <span className="col-consignee">Грузополучатель</span>
-//                     <span className="col-factory">Завод</span>
-//                     <span className="col-trucks">Машин</span>
-//                     <span className="col-expand"></span>
-//                   </div>
-                  
-//                   {sortedItems.map((item, idx) => {
-//                     const itemKey = `${date}_${idx}`;
-//                     const isExpanded = expandedId === itemKey;
-//                     const percentComplete = item.planQuantity > 0 ? (item.factQuantity / item.planQuantity) * 100 : 0;
-//                     const isWarning = percentComplete < 90 && percentComplete > 0;
-//                     const displayTime = item.lastShipmentTime || '—';
-//                     const isSpecial = isSpecialMaterial(item.material);
-                    
-//                     // Форматирование с учётом unit
-// const { value: factValue } = formatWithUnit(
-//   item.factQuantity,
-//   item.unit ?? null,  // ← преобразуем undefined в null
-//   item.material
-// );
-//                     const { value: planValue } = formatWithUnit(
-//                       item.planQuantity,
-//                       item.unit ?? null,
-//                       item.material
-//                     );
-
-
-
-
-
-                    
-//                     const displayFact = Math.round(factValue);
-//                     const displayPlan = Math.round(planValue);
-                    
-//                     return (
-//                       <div key={idx}>
-//                         <div 
-//                           // className={`compact-row compact-clickable ${isSpecial ? 'special-row' : ''}`}
-//                           className="compact-row compact-clickable"
-//                           onClick={() => setExpandedId(isExpanded ? null : itemKey)}
-//                         >
-//                           <span className="col-time">{displayTime}</span>
-//                           <span className={`col-fact ${isWarning ? 'warning' : ''}`}>
-//                             {displayFact}
-//                           </span>
-//                           <span className="col-slash">/</span>
-//                           <span className="col-plan">
-//                             {displayPlan > 0 ? (
-//                               <span style={{ whiteSpace: 'nowrap' }}>
-//                                 {displayPlan}
-//                                 {item.closed ? (
-//                                   <span className="closed-lock"> 🔒</span>
-//                                 ) : (
-//                                   item.factQuantity > 0 && percentComplete < 90 && (
-//                                     <span className="active-dot" title="Идут отгрузки"></span>
-//                                   )
-//                                 )}
-//                               </span>
-//                             ) : '—'}
-//                           </span>
-//                           <span className="col-consignee">
-//                             {item.consignee}
-//                             {isSpecial && <span className="special-badge">ИНЕРТНЫЕ</span>}
-//                           </span>
-//                           <span className="col-factory">
-//                             <div className="factory-badges-group">
-//                               <div className={getFactoryBadgeClass(item.division)}>{item.division}</div>
-//                             </div>
-//                           </span>
-//                           <span className="col-trucks">{item.truckCount}</span>
-//                           <span className="col-expand">{isExpanded ? '▲' : '▼'}</span>
-//                         </div>
-                        
-//                         <AnimatePresence>
-//                           {isExpanded && (
-//                             <motion.div
-//                               className="compact-details"
-//                               initial={{ opacity: 0, height: 0 }}
-//                               animate={{ opacity: 1, height: 'auto' }}
-//                               exit={{ opacity: 0, height: 0 }}
-//                               transition={{ duration: 0.2 }}
-//                             >
-//                               <div className="detail-row">
-//                                 <span className="detail-label">📦 Материал:</span>
-//                                 <span className="detail-value">{item.material}</span>
-//                               </div>
-//                               <div className="detail-row">
-//                                 <span className="detail-label">🏭 Завод:</span>
-//                                 <span className="detail-value">{item.division}</span>
-//                               </div>
-//                               <div className="detail-row">
-//                                 <span className="detail-label">🚛 Машин:</span>
-//                                 <span className="detail-value">{item.truckCount}</span>
-//                               </div>
-//                               {item.vehicles.length > 0 && (
-//                                 <div className="vehicles-list">
-//                                   <div className="vehicles-title">🚛 Транспорт:</div>
-//                                   {item.vehicles.map((vehicle, vIdx) => {
-//                                     // Для инертных материалов переводим кг → тонны
-//                                     const vehicleQty = vehicle.quantity;
-                                    
-//                                     // if (isSpecial) {
-//                                     //   vehicleQty = vehicleQty / 1000;
-//                                     // }
-                                    
-//                                     return (
-//                                       <div key={vIdx} className="vehicle-item">
-//                                         <span className="vehicle-time">{vehicle.fullDateTime || vehicle.time}</span>
-//                                         <span className="vehicle-license">{vehicle.licensePlate}</span>
-//                                         <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
-//                                         <span className="vehicle-quantity">
-//                                           {Math.round(vehicleQty)} {item.unit === 'м³' ? 'м³' : 'т'}
-//                                         </span>
-//                                       </div>
-//                                     );
-//                                   })}
-//                                 </div>
-//                               )}
-//                             </motion.div>
-//                           )}
-//                         </AnimatePresence>
-//                       </div>
-//                     );
-//                   })}
-//                 </div>
-//               </div>
-//             );
-//           })}
-//         </div>
-//       );
-//     }
-    
-    
-
-//     // ========== ПОСТУПЛЕНИЯ ДЛЯ АЙСБЕРГ ==========
-
-//     console.log('📦 Processing incoming for iceberg, data length:', data.length);
-    
-// const groupedIncoming = data.reduce((acc, item) => {
-//   const incoming = item as IncomingItem;
-//   const dateKey = getDateKey(incoming.date);
-//   const factory = detectFactory(incoming, 'incoming');
-  
-//   // Пропускаем не Айсберг заводы (только СП и Щ)
-//   if (factory !== 'СП' && factory !== 'Щ') return acc;
-  
-//   // ✅ ГРУППИРУЕМ ПО НОМЕРУ ЗАКАЗА (clientRequestNumber) или номеру документа
-//   const orderNumber = incoming.clientRequestNumber || incoming.number || 'unknown';
-//   const groupKey = `${dateKey}_${orderNumber}`;
-  
-
-//   if (!acc[dateKey]) {
-//     acc[dateKey] = new Map();
-//   }
-  
-//   const itemTime = formatTime(incoming.date);
-  
-//   if (!acc[dateKey].has(groupKey)) {
-//     // Новая группа
-//     acc[dateKey].set(groupKey, {
-//       time: itemTime,
-//       factQuantity: incoming.quantity,
-//       planQuantity: 0,
-//       consignee: incoming.supplier,
-//       factories: [factory],
-//       truckCount: 1,
-//       material: incoming.material,
-//       requestNumber: orderNumber,
-//       requestDate: incoming.date,
-//       closed: false,
-//       supplier: incoming.supplier,
-//       vehicles: [{
-//         licensePlate: incoming.licensePlate || '—',
-//         factory: factory,
-//         quantity: incoming.quantity,
-//         time: itemTime,
-//         driver: incoming.driver || '—',
-//         material: incoming.material,
-//         supplier: incoming.supplier,
-//       }],
-//     });
-//   } else {
-//     // Существующая группа - суммируем
-//     const existing = acc[dateKey].get(groupKey)!;
-//     existing.factQuantity += incoming.quantity;
-//     existing.truckCount += 1;
-//     if (!existing.factories.includes(factory)) {
-//       existing.factories.push(factory);
-//     }
-//     existing.vehicles.push({
-//       licensePlate: incoming.licensePlate || '—',
-//       factory: factory,
-//       quantity: incoming.quantity,
-//       time: itemTime,
-//       driver: incoming.driver || '—',
-//       material: incoming.material,
-//       supplier: incoming.supplier,
-//     });
-//     // Обновляем время на самое позднее
-//     if (itemTime > existing.time) {
-//       existing.time = itemTime;
-//     }
-//   }
-  
-//   return acc;
-// }, {} as Record<string, Map<string, GroupedItem>>);
-
-
-
-
-    
-//     const incomingSortedDates = Object.keys(groupedIncoming).sort(compareDatesDesc);
-    
-//     return (
-//       <div className="compact-view">
-//         {incomingSortedDates.map(date => {
-//           const items = Array.from(groupedIncoming[date].values());
-//           const sortedItems = [...items].sort((a, b) => {
-//             const timeA = a.time.split(':').map(Number);
-//             const timeB = b.time.split(':').map(Number);
-//             const minutesA = timeA[0] * 60 + timeA[1];
-//             const minutesB = timeB[0] * 60 + timeB[1];
-//             return minutesB - minutesA;
-//           });
-//           const dayTotal = sortedItems.reduce((sum, item) => sum + item.factQuantity, 0);
-//           const isToday = isDateToday(date);
-          
-//           return (
-//             <div key={date} className="compact-date-group">
-//               <div className="compact-date-header">
-//                 <div className="date-wrapper">
-//                   <span className="date-text">{formatDateLabel(date)}</span>
-//                   {isToday && <span className="today-badge">СЕГОДНЯ</span>}
-//                 </div>
-//                 <span className="date-total">{dayTotal.toFixed(0)} т</span>
-//               </div>
-              
-//               <div className="compact-table">
-//                 <div className="compact-header">
-//                   <span className="col-time">Время</span>
-//                   <span className="col-fact">Вып</span>
-//                   <span className="col-material-header">Материал</span>
-//                   <span className="col-factory">Завод</span>
-//                   <span className="col-trucks">Машин</span>
-//                   <span className="col-expand"></span>
-//                 </div>
-                
-//                 {sortedItems.map((item, idx) => {
-//                   const itemKey = `${date}_${idx}`;
-//                   const isExpanded = expandedId === itemKey;
-//                   const isSpecial = isSpecialMaterial(item.material);
-                  
-//                   // Форматирование с учётом unit
-//                   const { value: factValue } = formatWithUnit(
-//                     item.factQuantity,
-//                     item.unit ?? null,
-//                     item.material
-//                   );
-//                   const displayFact = Math.round(factValue);
-                  
-//                   return (
-//                     <div key={idx}>
-//                       <div 
-//                         // className={`compact-row compact-clickable ${isSpecial ? 'special-row' : ''}`}
-//                         className="compact-row compact-clickable"
-//                         onClick={() => setExpandedId(isExpanded ? null : itemKey)}
-//                       >
-//                         <span className="col-time">{item.time}</span>
-//                         <span className="col-fact">{displayFact}</span>
-//                         <span className="col-material-header">{item.material}</span>
-//                         <span className="col-factory">
-//                           <div className="factory-badges-group">
-//                             {item.factories.map((factory, i) => (
-//                               <div key={i} className={getFactoryBadgeClass(factory)}>
-//                                 {factory}
-//                               </div>
-//                             ))}
-//                           </div>
-//                         </span>
-//                         <span className="col-trucks">{item.truckCount}</span>
-//                         <span className="col-expand">{isExpanded ? '▲' : '▼'}</span>
-//                       </div>
-                      
-//                       <AnimatePresence>
-//                         {isExpanded && (
-//                           <motion.div
-//                             className="compact-details"
-//                             initial={{ opacity: 0, height: 0 }}
-//                             animate={{ opacity: 1, height: 'auto' }}
-//                             exit={{ opacity: 0, height: 0 }}
-//                             transition={{ duration: 0.2 }}
-//                           >
-//                             <div className="detail-row">
-//                               <span className="detail-label">📦 Материал:</span>
-//                               <span className="detail-value">{item.material}</span>
-//                             </div>
-//                             <div className="detail-row">
-//                               <span className="detail-label">🏭 Завод:</span>
-//                               <span className="detail-value">{item.factories.join(', ')}</span>
-//                             </div>
-//                             <div className="detail-row">
-//                               <span className="detail-label">🚛 Машин:</span>
-//                               <span className="detail-value">{item.truckCount}</span>
-//                             </div>
-//                             {item.vehicles.length > 0 && (
-//                               <div className="vehicles-list">
-//                                 <div className="vehicles-title">🚛 Транспорт:</div>
-//                                 {item.vehicles.map((vehicle, i) => {
-//                                   const vehicleQty = vehicle.quantity;
-//                                   return (
-//                                     <div key={i} className="vehicle-item">
-//                                       <span className="vehicle-time">{vehicle.time}</span>
-//                                       <span className="vehicle-license">{vehicle.licensePlate}</span>
-//                                       <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
-//                                       <span className="vehicle-quantity">{Math.round(vehicleQty)} т</span>
-//                                     </div>
-//                                   );
-//                                 })}
-//                               </div>
-//                             )}
-//                           </motion.div>
-//                         )}
-//                       </AnimatePresence>
-//                     </div>
-//                   );
-//                 })}
-//               </div>
-//             </div>
-//           );
-//         })}
-//       </div>
-//     );
-//   }
-  
-//   // ============================================
-//   // РЕНДЕР ДЛЯ ТАС (ЛХ, ЛЮ)
-//   // ============================================
-  
-//   return (
-//     <div className="compact-view">
-//       {isShipment && allShipmentsForChart && allShipmentsForChart.length > 0 && (
-//         <ActivityChart 
-//           shipments={allShipmentsForChart} 
-//           selectedFactory={selectedFactory}
-//           mode={mode}
-//           materialType="asphalt"
-//         />
-//       )}
-      
-//       {sortedDates.map(date => {
-//         const items = Array.from(groupedByDateAndRequest[date].values());
-//         const dayTotal = items.reduce((sum, item) => sum + item.factQuantity, 0);
-        
-//         return (
-//           <div key={date} className="compact-date-group">
-//             <div className="compact-date-header">
-//               <div className="date-wrapper">
-//                 <span className="date-text">{formatDateLabel(date)}</span>
-//                 {isDateToday(date) && <span className="today-badge">СЕГОДНЯ</span>}
-//               </div>
-//               {isShipment && <span className="date-total">{dayTotal.toFixed(0)} т</span>}
-//             </div>
-            
-//             <div className="compact-table">
-//               {isShipment && (
-//                 <div className="compact-header">
-//                   <span className="col-time">Время</span>
-//                   <span className="col-fact">Вып</span>
-//                   <span className="col-slash"></span>
-//                   <span className="col-plan">Заяв (т)</span>
-//                   <span className="col-consignee">Грузополучатель</span>
-//                   <span className="col-factory">Завод</span>
-//                   <span className="col-trucks">Машин</span>
-//                   <span className="col-expand"></span>
-//                 </div>
-//               )}
-              
-//               {!isShipment && (
-//                 <div className="compact-header">
-//                   <span className="col-time">Время</span>
-//                   <span className="col-fact">Вып</span>
-//                   <span className="col-material-header">Материал</span>
-//                   <span className="col-factory">Завод</span>
-//                   <span className="col-trucks">Машин</span>
-//                   <span className="col-expand"></span>
-//                 </div>
-//               )}
-              
-//               {[...items].sort((a, b) => {
-//                 const timeA = a.time.split(':').map(Number);
-//                 const timeB = b.time.split(':').map(Number);
-//                 const minutesA = timeA[0] * 60 + timeA[1];
-//                 const minutesB = timeB[0] * 60 + timeB[1];
-//                 return minutesB - minutesA;
-//               }).map((item, idx) => {
-//                 const itemKey = `${date}_${idx}`;
-//                 const isExpanded = expandedId === itemKey;
-//                 const percentComplete = item.planQuantity > 0 ? (item.factQuantity / item.planQuantity) * 100 : 0;
-//                 const isWarning = percentComplete < 90;
-//                 const isSpecial = isSpecialMaterial(item.material);
-                
-//                 // Форматирование с учётом unit (для ТАС unit может быть NULL)
-//                 const { value: factValue } = formatWithUnit(
-//                   item.factQuantity,
-//                   item.unit ?? null,
-//                   item.material
-//                 );
-//                 const displayFact = Math.round(factValue);
-                
-//                 if (isShipment) {
-//                   return (
-//                     <div key={idx}>
-//                       <div 
-//                         // className={`compact-row compact-clickable ${isSpecial ? 'special-row' : ''}`}
-//                         className="compact-row compact-clickable"
-//                         onClick={() => setExpandedId(isExpanded ? null : itemKey)}
-//                       >
-//                         <span className="col-time">{item.time}</span>
-//                         <span className={`col-fact ${isWarning ? 'warning' : ''}`}>
-//                           {displayFact}
-//                         </span>
-//                         <span className="col-slash">/</span>
-//                         <span className="col-plan">
-//                           {item.planQuantity > 0 ? (
-//                             <span style={{ whiteSpace: 'nowrap' }}>
-//                               {Math.round(item.planQuantity)}
-//                               {item.closed ? (
-//                                 <span className="closed-lock"> 🔒</span>
-//                               ) : (
-//                                 hasTodayShipments(allShipments, item.requestNumber) && percentComplete < 90 && (
-//                                   <span className="active-dot" title="Идут отгрузки"></span>
-//                                 )
-//                               )}
-//                             </span>
-//                           ) : '—'}
-//                         </span>
-//                         <span className="col-consignee">
-//                           {item.consignee}
-//                           {isSpecial && <span className="special-badge">ИНЕРТНЫЕ</span>}
-//                         </span>
-//                         <span className="col-factory">
-//                           <div className="factory-badges-group">
-//                             {item.factories.map((factory, i) => (
-//                               <div key={i} className={getFactoryBadgeClass(factory)}>
-//                                 {factory}
-//                               </div>
-//                             ))}
-//                           </div>
-//                         </span>
-//                         <span className="col-trucks">{item.truckCount}</span>
-//                         <span className="col-expand">{isExpanded ? '▲' : '▼'}</span>
-//                       </div>
-                      
-//                       <AnimatePresence>
-//                         {isExpanded && (
-//                           <motion.div
-//                             className="compact-details"
-//                             initial={{ opacity: 0, height: 0 }}
-//                             animate={{ opacity: 1, height: 'auto' }}
-//                             exit={{ opacity: 0, height: 0 }}
-//                             transition={{ duration: 0.2 }}
-//                           >
-//                             <div className="detail-row">
-//                               <span className="detail-label">📦 Материал:</span>
-//                               <span className="detail-value">{item.material}</span>
-//                             </div>
-//                             <div className="detail-row">
-//                               <span className="detail-label">🏭 Завод:</span>
-//                               <span className="detail-value">{item.factories.join(', ')}</span>
-//                             </div>
-//                             <div className="detail-row">
-//                               <span className="detail-label">🚛 Машин:</span>
-//                               <span className="detail-value">{item.truckCount}</span>
-//                             </div>
-//                             {item.vehicles.length > 0 && (
-//                               <div className="vehicles-list">
-//                                 <div className="vehicles-title">🚛 Транспорт:</div>
-//                                 {item.vehicles.map((vehicle, i) => {
-//                                   const vehicleQty = vehicle.quantity;
-//                                   // if (isSpecial) {
-//                                   //   vehicleQty = vehicleQty / 1000;
-//                                   // }
-//                                   return (
-//                                     <div key={i} className="vehicle-item">
-//                                       <span className="vehicle-time">{vehicle.time}</span>
-//                                       <span className="vehicle-license">{vehicle.licensePlate}</span>
-//                                       <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
-//                                       <span className="vehicle-quantity">{Math.round(vehicleQty)} т</span>
-//                                     </div>
-//                                   );
-//                                 })}
-//                               </div>
-//                             )}
-//                           </motion.div>
-//                         )}
-//                       </AnimatePresence>
-//                     </div>
-//                   );
-//                 }
-                
-//                 // Поступления
-//                 return (
-//                   <div key={idx}>
-//                     <div 
-//                       // className={`compact-row compact-clickable ${isSpecial ? 'special-row' : ''}`}
-//                       className="compact-row compact-clickable"
-//                       onClick={() => setExpandedId(isExpanded ? null : itemKey)}
-//                     >
-//                       <span className="col-time">{item.time}</span>
-//                       <span className="col-fact">{displayFact}</span>
-//                       <span className="col-material-header">{item.material?.substring(0, 20)}</span>
-//                       <span className="col-factory">
-//                         <div className="factory-badges-group">
-//                           {item.factories.map((factory, i) => (
-//                             <div key={i} className={getFactoryBadgeClass(factory)}>
-//                               {factory}
-//                             </div>
-//                           ))}
-//                         </div>
-//                       </span>
-//                       <span className="col-trucks">{item.truckCount}</span>
-//                       <span className="col-expand">{isExpanded ? '▲' : '▼'}</span>
-//                     </div>
-                    
-//                     <AnimatePresence>
-//                       {isExpanded && (
-//                         <motion.div
-//                           className="compact-details"
-//                           initial={{ opacity: 0, height: 0 }}
-//                           animate={{ opacity: 1, height: 'auto' }}
-//                           exit={{ opacity: 0, height: 0 }}
-//                           transition={{ duration: 0.2 }}
-//                         >
-//                           <div className="detail-row">
-//                             <span className="detail-label">📦 Поставщик:</span>
-//                             <span className="detail-value">{item.consignee}</span>
-//                           </div>
-//                           <div className="detail-row">
-//                             <span className="detail-label">🏭 Завод:</span>
-//                             <span className="detail-value">{item.factories.join(', ')}</span>
-//                           </div>
-//                           <div className="detail-row">
-//                             <span className="detail-label">🚛 Машин:</span>
-//                             <span className="detail-value">{item.truckCount}</span>
-//                           </div>
-//                           {item.vehicles.length > 0 && (
-//                             <div className="vehicles-list">
-//                               <div className="vehicles-title">🚛 Транспорт:</div>
-//                               {item.vehicles.map((vehicle, i) => {
-//                                 const vehicleQty = vehicle.quantity;
-//                                 // if (isSpecial) {
-//                                 //   vehicleQty = vehicleQty / 1000;
-//                                 // }
-//                                 return (
-//                                   <div key={i} className="vehicle-item">
-//                                     <span className="vehicle-time">{vehicle.time}</span>
-//                                     <span className="vehicle-license">{vehicle.licensePlate}</span>
-//                                     <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
-//                                     <span className="vehicle-quantity">{Math.round(vehicleQty)} т</span>
-//                                   </div>
-//                                 );
-//                               })}
-//                             </div>
-//                           )}
-//                         </motion.div>
-//                       )}
-//                     </AnimatePresence>
-//                   </div>
-//                 );
-//               })}
-//             </div>
-//           </div>
-//         );
-//       })}
-//     </div>
-//   );
-// }
-
-
 
 
