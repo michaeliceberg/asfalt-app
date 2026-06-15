@@ -1,6 +1,8 @@
+// app/components/ModeSwitch.tsx
 'use client';
 
 import { motion } from 'framer-motion';
+import { useEffect, useState } from 'react';
 
 interface ModeSwitchProps {
   mode: 'tas' | 'iceberg';
@@ -38,8 +40,54 @@ const getSyncBadgeStyle = (syncTime: string | null | undefined): { text: string;
 };
 
 export default function ModeSwitch({ mode, onToggle, tasSyncTime, icebergSyncTime }: ModeSwitchProps) {
-  const tasSync = getSyncBadgeStyle(tasSyncTime);
-  const icebergSync = getSyncBadgeStyle(icebergSyncTime);
+  const [currentIcebergTime, setCurrentIcebergTime] = useState(icebergSyncTime);
+  const [currentTasTime, setCurrentTasTime] = useState(tasSyncTime);
+
+  // Автообновление времени для Айсберг каждые 10 секунд
+  useEffect(() => {
+    const fetchIcebergTime = async () => {
+      try {
+        const response = await fetch('/api/last-import-info');
+        const data = await response.json();
+        if (data.lastImport) {
+          setCurrentIcebergTime(data.lastImport);
+        }
+      } catch (err) {
+        console.error('Failed to fetch iceberg sync time:', err);
+      }
+    };
+
+    // Обновляем сразу при монтировании
+    fetchIcebergTime();
+
+    // И каждые 10 секунд
+    const interval = setInterval(fetchIcebergTime, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Автообновление для ТАС (если нужно)
+  useEffect(() => {
+    const fetchTasTime = async () => {
+      try {
+        const response = await fetch('/api/cron-info');
+        const data = await response.json();
+        if (data.lastSync) {
+          setCurrentTasTime(data.lastSync);
+        }
+      } catch (err) {
+        console.error('Failed to fetch TAS sync time:', err);
+      }
+    };
+
+    fetchTasTime();
+    const interval = setInterval(fetchTasTime, 10000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const tasSync = getSyncBadgeStyle(currentTasTime);
+  const icebergSync = getSyncBadgeStyle(currentIcebergTime);
 
   const handleToggle = () => {
     onToggle();
@@ -98,6 +146,8 @@ export default function ModeSwitch({ mode, onToggle, tasSyncTime, icebergSyncTim
 
 
 
+
+
 // 'use client';
 
 // import { motion } from 'framer-motion';
@@ -131,9 +181,9 @@ export default function ModeSwitch({ mode, onToggle, tasSyncTime, icebergSyncTim
 //   const diffMinutes = (now.getTime() - syncDate.getTime()) / (1000 * 60);
   
 //   if (diffMinutes < 25) {
-//     return { text: formatSyncShort(syncTime), color: '#155724', bgColor: '#d4edda' }; // зелёный
+//     return { text: formatSyncShort(syncTime), color: '#155724', bgColor: '#d4edda' };
 //   } else {
-//     return { text: formatSyncShort(syncTime), color: '#721c24', bgColor: '#f8d7da' }; // красный
+//     return { text: formatSyncShort(syncTime), color: '#721c24', bgColor: '#f8d7da' };
 //   }
 // };
 
@@ -160,8 +210,10 @@ export default function ModeSwitch({ mode, onToggle, tasSyncTime, icebergSyncTim
 //           className={`mode-option ${mode === 'tas' ? 'active' : ''}`}
 //           onClick={handleToggle}
 //         >
-//           <span className="mode-icon">☀️</span>
-//           <span className="mode-label">ТАС</span>
+//           <div className="mode-option-top">
+//             <span className="mode-icon">☀️</span>
+//             <span className="mode-label">ТАС</span>
+//           </div>
 //           <span className="mode-location">Транс-Авто-Сервис</span>
 //           <span 
 //             className="mode-sync-badge"
@@ -176,8 +228,10 @@ export default function ModeSwitch({ mode, onToggle, tasSyncTime, icebergSyncTim
 //           className={`mode-option ${mode === 'iceberg' ? 'active' : ''}`}
 //           onClick={handleToggle}
 //         >
-//           <span className="mode-icon">🏔️</span>
-//           <span className="mode-label">Айсберг</span>
+//           <div className="mode-option-top">
+//             <span className="mode-icon">🏔️</span>
+//             <span className="mode-label">Айсберг</span>
+//           </div>
 //           <span className="mode-location">Щёлково • Сергиев Посад</span>
 //           <span 
 //             className="mode-sync-badge"
@@ -192,56 +246,3 @@ export default function ModeSwitch({ mode, onToggle, tasSyncTime, icebergSyncTim
 // }
 
 
-
-
-
-
-
-
-// 'use client';
-
-// import { motion } from 'framer-motion';
-
-// interface ModeSwitchProps {
-//   mode: 'tas' | 'iceberg';
-//   onToggle: () => void;
-// }
-
-// export default function ModeSwitch({ mode, onToggle }: ModeSwitchProps) {
-//   const handleToggle = () => {
-//     onToggle();
-//   };
-
-//   return (
-//     <div className="mode-switch-wrapper">
-//       <div className="mode-switch-container">
-//         {/* Анимированный бегунок - движется слева направо и обратно */}
-//         <motion.div
-//           className="mode-switch-slider"
-//           animate={{ x: mode === 'tas' ? 0 : '100%' }}
-//           transition={{ type: 'spring', stiffness: 500, damping: 35 }}
-//         />
-        
-//         {/* Кнопка ТАС */}
-//         <button
-//           className={`mode-option ${mode === 'tas' ? 'active' : ''}`}
-//           onClick={handleToggle}
-//         >
-//           <span className="mode-icon">☀️</span>
-//           <span className="mode-label">ТАС</span>
-//           <span className="mode-location">Транс-Авто-Сервис</span>
-//         </button>
-        
-//         {/* Кнопка Айсберг */}
-//         <button
-//           className={`mode-option ${mode === 'iceberg' ? 'active' : ''}`}
-//           onClick={handleToggle}
-//         >
-//           <span className="mode-icon">🏔️</span>
-//           <span className="mode-label">Айсберг</span>
-//           <span className="mode-location">Щёлково • Сергиев Посад</span>
-//         </button>
-//       </div>
-//     </div>
-//   );
-// }
