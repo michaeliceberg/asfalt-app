@@ -5995,3 +5995,34 @@ body.iceberg-mode .pull-to-refresh-indicator {
     padding: 1px 6px;
   }
 }
+
+
+
+
+
+
+
+
+/* Для ТАС (светлая тема) */
+.compact-row.completed-row {
+  /* background: #98fb98 !important; */
+  background: #b7e1cd !important;
+  border-left: 3px solid #6a9a6a !important;
+  opacity: 1 !important;
+}
+
+.compact-row.completed-row:hover {
+  background: #88ea88 !important;
+}
+
+/* Для Айсберг (тёмная тема) */
+body.iceberg-mode .compact-row.completed-row {
+  /* background: #2a4a2a !important; */
+  background: #b7e1cd !important;
+  border-left: 3px solid #6a9a6a !important;
+  opacity: 1 !important;
+}
+
+body.iceberg-mode .compact-row.completed-row:hover {
+  background: #b7d7a7 !important;
+}
