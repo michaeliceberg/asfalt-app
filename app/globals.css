@@ -324,7 +324,9 @@ body {
 
 /* Особый цвет для количества */
 .weight-value {
-  color: #28a745;
+  /* color: #28a745; */
+  color: #186429;
+
   font-weight: 700;
 }
 
@@ -716,7 +718,9 @@ body {
 }
 
 .stat-value.highlight {
-  color: #28a745;
+  /* color: #28a745; */
+  color: #186429;
+  
   font-size: 20px;
 }
 
@@ -934,7 +938,9 @@ body {
 }
 
 .summary-card.completed-card {
-  border-left: 4px solid #28a745;
+  /* border-left: 4px solid #28a745; */
+  border-left: 4px solid #186429;
+  
   background: linear-gradient(135deg, #ffffff 0%, #f0fff4 100%);
 }
 
@@ -992,7 +998,8 @@ body {
 }
 
 .fact {
-  color: #28a745;
+  /* color: #28a745; */
+  color: #186429;
   font-weight: 600;
 }
 
@@ -1005,7 +1012,8 @@ body {
 }
 
 .remaining-positive {
-  color: #28a745;
+  /* color: #28a745; */
+  color: #186429;
 }
 
 .remaining-zero {
@@ -1422,7 +1430,7 @@ body {
 .compact-row .col-fact {
   font-weight: 800;
   font-size: 13px;
-  color: #28a745;
+  color: #186429;
 }
 .compact-row .col-plan {
   font-weight: 700;
@@ -1910,7 +1918,7 @@ body {
 .compact-row .col-fact {
   font-weight: 800;
   font-size: 13px;
-  color: #28a745;
+  color: #186429;
 }
 
 .compact-row .col-fact.warning {
@@ -5082,7 +5090,9 @@ body.iceberg-mode .percent-fill {
 
 /* Цифры Вып - стальной зелёный (строгий) */
 body.iceberg-mode .compact-row .col-fact {
-  color: #6a9e7a;
+  /* color: #6a9e7a; */
+  color: #186429;
+  
 }
 
 /* Цифры Заяв - приглушённо-серые */
