@@ -1,3 +1,6 @@
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+
 // app/api/cron-shipments/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
