@@ -1,3 +1,5 @@
+// app/components/CompactView.tsx
+
 'use client';
 
 import { IncomingItem, ShipmentItem } from '@/app/page';

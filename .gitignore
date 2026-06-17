@@ -96,3 +96,5 @@ next-env.d.ts
 # # typescript
 # *.tsbuildinfo
 # next-env.d.ts
+*.tar.gz
+asfalt-app-build.tar.gz
