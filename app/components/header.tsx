@@ -85,7 +85,8 @@ export default function Header({
             🚪 Выйти
           </button>
         )}
-        {onSendPlan && (
+	
+	{/* {onSendPlan && (
           <button
             className="send-plan-btn"
             onClick={onSendPlan}
@@ -93,7 +94,8 @@ export default function Header({
           >
             📧 Отправить план
           </button>
-        )}
+        )} */}
+
         <motion.button
           className={`refresh-btn ${refreshing ? 'refreshing' : ''}`}
           onClick={onRefresh}

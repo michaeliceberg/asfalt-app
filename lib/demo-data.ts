@@ -105,6 +105,7 @@ function convertShipment(raw: RawShipmentItem): ShipmentItem {
     licensePlate: raw.ГосНомер ?? null,
     clientRequestNumber: raw.ЗаявкаНаОтгрузкуНомер ?? null,
     clientRequestDate: raw.ЗаявкаНаОтгрузкуДата ?? null,
+    destinationPoint: null, // ✅ ДОБАВЛЯЕМ
     createdAt: Date.now(),
   };
 }
@@ -124,6 +125,7 @@ function convertRequest(raw: RawRequestItem): OutgoingRequest {
     clientRequestDate: null,
     closed: raw.Закрыта ?? false,
     delivery_date: raw.ДатаОтгрузки ?? null,
+    destinationPoint: null, // ✅ ДОБАВЛЯЕМ
     createdAt: Date.now(),
   };
 }
