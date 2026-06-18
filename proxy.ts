@@ -6,14 +6,6 @@ import { jwtVerify } from 'jose';
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key');
 
 export async function proxy(request: NextRequest) {
-
-  console.log('🔵 🔵 🔵 PROXY START:', request.nextUrl.pathname);
-  
-  if (request.nextUrl.pathname === '/api/last-import-update') {
-    console.log('🔵 🔵 🔵 LAST-IMPORT-UPDATE MATCHED! bypassing auth');
-    return NextResponse.next();
-  }
-
   console.log('🔵 PATH:', request.nextUrl.pathname);
   
   // Публичные пути
@@ -33,7 +25,7 @@ export async function proxy(request: NextRequest) {
     '/api/combined-requests',
     '/api/outgoing-requests',
     '/api/last-import-info',
-    '/api/last-import-update',
+    '/api/last-import-update', // ✅ ДОБАВЛЯЕМ
     '/api/cron-info',
     
     // API для синхронизации (крон)

@@ -82,6 +82,7 @@ export async function POST(request: Request) {
                     processed++;
                 }
             }
+            
         } else if (type === 'incoming') {
             for (const record of data) {
                 if (!record.number) continue;
