@@ -6073,3 +6073,119 @@ body.iceberg-mode .compact-row.completed-row:hover {
 .ymaps-2-1-79-placemark-content {
   color: #2d3748 !important;
 }
+
+
+
+
+
+
+
+/* app/globals.css */
+
+.header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.logo-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.logo-icon .factory-emoji {
+  font-size: 28px;
+}
+
+.logo-text h1 {
+  font-size: 18px;
+  margin: 0;
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+.logo-subtitle {
+  font-size: 11px;
+  color: #8888aa;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.header-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+/* Кнопки в шапке */
+.header-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.header-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.header-btn.active {
+  background: #ffd93d;
+  color: #1a1a2e;
+}
+
+.header-btn.active:hover {
+  background: #f5c900;
+}
+
+.header-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Для мобильных устройств */
+@media (max-width: 600px) {
+  .header-top {
+    padding: 6px 10px;
+  }
+
+  .logo-text h1 {
+    font-size: 15px;
+  }
+
+  .logo-subtitle {
+    font-size: 10px;
+  }
+
+  .header-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .header-btn svg {
+    width: 18px;
+    height: 18px;
+  }
+
+  .logo-icon .factory-emoji {
+    font-size: 22px;
+  }
+}

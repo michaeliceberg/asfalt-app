@@ -1035,7 +1035,7 @@ return (
         <Header 
           refreshing={refreshing} 
           onRefresh={handleRefresh}
-          onSendPlan={sendPlan}
+          // onSendPlan={sendPlan}
         />
         
         {/* <ModeSwitch mode={mode} onToggle={toggleMode} /> */}
