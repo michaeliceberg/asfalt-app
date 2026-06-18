@@ -13,7 +13,7 @@ import { eq } from 'drizzle-orm';
 // ПОДКЛЮЧЕНИЕ К ДЕМО-БД
 // ============================================
 
-const sqlite = new Database('data/demo.db');
+const sqlite = new Database('data/sqlite.db');
 const db = drizzle(sqlite, { schema: { incomingMaterials, shipments, outgoingRequests } });
 
 // ============================================

@@ -6036,3 +6036,40 @@ body.iceberg-mode .compact-row.completed-row {
 body.iceberg-mode .compact-row.completed-row:hover {
   background: #b7d7a7 !important;
 }
+
+
+
+
+
+
+
+
+/* Демо-бейдж */
+.demo-badge {
+  display: inline-block;
+  background: #ff9800;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 20px;
+  margin-left: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+
+
+
+
+
+
+/* globals.css */
+.ymaps-2-1-79-balloon__content,
+.ymaps-2-1-79-balloon__text {
+  color: #2d3748 !important;
+}
+
+.ymaps-2-1-79-placemark-content {
+  color: #2d3748 !important;
+}

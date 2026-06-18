@@ -76,6 +76,7 @@ export async function POST(request: Request) {
                         licensePlate: record.licensePlate || null,
                         clientRequestNumber: record.clientRequestNumber || null,
                         clientRequestDate: record.date || null,
+                        destinationPoint: record.ПунктНазначения || null,
                         createdAt: Date.now(),
                     }).where(eq(shipments.number, record.number));
                     processed++;

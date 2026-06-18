@@ -528,3 +528,32 @@ export function formatFullDateTime(dateString: string): string {
   
   return `${day}.${month}.${year} ${hours}:${minutes}`;
 }
+
+
+
+
+
+// lib/utils.ts
+
+/**
+ * Парсит строку "ПунктНазначения" вида:
+ * "а/д Аладьино-Воскресенки-Труфаново км 0,000 - км 6,664 54.808136, 38.214683"
+ * Возвращает { lat: number; lng: number; address: string } или null
+ */
+export function parseDestinationPoint(destinationPoint: string | null): {
+  lat: number;
+  lng: number;
+  address: string;
+} | null {
+  if (!destinationPoint) return null;
+  
+  // Ищем координаты в конце строки
+  const coordMatch = destinationPoint.match(/(\d+\.\d+),\s*(\d+\.\d+)\s*$/);
+  if (!coordMatch) return null;
+  
+  const lat = parseFloat(coordMatch[1]);
+  const lng = parseFloat(coordMatch[2]);
+  const address = destinationPoint.replace(/\s*\d+\.\d+,\s*\d+\.\d+\s*$/, '').trim();
+  
+  return { lat, lng, address };
+}

@@ -33,6 +33,12 @@ interface RequestItem {
   clientRequestNumber: string | null;
 }
 
+// interface ShipmentItem {
+//   date: string;
+//   division: string;
+//   clientRequestNumber: string | null;
+// }
+
 
 interface ApiOutgoingRequest {
   id: number;
@@ -64,6 +70,7 @@ export interface OutgoingRequest {
   createdAt: number;
   closed: boolean | null;
   delivery_date: string | null;
+  destinationPoint: string | null; // ✅ ДОБАВИТЬ
 }
 
 export interface IncomingItem {
@@ -100,6 +107,7 @@ export interface ShipmentItem {
   ЗаявкаНаОтгрузкуДата?: string;
   clientRequestNumber: string | null;
   clientRequestDate: string | null;
+  destinationPoint: string | null;
 }
 
 interface GroupedRecord {
@@ -289,6 +297,79 @@ const availableFactories = mode === 'tas'
 
   // Функция переключения режима
   
+  
+  
+  
+  // const toggleMode = () => {
+  //   const newMode = mode === 'tas' ? 'iceberg' : 'tas';
+    
+  //   setContentKey(prev => prev + 1);
+  //   setMode(newMode);
+  //   setActiveFactory('all');
+    
+  //   // Вибрация на мобильных устройствах
+  //   if (window.navigator && window.navigator.vibrate) {
+  //     window.navigator.vibrate(50);
+  //   }
+    
+  //   localStorage.setItem('appMode', newMode);
+  // };
+
+// const toggleMode = () => {
+//   const newMode = mode === 'tas' ? 'iceberg' : 'tas';
+  
+//   setContentKey(prev => prev + 1);
+//   setMode(newMode);
+//   setActiveFactory('all');
+  
+//   // Пересчитываем счётчики после смены режима
+//   setTimeout(() => {
+//     loadFutureRequestsCount();
+//     loadNewShipmentsCount();
+//     if (newMode === 'iceberg') {
+//       loadNewConcreteCount();
+//     } else {
+//       setNewConcreteCount(0);
+//     }
+//   }, 100);
+  
+//   if (window.navigator && window.navigator.vibrate) {
+//     window.navigator.vibrate(50);
+//   }
+  
+//   localStorage.setItem('appMode', newMode);
+// };
+
+
+
+
+
+// const toggleMode = () => {
+//   const newMode = mode === 'tas' ? 'iceberg' : 'tas';
+  
+//   // Сбрасываем счётчики сразу, чтобы не показывало старые цифры
+//   setNewShipmentsCount(0);
+//   setNewConcreteCount(0);
+//   setFutureRequestsCount(0);
+  
+//   setContentKey(prev => prev + 1);
+//   setMode(newMode);
+//   setActiveFactory('all');
+  
+//   // Загружаем новые данные
+//   setTimeout(() => {
+//     loadFutureRequestsCount();
+//     loadNewShipmentsCount();
+//     loadNewConcreteCount();
+//   }, 50);
+  
+//   if (window.navigator && window.navigator.vibrate) {
+//     window.navigator.vibrate(50);
+//   }
+  
+//   localStorage.setItem('appMode', newMode);
+// };
+
 
 
 const toggleMode = () => {
@@ -332,6 +413,8 @@ const toggleMode = () => {
   // ============================================
   // ЗАГРУЗКА ДАННЫХ
   // ============================================
+
+
 
 
 
@@ -1052,3 +1135,285 @@ return (
 
 
 
+
+
+
+// const loadNewConcreteCount = async () => {
+//   try {
+//     const [requestsResponse, shipmentsResponse] = await Promise.all([
+//       fetch('/api/outgoing-requests'),
+//       fetch('/api/shipments')
+//     ]);
+    
+//     const allRequests = await requestsResponse.json();
+//     const allShipments = await shipmentsResponse.json();
+    
+//     const activeCount = countActiveRequests(
+//       allRequests,
+//       allShipments,
+//       mode,
+//       'concrete'
+//     );
+    
+//     setNewConcreteCount(activeCount);
+//   } catch (err) {
+//     console.error(err);
+//   }
+// };
+
+
+
+// const loadNewConcreteCount = async () => {
+//   try {
+//     const response = await fetch('/api/shipments');
+//     let allShipments: ShipmentItem[] = await response.json();
+    
+//     // Только бетон
+//     allShipments = allShipments.filter(s => isConcreteMaterial(s.material));
+    
+//     // Только заводы текущего режима (Айсберг)
+//     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
+//     allShipments = allShipments.filter(s => validFactories.includes(s.division));
+    
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+    
+//     const todayConcrete = allShipments.filter(shipment => {
+//       const shipmentDate = parseRussianDate(shipment.date);
+//       shipmentDate.setHours(0, 0, 0, 0);
+//       return shipmentDate.getTime() === today.getTime();
+//     });
+    
+//     setNewConcreteCount(todayConcrete.length);
+//   } catch (err) {
+//     console.error(err);
+//   }
+// };
+
+// const loadNewConcreteCount = async () => {
+//   try {
+//     const [requestsResponse, shipmentsResponse] = await Promise.all([
+//       fetch('/api/outgoing-requests'),
+//       fetch('/api/shipments')
+//     ]);
+    
+//     let allRequests: OutgoingRequest[] = await requestsResponse.json();
+//     let allShipments: ShipmentItem[] = await shipmentsResponse.json();
+    
+//     // Только бетон
+//     allShipments = allShipments.filter((s: ShipmentItem) => isConcreteMaterial(s.material));
+//     allRequests = allRequests.filter((r: OutgoingRequest) => isConcreteMaterial(r.material));
+    
+//     // Только заводы текущего режима (Айсберг)
+//     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
+//     allShipments = allShipments.filter((s: ShipmentItem) => validFactories.includes(s.division));
+//     allRequests = allRequests.filter((r: OutgoingRequest) => validFactories.includes(r.division));
+    
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+    
+//     // Группируем отгрузки по заявкам
+//     const shipmentsByRequest = new Map<string, number>();
+//     for (const shipment of allShipments) {
+//       const shipmentDate = parseRussianDate(shipment.date);
+//       shipmentDate.setHours(0, 0, 0, 0);
+      
+//       // Только сегодняшние отгрузки
+//       if (shipmentDate.getTime() !== today.getTime()) continue;
+      
+//       const requestNumber = shipment.clientRequestNumber;
+//       if (requestNumber) {
+//         const current = shipmentsByRequest.get(requestNumber) || 0;
+//         shipmentsByRequest.set(requestNumber, current + shipment.quantity);
+//       }
+//     }
+    
+//     // Создаём карту планов
+//     const planMap = new Map<string, number>();
+//     for (const req of allRequests) {
+//       planMap.set(req.number, req.quantity);
+//     }
+    
+//     // Считаем незавершённые заявки
+//     let activeCount = 0;
+//     for (const [requestNumber, factQuantity] of shipmentsByRequest) {
+//       const planQuantity = planMap.get(requestNumber) || 0;
+//       if (planQuantity > 0) {
+//         const percent = (factQuantity / planQuantity) * 100;
+//         if (percent > 0 && percent < 90) {  // незавершённая
+//           activeCount++;
+//         }
+//       }
+//     }
+    
+//     setNewConcreteCount(activeCount);
+//   } catch (err) {
+//     console.error('Error loading concrete count:', err);
+//   }
+// };
+
+// const loadNewConcreteCount = async () => {
+//   try {
+//     const [requestsResponse, shipmentsResponse] = await Promise.all([
+//       fetch('/api/outgoing-requests'),
+//       fetch('/api/shipments')
+//     ]);
+    
+//     let allRequests: OutgoingRequest[] = await requestsResponse.json();
+//     let allShipments: ShipmentItem[] = await shipmentsResponse.json();
+    
+//     // Только бетон
+//     allShipments = allShipments.filter((s: ShipmentItem) => isConcreteMaterial(s.material));
+//     allRequests = allRequests.filter((r: OutgoingRequest) => isConcreteMaterial(r.material));
+    
+//     // Только заводы текущего режима (Айсберг)
+//     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
+//     allShipments = allShipments.filter((s: ShipmentItem) => validFactories.includes(s.division));
+//     allRequests = allRequests.filter((r: OutgoingRequest) => validFactories.includes(r.division));
+    
+//     // Сегодня и вчера
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+    
+//     const yesterday = new Date(today);
+//     yesterday.setDate(yesterday.getDate() - 1);
+    
+//     // Группируем отгрузки по заявкам (только сегодня и вчера)
+//     const shipmentsByRequest = new Map<string, number>();
+//     for (const shipment of allShipments) {
+//       const shipmentDate = parseRussianDate(shipment.date);
+//       shipmentDate.setHours(0, 0, 0, 0);
+      
+//       // Проверяем: сегодня ИЛИ вчера
+//       const isToday = shipmentDate.getTime() === today.getTime();
+//       const isYesterday = shipmentDate.getTime() === yesterday.getTime();
+      
+//       if (!isToday && !isYesterday) continue;
+      
+//       const requestNumber = shipment.clientRequestNumber;
+//       if (requestNumber) {
+//         const current = shipmentsByRequest.get(requestNumber) || 0;
+//         shipmentsByRequest.set(requestNumber, current + shipment.quantity);
+//       }
+//     }
+    
+//     // Карта планов
+//     const planMap = new Map<string, number>();
+//     for (const req of allRequests) {
+//       planMap.set(req.number, req.quantity);
+//     }
+    
+//     // Считаем незавершённые заявки (факт > 0 и факт < 90% от плана)
+//     let activeCount = 0;
+//     for (const [requestNumber, factQuantity] of shipmentsByRequest) {
+//       const planQuantity = planMap.get(requestNumber) || 0;
+//       if (planQuantity > 0) {
+//         const percent = (factQuantity / planQuantity) * 100;
+//         if (percent > 0 && percent < 90) {
+//           activeCount++;
+//         }
+//       }
+//     }
+    
+//     setNewConcreteCount(activeCount);
+//   } catch (err) {
+//     console.error('Error loading concrete count:', err);
+//   }
+// };
+
+
+
+
+
+
+
+// const loadFutureRequestsCount = async () => {
+//   try {
+//     const [requestsResponse, shipmentsResponse] = await Promise.all([
+//       fetch('/api/outgoing-requests'),
+//       fetch('/api/shipments')
+//     ]);
+    
+//     let allRequests: ApiRequest[] = await requestsResponse.json();
+//     let allShipments: ShipmentItem[] = await shipmentsResponse.json();
+    
+//     // Фильтруем по заводам текущего режима
+//     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
+//     allRequests = allRequests.filter((r) => validFactories.includes(r.division));
+//     allShipments = allShipments.filter((s) => validFactories.includes(s.division));
+    
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+    
+//     const activeTodayRequests = new Set();
+//     for (const shipment of allShipments) {
+//       const shipmentDate = parseRussianDate(shipment.date);
+//       shipmentDate.setHours(0, 0, 0, 0);
+//       if (shipmentDate.getTime() === today.getTime() && shipment.clientRequestNumber) {
+//         activeTodayRequests.add(shipment.clientRequestNumber);
+//       }
+//     }
+    
+//     const future = allRequests.filter((req) => {
+//       if (req.closed) return false;
+//       if (!req.delivery_date) return false;
+//       const deliveryDate = parseRussianDate(req.delivery_date);
+//       deliveryDate.setHours(0, 0, 0, 0);
+//       return deliveryDate >= today && !activeTodayRequests.has(req.number);
+//     });
+    
+//     setFutureRequestsCount(future.length);
+//   } catch (err) {
+//     console.error(err);
+//   }
+// };
+
+
+// const loadFutureRequestsCount = async () => {
+//   try {
+//     const [requestsResponse, shipmentsResponse] = await Promise.all([
+//       fetch('/api/outgoing-requests'),
+//       fetch('/api/shipments')
+//     ]);
+    
+//     let allRequests: ApiRequest[] = await requestsResponse.json();
+//     let allShipments: ShipmentItem[] = await shipmentsResponse.json();
+    
+//     // Фильтруем по заводам текущего режима
+//     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
+//     allRequests = allRequests.filter((r) => validFactories.includes(r.division));
+//     allShipments = allShipments.filter((s) => validFactories.includes(s.division));
+    
+//     const today = new Date();
+//     today.setHours(0, 0, 0, 0);
+    
+//     // Для Айсберга пока НЕТ логики "На будущее"
+//     if (mode === 'iceberg') {
+//       setFutureRequestsCount(0);
+//       return;
+//     }
+    
+//     // ========== ЛОГИКА ТОЛЬКО ДЛЯ ТАС ==========
+//     const activeTodayRequests = new Set();
+//     for (const shipment of allShipments) {
+//       const shipmentDate = parseRussianDate(shipment.date);
+//       shipmentDate.setHours(0, 0, 0, 0);
+//       if (shipmentDate.getTime() === today.getTime() && shipment.clientRequestNumber) {
+//         activeTodayRequests.add(shipment.clientRequestNumber);
+//       }
+//     }
+    
+//     const future = allRequests.filter((req) => {
+//       if (req.closed) return false;
+//       if (!req.delivery_date) return false;
+//       const deliveryDate = parseRussianDate(req.delivery_date);
+//       deliveryDate.setHours(0, 0, 0, 0);
+//       return deliveryDate >= today && !activeTodayRequests.has(req.number);
+//     });
+    
+//     setFutureRequestsCount(future.length);
+//   } catch (err) {
+//     console.error(err);
+//     setFutureRequestsCount(0);
+//   }
+// };

@@ -42,6 +42,7 @@ export const shipments = sqliteTable('shipments', {
   driver: text('driver'),
   licensePlate: text('license_plate'),
   clientRequestNumber: text('client_request_number'),
+  destinationPoint: text('destination_point'), // ПунктНазначения с координатами
   clientRequestDate: text('client_request_date'),
   createdAt: integer('created_at').notNull(),
 });
@@ -60,6 +61,7 @@ export const outgoingRequests = sqliteTable('outgoing_requests', {
   clientRequestNumber: text('client_request_number'),
   clientRequestDate: text('client_request_date'),
   closed: integer('closed', { mode: 'boolean' }).default(false),
+  destinationPoint: text('destination_point'), // ПунктНазначения с координатами
   delivery_date: text('delivery_date'),
   createdAt: integer('created_at').notNull(),
 });

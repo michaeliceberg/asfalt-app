@@ -25,16 +25,10 @@ interface ShipmentItem {
   Грузополучатель: string;
   ЗаявкаНаОтгрузкуНомер: string | null;
   ЗаявкаНаОтгрузкуДата: string | null;
+  ПунктНазначения?: string | null; // ✅ ДОБАВЛЯЕМ
 }
 
 export async function GET(request: Request) {
-  // УДАЛИТЕ ЭТОТ БЛОК (авторизация)
-  // const authHeader = request.headers.get('authorization');
-  // const cronSecret = process.env.CRON_SECRET;
-  // 
-  // if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-  //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  // }
 
   try {
     const UNF_BASE_URL = process.env.UNF_BASE_URL;
@@ -80,6 +74,7 @@ export async function GET(request: Request) {
           licensePlate: record.ГосНомер || null,
           clientRequestNumber: record.ЗаявкаНаОтгрузкуНомер || null,
           clientRequestDate: record.ЗаявкаНаОтгрузкуДата || null,
+          destinationPoint: record.ПунктНазначения || null,
           createdAt: Date.now(),
         });
         insertedCount++;

@@ -58,6 +58,7 @@ export async function GET(request: Request) {
           clientRequestDate: record.ДатаЗаявкиКлиента || null,
           closed: record.Закрыта === true,
           delivery_date: record.ДатаОтгрузки || null,
+          destinationPoint: record.ПунктНазначения || null,
           createdAt: Date.now(),
         });
         insertedCount++;
@@ -76,10 +77,23 @@ export async function GET(request: Request) {
       newRecords: insertedCount,
     });
     
-  } catch (error: any) {
+//   } catch (error: any) {
+//     console.error('Cron error:', error);
+//     return NextResponse.json(
+//       { error: 'Internal server error', details: error.message },
+//       { status: 500 }
+//     );
+//   }
+// }
+} catch (error) {
+    // ← Убрали ": any"
     console.error('Cron error:', error);
+    
+    // Проверяем тип ошибки
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
     return NextResponse.json(
-      { error: 'Internal server error', details: error.message },
+      { error: 'Internal server error', details: errorMessage },
       { status: 500 }
     );
   }
