@@ -36,6 +36,7 @@ interface RouteData {
   destCoords: { lat: number; lng: number } | null;
   factoryCoords: { lat: number; lng: number } | null;
   lastShipmentDate?: string | null;
+  truckTimes?: Record<string, string>; // ✅ Добавляем
 }
 
 interface ApiResponse {
@@ -149,26 +150,92 @@ export async function GET() {
       console.warn('⚠️ Error fetching routes:', err);
     }
     
-    // 3. Добавляем lastShipmentDate к маршрутам
-    const routesWithDates: RouteData[] = routes.map((route) => {
-      // Находим все отгрузки для этой заявки
-      const shipmentsForRoute = allShipments.filter(
-        (s: Shipment) => s.clientRequestNumber === route.requestNumber
-      );
+
+
+
+
+
+
+
+
+
+
+    // // 3. Добавляем lastShipmentDate к маршрутам
+    // const routesWithDates: RouteData[] = routes.map((route) => {
+    //   // Находим все отгрузки для этой заявки
+    //   const shipmentsForRoute = allShipments.filter(
+    //     (s: Shipment) => s.clientRequestNumber === route.requestNumber
+    //   );
       
-      let lastShipmentDate: string | null = null;
+    //   let lastShipmentDate: string | null = null;
       
-      if (shipmentsForRoute.length > 0) {
-        const lastShipment = findLastShipment(shipmentsForRoute);
-        lastShipmentDate = lastShipment?.date || null;
-      }
+    //   if (shipmentsForRoute.length > 0) {
+    //     const lastShipment = findLastShipment(shipmentsForRoute);
+    //     lastShipmentDate = lastShipment?.date || null;
+    //   }
       
-      return {
-        ...route,
-        lastShipmentDate: lastShipmentDate,
-      };
-    });
+    //   return {
+    //     ...route,
+    //     lastShipmentDate: lastShipmentDate,
+    //   };
+    // });
     
+
+    
+
+
+
+    // В формировании routesWithDates добавьте информацию о машинах с временем отгрузки
+const routesWithDates: RouteData[] = routes.map((route) => {
+  // Находим все отгрузки для этой заявки
+  const shipmentsForRoute = allShipments.filter(
+    (s: Shipment) => s.clientRequestNumber === route.requestNumber
+  );
+  
+  // Создаём маппинг номеров машин -> время отгрузки
+  const truckTimes: Record<string, string> = {};
+  shipmentsForRoute.forEach((s: Shipment) => {
+    if (s.licensePlate) {
+      const normalizedPlate = s.licensePlate
+        .toUpperCase()
+        .replace(/\s/g, '')
+        .replace(/[^A-Z0-9]/g, '');
+      // Сохраняем время отгрузки (дата из 1С)
+      truckTimes[normalizedPlate] = s.date;
+    }
+  });
+  
+  let lastShipmentDate: string | null = null;
+  if (shipmentsForRoute.length > 0) {
+    // ✅ Исправляем: используем правильную типизацию без any
+    let latest = shipmentsForRoute[0];
+    for (let i = 1; i < shipmentsForRoute.length; i++) {
+      const current = shipmentsForRoute[i];
+      const currentDate = new Date(current.date);
+      const latestDate = new Date(latest.date);
+      if (currentDate > latestDate) {
+        latest = current;
+      }
+    }
+    lastShipmentDate = latest?.date || null;
+  }
+  
+  return {
+    ...route,
+    lastShipmentDate: lastShipmentDate,
+    truckTimes: truckTimes, // ✅ Добавляем время отгрузки для каждой машины
+  };
+});
+
+
+
+
+
+
+
+
+
+
     // console.log('🔵 Routes with dates:', routesWithDates.length);
     
     // 4. Формируем результат

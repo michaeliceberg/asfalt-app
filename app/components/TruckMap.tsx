@@ -3,7 +3,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getTruckType, getStatusColor } from '@/lib/truck-icons';
-import { getFactoryColor } from '@/lib/constants';
+import { FACTORIES, FACTORY_COLORS, FactoryCode, getFactoryColor } from '@/lib/constants';
 
 // ============================================
 // ТИПЫ
@@ -41,6 +41,7 @@ interface TruckMapProps {
   routes?: Route[];
   onTruckSelect?: (truck: Truck) => void;
   onMapReady?: (map: YandexMap) => void;
+  filterPlate?: string | null;
 }
 
 interface YandexMap {
@@ -74,48 +75,16 @@ interface YandexMaps {
   ready: (callback: () => void) => void;
 }
 
-// declare global {
-//   interface Window {
-//     ymaps: YandexMaps | undefined;
-//   }
-// }
-
-
 declare global {
   interface Window {
     ymaps: YandexMaps | undefined;
-    _routeTimePlacemark?: unknown; // ✅ ДОБАВЛЯЕМ
+    _routeTimePlacemark?: unknown;
   }
 }
+
 // ============================================
 // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 // ============================================
-
-
-
-// Добавьте функцию для расчёта времени
-const getRouteTime = async (
-  fromLat: number,
-  fromLng: number,
-  toLat: number,
-  toLng: number
-) => {
-  try {
-    const response = await fetch(
-      `/api/route-time?lat=${fromLat}&lng=${fromLng}&destLat=${toLat}&destLng=${toLng}`
-    );
-    const data = await response.json();
-    if (data.success) {
-      return data.data;
-    }
-    return null;
-  } catch (error) {
-    console.error('Error getting route time:', error);
-    return null;
-  }
-};
-
-
 
 function getStatusLabel(vel: number, lastUpdate: string | null): string {
   if (!lastUpdate) return '⚪ Нет данных';
@@ -223,7 +192,7 @@ function getTruckIcon(type: string, color: string): string {
 // ОСНОВНОЙ КОМПОНЕНТ
 // ============================================
 
-export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapReady }: TruckMapProps) {
+export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapReady, filterPlate }: TruckMapProps) {
   const [selectedTruck, setSelectedTruck] = useState<Truck | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -236,6 +205,180 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
   const isScriptLoadingRef = useRef(false);
   const initMapCalledRef = useRef(false);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // ============================================
+  // РАСЧЁТ ВРЕМЕНИ МАРШРУТА
+  // ============================================
+
+  const getRouteTime = async (
+    fromLat: number,
+    fromLng: number,
+    toLat: number,
+    toLng: number
+  ) => {
+    try {
+      const response = await fetch(
+        `/api/route-time?lat=${fromLat}&lng=${fromLng}&destLat=${toLat}&destLng=${toLng}`
+      );
+      const data = await response.json();
+      if (data.success) {
+        return data.data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error getting route time:', error);
+      return null;
+    }
+  };
+
+
+
+
+
+
+
+
+
+  // // ============================================
+  // // ОТРИСОВКА ЗАВОДОВ
+  // // ============================================
+
+  // const drawFactories = useCallback(() => {
+  //   if (!isMapReady || !mapRef.current || !window.ymaps) return;
+    
+  //   const map = mapRef.current;
+  //   const ymaps = window.ymaps;
+    
+  //   const factories = [
+  //     { lat: 54.961524, lng: 38.839336, name: 'ЛХ', color: '#166534' },
+  //     { lat: 55.702066, lng: 37.995442, name: 'ЛЮ', color: '#1d4ed8' },
+  //     { lat: 56.363355, lng: 38.175478, name: 'СП', color: '#ca8a04' },
+  //     { lat: 55.917957, lng: 38.027629, name: 'Щ', color: '#b91c1c' },
+  //   ];
+    
+  //   factories.forEach((factory) => {
+  //     const placemark = new ymaps.Placemark(
+  //       [factory.lat, factory.lng],
+  //       {
+  //         iconContent: `
+  //           <div style="
+  //             background: ${factory.color};
+  //             color: #fff;
+  //             padding: 4px 10px;
+  //             border-radius: 12px;
+  //             font-size: 11px;
+  //             font-weight: 700;
+  //             border: 2px solid #fff;
+  //             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  //             white-space: nowrap;
+  //           ">
+  //             🏭 ${factory.name}
+  //           </div>
+  //         `,
+  //       },
+  //       {
+  //         iconLayout: 'default#imageWithContent',
+  //         iconContentOffset: [0, -15],
+  //       }
+  //     );
+  //     map.geoObjects.add(placemark);
+  //   });
+  // }, [isMapReady]);
+
+  
+
+  
+  
+
+
+
+
+
+  
+
+
+  // app/components/TruckMap.tsx
+
+// ============================================
+// ОТРИСОВКА ЗАВОДОВ (без круга, только плашки)
+// ============================================
+
+const drawFactories = useCallback(() => {
+  if (!isMapReady || !mapRef.current || !window.ymaps) return;
+  
+  const map = mapRef.current;
+  const ymaps = window.ymaps;
+  
+  const factories = [
+    { 
+      lat: 54.961524, 
+      lng: 38.839336, 
+      color: '#166534', 
+      fullName: 'Завод Луховицы',
+    },
+    { 
+      lat: 55.702066, 
+      lng: 37.995442, 
+      color: '#1d4ed8', 
+      fullName: 'Завод Люберцы',
+    },
+    { 
+      lat: 56.363355, 
+      lng: 38.175478, 
+      color: '#ca8a04', 
+      fullName: 'Завод Сергиев Посад',
+    },
+    { 
+      lat: 55.917957, 
+      lng: 38.027629, 
+      color: '#b91c1c', 
+      fullName: 'Завод Щёлково',
+    },
+  ];
+  
+  factories.forEach((factory) => {
+    // Плашка с названием завода
+    const labelPlacemark = new ymaps.Placemark(
+      [factory.lat, factory.lng],
+      {
+        iconContent: `
+          <div style="
+            background: ${factory.color};
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 16px;
+            font-weight: 700;
+            border: 3px solid #fff;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            white-space: nowrap;
+            text-align: center;
+            letter-spacing: 0.5px;
+            text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+          ">
+            🏭 ${factory.fullName}
+          </div>
+        `,
+      },
+      {
+        iconLayout: 'default#imageWithContent',
+        iconContentOffset: [0, -20],
+      }
+    );
+    map.geoObjects.add(labelPlacemark);
+  });
+}, [isMapReady]);
+
+
+
+
+
+
+
+
+
+
 
   // ============================================
   // ОТРИСОВКА МАРШРУТОВ
@@ -274,6 +417,7 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
       console.log('🔵 Drawing route:', route.destination, 'color:', color);
       routesAdded++;
 
+      // Линия маршрута
       const routeLine = new ymaps.Polyline(
         [
           [route.factoryCoords.lat, route.factoryCoords.lng],
@@ -302,6 +446,49 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
       map.geoObjects.add(routeLine);
       routesRef.current[route.destination] = routeLine;
 
+      // 📍 ТОЧКА НАЗНАЧЕНИЯ
+      const destPlacemark = new ymaps.Placemark(
+        [route.destCoords.lat, route.destCoords.lng],
+        {
+          iconContent: `
+            <div style="
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 2px;
+            ">
+              <div style="
+                width: 16px;
+                height: 16px;
+                background: ${color};
+                border-radius: 50%;
+                border: 3px solid #fff;
+                box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+              "></div>
+              <div style="
+                background: rgba(0,0,0,0.8);
+                color: #fff;
+                padding: 2px 10px;
+                border-radius: 8px;
+                font-size: 11px;
+                font-weight: 600;
+                white-space: nowrap;
+                border: 1px solid ${color};
+              ">
+                🎯 ${route.destination.replace('ПК 25 ', '').replace('ПК 26 ', '').replace('АЙСБЕРГ ООО', 'АЙСБЕРГ')}
+              </div>
+            </div>
+          `,
+        },
+        {
+          iconLayout: 'default#imageWithContent',
+          iconContentOffset: [0, -25],
+        }
+      );
+
+      map.geoObjects.add(destPlacemark);
+
+      // 📍 ТОЧКА с количеством машин на середине маршрута
       const midLat = (route.factoryCoords.lat + route.destCoords.lat) / 2;
       const midLng = (route.factoryCoords.lng + route.destCoords.lng) / 2;
       
@@ -341,7 +528,10 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
 
     console.log('🔵 ✅ Routes added:', routesAdded, 'out of', routes.length);
 
-  }, [routes, isMapReady]);
+    // Рисуем заводы
+    drawFactories();
+
+  }, [routes, isMapReady, drawFactories]);
 
   // ============================================
   // ИНИЦИАЛИЗАЦИЯ КАРТЫ
@@ -487,14 +677,50 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
     const map = mapRef.current;
     const ymaps = window.ymaps;
 
+    // Удаляем старые маркеры
     Object.values(placemarksRef.current).forEach((placemark) => {
       map.geoObjects.remove(placemark);
     });
     placemarksRef.current = {};
 
+    // ✅ Фильтруем машины по номеру колонны (если задан filterPlate)
+    let filteredTrucks = trucks;
+    if (filterPlate) {
+      const normalizedFilter = filterPlate
+        .toUpperCase()
+        .replace(/\s/g, '')
+        .replace(/[^A-Z0-9]/g, '');
+      
+      // Находим маршрут, который содержит эту машину
+      const route = routes.find(r => 
+        r.licensePlates.some(p => {
+          const pName = p
+            .toUpperCase()
+            .replace(/\s/g, '')
+            .replace(/[^A-Z0-9]/g, '');
+          return pName === normalizedFilter;
+        })
+      );
+      
+      if (route) {
+        const plateSet = new Set(route.licensePlates.map(p => 
+          p.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '')
+        ));
+        filteredTrucks = trucks.filter(t => {
+          const tName = t.name
+            .toUpperCase()
+            .replace(/\s/g, '')
+            .replace(/[^A-Z0-9]/g, '');
+          return plateSet.has(tName);
+        });
+      }
+    }
+
+    console.log('🔵 Displaying', filteredTrucks.length, 'trucks (filtered from', trucks.length, ')');
+
     let trucksAdded = 0;
 
-    trucks.forEach((truck) => {
+    filteredTrucks.forEach((truck) => {
       if (!truck.position) return;
 
       const vel = truck.position.vel;
@@ -558,7 +784,7 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
 
     console.log('🔵 ✅ Added', trucksAdded, 'trucks to map');
 
-  }, [trucks, selectedTruck, isMapReady, onTruckSelect]);
+  }, [trucks, selectedTruck, isMapReady, onTruckSelect, filterPlate, routes]);
 
   // ============================================
   // ЭФФЕКТЫ ДЛЯ МАРШРУТОВ
@@ -588,282 +814,111 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
     }
   }, [isMapReady, routes, drawRoutes]);
 
-
-
-
-
   // ============================================
-// РАСЧЁТ ВРЕМЕНИ МАРШРУТА
-// ============================================
+  // ЦЕНТРИРОВАНИЕ НА ПЕРВОЙ МАШИНЕ КОЛОННЫ
+  // ============================================
 
-const getRouteTime = async (
-  fromLat: number,
-  fromLng: number,
-  toLat: number,
-  toLng: number
-) => {
-  try {
-    const response = await fetch(
-      `/api/route-time?lat=${fromLat}&lng=${fromLng}&destLat=${toLat}&destLng=${toLng}`
-    );
-    const data = await response.json();
-    if (data.success) {
-      return data.data;
-    }
-    return null;
-  } catch (error) {
-    console.error('Error getting route time:', error);
-    return null;
-  }
-};
-
-
-
-
-
-
-
-// app/components/TruckMap.tsx
-
-// ============================================
-// ЦЕНТРИРОВАНИЕ НА ПЕРВОЙ МАШИНЕ КОЛОННЫ
-// ============================================
-
-useEffect(() => {
-  if (!isMapReady || !mapRef.current || !routes || routes.length === 0) return;
-  
-  if (routes.length === 1) {
-    const route = routes[0];
+  useEffect(() => {
+    if (!isMapReady || !mapRef.current || !routes || routes.length === 0) return;
     
-    const firstPlate = route.licensePlates?.[0];
-    if (!firstPlate) return;
-    
-    const normalizedFirstPlate = firstPlate
-      .toUpperCase()
-      .replace(/\s/g, '')
-      .replace(/[^A-Z0-9]/g, '');
-    
-    const matchingTrucks = trucks.filter(t => {
-      const tName = t.name
+    if (routes.length === 1) {
+      const route = routes[0];
+      
+      const firstPlate = route.licensePlates?.[0];
+      if (!firstPlate) return;
+      
+      const normalizedFirstPlate = firstPlate
         .toUpperCase()
         .replace(/\s/g, '')
         .replace(/[^A-Z0-9]/g, '');
-      return tName === normalizedFirstPlate && t.position;
-    });
-    
-    matchingTrucks.sort((a, b) => {
-      const timeA = a.position?.time || 0;
-      const timeB = b.position?.time || 0;
-      return timeA - timeB;
-    });
-    
-    const firstTruck = matchingTrucks[0];
-    
-    // ✅ Проверяем, что у машины есть позиция
-    if (!firstTruck?.position) {
-      // ✅ Проверяем, что есть координаты назначения
-      if (route.destCoords) {
-        console.log('🔵 No truck position, centering on destination:', route.destination);
-        mapRef.current.setCenter([route.destCoords.lat, route.destCoords.lng], 12);
+      
+      const matchingTrucks = trucks.filter(t => {
+        const tName = t.name
+          .toUpperCase()
+          .replace(/\s/g, '')
+          .replace(/[^A-Z0-9]/g, '');
+        return tName === normalizedFirstPlate && t.position;
+      });
+      
+      matchingTrucks.sort((a, b) => {
+        const timeA = a.position?.time || 0;
+        const timeB = b.position?.time || 0;
+        return timeA - timeB;
+      });
+      
+      const firstTruck = matchingTrucks[0];
+      
+      if (!firstTruck?.position) {
+        if (route.destCoords) {
+          console.log('🔵 No truck position, centering on destination:', route.destination);
+          mapRef.current.setCenter([route.destCoords.lat, route.destCoords.lng], 12);
+        }
+        return;
       }
-      return;
-    }
 
-    // ✅ Проверяем, что есть координаты назначения
-    if (!route.destCoords) {
-      console.log('🔵 No destination coordinates');
-      return;
-    }
-
-    // ✅ Теперь TypeScript знает, что оба объекта существуют
-    const truckPos = firstTruck.position;
-    const destCoords = route.destCoords;
-    
-    console.log('🔵 Centering on first truck:', firstTruck.name);
-    mapRef.current.setCenter([truckPos.lat, truckPos.lng], 14);
-
-
-
-
-
-
-    // // РАСЧЁТ ВРЕМЕНИ ДО ЦЕЛИ
-    // getRouteTime(
-    //   truckPos.lat,
-    //   truckPos.lng,
-    //   destCoords.lat,
-    //   destCoords.lng
-    // ).then(routeInfo => {
-    //   if (routeInfo && mapRef.current) {
-    //     console.log('🔵 Route info:', routeInfo);
-        
-    //     const ymaps = window.ymaps;
-    //     if (!ymaps) return;
-
-    //     if (window._routeTimePlacemark) {
-    //       mapRef.current.geoObjects.remove(window._routeTimePlacemark);
-    //     }
-
-    //     const trafficText = routeInfo.hasTraffic 
-    //       ? `🚦 +${routeInfo.trafficDelay} мин пробок` 
-    //       : '✅ Без пробок';
-
-    //     const placemark = new ymaps.Placemark(
-    //       [truckPos.lat, truckPos.lng],
-    //       {
-    //         iconContent: `
-    //           <div style="
-    //             background: rgba(0,0,0,0.85);
-    //             color: #fff;
-    //             padding: 8px 14px;
-    //             border-radius: 12px;
-    //             font-size: 13px;
-    //             font-weight: 600;
-    //             border: 2px solid #ffd93d;
-    //             box-shadow: 0 2px 12px rgba(0,0,0,0.3);
-    //             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    //             text-align: center;
-    //             min-width: 120px;
-    //           ">
-    //             <div>⏱️ ${routeInfo.durationFormatted}</div>
-    //             <div style="font-size: 11px; color: #aaa;">${trafficText}</div>
-    //           </div>
-    //         `,
-    //       },
-    //       {
-    //         iconLayout: 'default#imageWithContent',
-    //         iconContentOffset: [0, -50],
-    //       }
-    //     );
-
-    //     mapRef.current.geoObjects.add(placemark);
-    //     window._routeTimePlacemark = placemark;
-    //   }
-    // });
-
-// РАСЧЁТ ВРЕМЕНИ ДО ЦЕЛИ
-getRouteTime(
-  truckPos.lat,
-  truckPos.lng,
-  destCoords.lat,
-  destCoords.lng
-).then(routeInfo => {
-  if (routeInfo && mapRef.current) {
-    console.log('🔵 Route info:', routeInfo);
-    
-    const ymaps = window.ymaps;
-    if (!ymaps) return;
-
-    if (window._routeTimePlacemark) {
-      mapRef.current.geoObjects.remove(window._routeTimePlacemark);
-    }
-
-    // Показываем расстояние и время
-    const placemark = new ymaps.Placemark(
-      [truckPos.lat, truckPos.lng],
-      {
-        iconContent: `
-          <div style="
-            background: rgba(0,0,0,0.85);
-            color: #fff;
-            padding: 8px 14px;
-            border-radius: 12px;
-            font-size: 13px;
-            font-weight: 600;
-            border: 2px solid #ffd93d;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.3);
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            text-align: center;
-            min-width: 120px;
-          ">
-            <div>⏱️ ${routeInfo.durationFormatted}</div>
-            <div style="font-size: 11px; color: #aaa;">📏 ${routeInfo.distance} км</div>
-          </div>
-        `,
-      },
-      {
-        iconLayout: 'default#imageWithContent',
-        iconContentOffset: [0, -50],
+      if (!route.destCoords) {
+        console.log('🔵 No destination coordinates');
+        return;
       }
-    );
 
-    mapRef.current.geoObjects.add(placemark);
-    window._routeTimePlacemark = placemark;
-    console.log('🔵 ✅ Placemark added');
-  }
-});
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  }
-}, [routes, isMapReady, trucks]);
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-  // useEffect(() => {
-  //   if (!isMapReady || !mapRef.current || !routes || routes.length === 0) return;
-    
-  //   if (routes.length === 1) {
-  //     const route = routes[0];
+      const truckPos = firstTruck.position;
+      const destCoords = route.destCoords;
       
-  //     const firstPlate = route.licensePlates?.[0];
-  //     if (!firstPlate) return;
-      
-  //     const normalizedFirstPlate = firstPlate
-  //       .toUpperCase()
-  //       .replace(/\s/g, '')
-  //       .replace(/[^A-Z0-9]/g, '');
-      
-  //     const matchingTrucks = trucks.filter(t => {
-  //       const tName = t.name
-  //         .toUpperCase()
-  //         .replace(/\s/g, '')
-  //         .replace(/[^A-Z0-9]/g, '');
-  //       return tName === normalizedFirstPlate && t.position;
-  //     });
-      
-  //     matchingTrucks.sort((a, b) => {
-  //       const timeA = a.position?.time || 0;
-  //       const timeB = b.position?.time || 0;
-  //       return timeA - timeB;
-  //     });
-      
-  //     const firstTruck = matchingTrucks[0];
-      
-  //     if (firstTruck?.position) {
-  //       console.log('🔵 Centering on first truck (by time):', firstTruck.name);
-  //       mapRef.current.setCenter([firstTruck.position.lat, firstTruck.position.lng], 14);
-  //     } else if (route.destCoords) {
-  //       console.log('🔵 Centering on destination:', route.destination);
-  //       mapRef.current.setCenter([route.destCoords.lat, route.destCoords.lng], 12);
-  //     }
-  //   }
-  // }, [routes, isMapReady, trucks]);
+      console.log('🔵 Centering on first truck:', firstTruck.name);
+      mapRef.current.setCenter([truckPos.lat, truckPos.lng], 14);
+
+      // РАСЧЁТ ВРЕМЕНИ ДО ЦЕЛИ
+      getRouteTime(
+        truckPos.lat,
+        truckPos.lng,
+        destCoords.lat,
+        destCoords.lng
+      ).then(routeInfo => {
+        if (routeInfo && mapRef.current) {
+          console.log('🔵 Route info:', routeInfo);
+          
+          const ymaps = window.ymaps;
+          if (!ymaps) return;
+
+          if (window._routeTimePlacemark) {
+            mapRef.current.geoObjects.remove(window._routeTimePlacemark);
+          }
+
+          const placemark = new ymaps.Placemark(
+            [truckPos.lat, truckPos.lng],
+            {
+              iconContent: `
+                <div style="
+                  background: rgba(0,0,0,0.85);
+                  color: #fff;
+                  padding: 8px 14px;
+                  border-radius: 12px;
+                  font-size: 13px;
+                  font-weight: 600;
+                  border: 2px solid #ffd93d;
+                  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                  text-align: center;
+                  min-width: 120px;
+                ">
+                  <div>⏱️ ${routeInfo.durationFormatted}</div>
+                  <div style="font-size: 11px; color: #aaa;">📏 ${routeInfo.distance} км</div>
+                </div>
+              `,
+            },
+            {
+              iconLayout: 'default#imageWithContent',
+              iconContentOffset: [0, -50],
+            }
+          );
+
+          mapRef.current.geoObjects.add(placemark);
+          window._routeTimePlacemark = placemark;
+          console.log('🔵 ✅ Placemark added');
+        }
+      });
+    }
+  }, [routes, isMapReady, trucks]);
 
   // ============================================
   // ПЕРЕДАЧА КАРТЫ В РОДИТЕЛЬСКИЙ КОМПОНЕНТ
@@ -879,12 +934,6 @@ getRouteTime(
   // ============================================
   // РЕНДЕР
   // ============================================
-
-  const activeTrucks = trucks.filter(t => t.position !== null);
-  
-  const mixerCount = trucks.filter(t => getTruckType(t.name) === 'mixer' && t.position !== null).length;
-  const tipperCount = trucks.filter(t => getTruckType(t.name) === 'tipper' && t.position !== null).length;
-  const dumpCount = trucks.filter(t => getTruckType(t.name) === 'dumpTruck' && t.position !== null).length;
 
   return (
     <div style={{ position: 'relative', height: '100%', width: '100%' }}>
@@ -949,10 +998,6 @@ getRouteTime(
 
 
 
-
-
-
-
 // // app/components/TruckMap.tsx
 // 'use client';
 
@@ -995,7 +1040,7 @@ getRouteTime(
 //   trucks: Truck[];
 //   routes?: Route[];
 //   onTruckSelect?: (truck: Truck) => void;
-//   onMapReady?: (map: YandexMap) => void; // ✅ ДОБАВЛЯЕМ
+//   onMapReady?: (map: YandexMap) => void;
 // }
 
 // interface YandexMap {
@@ -1029,15 +1074,48 @@ getRouteTime(
 //   ready: (callback: () => void) => void;
 // }
 
+// // declare global {
+// //   interface Window {
+// //     ymaps: YandexMaps | undefined;
+// //   }
+// // }
+
+
 // declare global {
 //   interface Window {
 //     ymaps: YandexMaps | undefined;
+//     _routeTimePlacemark?: unknown; // ✅ ДОБАВЛЯЕМ
 //   }
 // }
-
 // // ============================================
 // // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 // // ============================================
+
+
+
+// // Добавьте функцию для расчёта времени
+// const getRouteTime = async (
+//   fromLat: number,
+//   fromLng: number,
+//   toLat: number,
+//   toLng: number
+// ) => {
+//   try {
+//     const response = await fetch(
+//       `/api/route-time?lat=${fromLat}&lng=${fromLng}&destLat=${toLat}&destLng=${toLng}`
+//     );
+//     const data = await response.json();
+//     if (data.success) {
+//       return data.data;
+//     }
+//     return null;
+//   } catch (error) {
+//     console.error('Error getting route time:', error);
+//     return null;
+//   }
+// };
+
+
 
 // function getStatusLabel(vel: number, lastUpdate: string | null): string {
 //   if (!lastUpdate) return '⚪ Нет данных';
@@ -1145,9 +1223,7 @@ getRouteTime(
 // // ОСНОВНОЙ КОМПОНЕНТ
 // // ============================================
 
-// export default function TruckMap({ trucks, routes = [], onTruckSelect,
-//   onMapReady // ✅ ДОБАВЛЯЕМ
-//  }: TruckMapProps) {
+// export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapReady }: TruckMapProps) {
 //   const [selectedTruck, setSelectedTruck] = useState<Truck | null>(null);
 //   const [mapError, setMapError] = useState<string | null>(null);
 //   const [isMapReady, setIsMapReady] = useState(false);
@@ -1180,7 +1256,6 @@ getRouteTime(
 //     const map = mapRef.current;
 //     const ymaps = window.ymaps;
 
-//     // Удаляем старые маршруты
 //     console.log('🔵 Removing old routes...');
 //     Object.values(routesRef.current).forEach((route) => {
 //       map.geoObjects.remove(route);
@@ -1211,7 +1286,7 @@ getRouteTime(
 //               <div style="display: flex; flex-direction: column; gap: 3px; color: #4a5568;">
 //                 <div>🚛 Машин: <strong style="color: #1a1a2e;">${route.count}</strong></div>
 //                 <div>🏭 Завод: <strong style="color: #1a1a2e;">${route.factory}</strong></div>
-//                 <div>📊 Всего: <strong style="color: #1a1a2e;">${route.totalQuantity} т</strong></div>
+//                 <div>📊 Всего: <strong style="color: #1a1a2e;">${Number(route.totalQuantity).toFixed(1)} т</strong></div>
 //               </div>
 //             </div>
 //           `,
@@ -1308,13 +1383,11 @@ getRouteTime(
 //       initMapCalledRef.current = true;
 //       setMapError(null);
 
-//       // Центрируем на первой машине
 //       const firstWithPosition = trucks.find(t => t.position !== null);
 //       if (firstWithPosition?.position) {
 //         map.setCenter([firstWithPosition.position.lat, firstWithPosition.position.lng], 12);
 //       }
 
-//       // ✅ Если есть маршруты — рисуем сразу
 //       if (routes && routes.length > 0) {
 //         console.log('🔵 Drawing routes after map init, count:', routes.length);
 //         setTimeout(() => {
@@ -1414,7 +1487,6 @@ getRouteTime(
 //     const map = mapRef.current;
 //     const ymaps = window.ymaps;
 
-//     // Удаляем старые маркеры
 //     Object.values(placemarksRef.current).forEach((placemark) => {
 //       map.geoObjects.remove(placemark);
 //     });
@@ -1520,24 +1592,42 @@ getRouteTime(
 
 
 
+//   // ============================================
+// // РАСЧЁТ ВРЕМЕНИ МАРШРУТА
+// // ============================================
+
+// const getRouteTime = async (
+//   fromLat: number,
+//   fromLng: number,
+//   toLat: number,
+//   toLng: number
+// ) => {
+//   try {
+//     const response = await fetch(
+//       `/api/route-time?lat=${fromLat}&lng=${fromLng}&destLat=${toLat}&destLng=${toLng}`
+//     );
+//     const data = await response.json();
+//     if (data.success) {
+//       return data.data;
+//     }
+//     return null;
+//   } catch (error) {
+//     console.error('Error getting route time:', error);
+//     return null;
+//   }
+// };
 
 
-// //   // ============================================
-// // // ЦЕНТРИРОВАНИЕ НА ОДНОМ МАРШРУТЕ
-// // // ============================================
 
-// // useEffect(() => {
-// //   if (!isMapReady || !mapRef.current || !routes || routes.length === 0) return;
-  
-// //   // Если только один маршрут — центрируем на него
-// //   if (routes.length === 1 && routes[0].destCoords && routes[0].factoryCoords) {
-// //     const centerLat = (routes[0].destCoords.lat + routes[0].factoryCoords.lat) / 2;
-// //     const centerLng = (routes[0].destCoords.lng + routes[0].factoryCoords.lng) / 2;
-// //     console.log('🔵 Centering map on single route:', centerLat, centerLng);
-// //     mapRef.current.setCenter([centerLat, centerLng], 11);
-// //   }
-// // }, [routes, isMapReady]);
 
+
+
+
+// // app/components/TruckMap.tsx
+
+// // ============================================
+// // ЦЕНТРИРОВАНИЕ НА ПЕРВОЙ МАШИНЕ КОЛОННЫ
+// // ============================================
 
 // useEffect(() => {
 //   if (!isMapReady || !mapRef.current || !routes || routes.length === 0) return;
@@ -1545,7 +1635,6 @@ getRouteTime(
 //   if (routes.length === 1) {
 //     const route = routes[0];
     
-//     // Берём первый номер машины из списка (предполагается, что они уже отсортированы по времени)
 //     const firstPlate = route.licensePlates?.[0];
 //     if (!firstPlate) return;
     
@@ -1554,8 +1643,6 @@ getRouteTime(
 //       .replace(/\s/g, '')
 //       .replace(/[^A-Z0-9]/g, '');
     
-//     // Находим машину с наименьшим временем (самая ранняя отгрузка)
-//     // Если у вас есть данные о времени в trucks
 //     const matchingTrucks = trucks.filter(t => {
 //       const tName = t.name
 //         .toUpperCase()
@@ -1564,7 +1651,6 @@ getRouteTime(
 //       return tName === normalizedFirstPlate && t.position;
 //     });
     
-//     // Сортируем по времени (чем меньше time, тем раньше)
 //     matchingTrucks.sort((a, b) => {
 //       const timeA = a.position?.time || 0;
 //       const timeB = b.position?.time || 0;
@@ -1573,13 +1659,153 @@ getRouteTime(
     
 //     const firstTruck = matchingTrucks[0];
     
-//     if (firstTruck?.position) {
-//       console.log('🔵 Centering on first truck (by time):', firstTruck.name);
-//       mapRef.current.setCenter([firstTruck.position.lat, firstTruck.position.lng], 14);
-//     } else if (route.destCoords) {
-//       console.log('🔵 Centering on destination:', route.destination);
-//       mapRef.current.setCenter([route.destCoords.lat, route.destCoords.lng], 12);
+//     // ✅ Проверяем, что у машины есть позиция
+//     if (!firstTruck?.position) {
+//       // ✅ Проверяем, что есть координаты назначения
+//       if (route.destCoords) {
+//         console.log('🔵 No truck position, centering on destination:', route.destination);
+//         mapRef.current.setCenter([route.destCoords.lat, route.destCoords.lng], 12);
+//       }
+//       return;
 //     }
+
+//     // ✅ Проверяем, что есть координаты назначения
+//     if (!route.destCoords) {
+//       console.log('🔵 No destination coordinates');
+//       return;
+//     }
+
+//     // ✅ Теперь TypeScript знает, что оба объекта существуют
+//     const truckPos = firstTruck.position;
+//     const destCoords = route.destCoords;
+    
+//     console.log('🔵 Centering on first truck:', firstTruck.name);
+//     mapRef.current.setCenter([truckPos.lat, truckPos.lng], 14);
+
+
+
+
+
+
+//     // // РАСЧЁТ ВРЕМЕНИ ДО ЦЕЛИ
+//     // getRouteTime(
+//     //   truckPos.lat,
+//     //   truckPos.lng,
+//     //   destCoords.lat,
+//     //   destCoords.lng
+//     // ).then(routeInfo => {
+//     //   if (routeInfo && mapRef.current) {
+//     //     console.log('🔵 Route info:', routeInfo);
+        
+//     //     const ymaps = window.ymaps;
+//     //     if (!ymaps) return;
+
+//     //     if (window._routeTimePlacemark) {
+//     //       mapRef.current.geoObjects.remove(window._routeTimePlacemark);
+//     //     }
+
+//     //     const trafficText = routeInfo.hasTraffic 
+//     //       ? `🚦 +${routeInfo.trafficDelay} мин пробок` 
+//     //       : '✅ Без пробок';
+
+//     //     const placemark = new ymaps.Placemark(
+//     //       [truckPos.lat, truckPos.lng],
+//     //       {
+//     //         iconContent: `
+//     //           <div style="
+//     //             background: rgba(0,0,0,0.85);
+//     //             color: #fff;
+//     //             padding: 8px 14px;
+//     //             border-radius: 12px;
+//     //             font-size: 13px;
+//     //             font-weight: 600;
+//     //             border: 2px solid #ffd93d;
+//     //             box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+//     //             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+//     //             text-align: center;
+//     //             min-width: 120px;
+//     //           ">
+//     //             <div>⏱️ ${routeInfo.durationFormatted}</div>
+//     //             <div style="font-size: 11px; color: #aaa;">${trafficText}</div>
+//     //           </div>
+//     //         `,
+//     //       },
+//     //       {
+//     //         iconLayout: 'default#imageWithContent',
+//     //         iconContentOffset: [0, -50],
+//     //       }
+//     //     );
+
+//     //     mapRef.current.geoObjects.add(placemark);
+//     //     window._routeTimePlacemark = placemark;
+//     //   }
+//     // });
+
+// // РАСЧЁТ ВРЕМЕНИ ДО ЦЕЛИ
+// getRouteTime(
+//   truckPos.lat,
+//   truckPos.lng,
+//   destCoords.lat,
+//   destCoords.lng
+// ).then(routeInfo => {
+//   if (routeInfo && mapRef.current) {
+//     console.log('🔵 Route info:', routeInfo);
+    
+//     const ymaps = window.ymaps;
+//     if (!ymaps) return;
+
+//     if (window._routeTimePlacemark) {
+//       mapRef.current.geoObjects.remove(window._routeTimePlacemark);
+//     }
+
+//     // Показываем расстояние и время
+//     const placemark = new ymaps.Placemark(
+//       [truckPos.lat, truckPos.lng],
+//       {
+//         iconContent: `
+//           <div style="
+//             background: rgba(0,0,0,0.85);
+//             color: #fff;
+//             padding: 8px 14px;
+//             border-radius: 12px;
+//             font-size: 13px;
+//             font-weight: 600;
+//             border: 2px solid #ffd93d;
+//             box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+//             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+//             text-align: center;
+//             min-width: 120px;
+//           ">
+//             <div>⏱️ ${routeInfo.durationFormatted}</div>
+//             <div style="font-size: 11px; color: #aaa;">📏 ${routeInfo.distance} км</div>
+//           </div>
+//         `,
+//       },
+//       {
+//         iconLayout: 'default#imageWithContent',
+//         iconContentOffset: [0, -50],
+//       }
+//     );
+
+//     mapRef.current.geoObjects.add(placemark);
+//     window._routeTimePlacemark = placemark;
+//     console.log('🔵 ✅ Placemark added');
+//   }
+// });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 //   }
 // }, [routes, isMapReady, trucks]);
 
@@ -1596,24 +1822,59 @@ getRouteTime(
 
 
 
-// // ============================================
-// // ПЕРЕДАЧА КАРТЫ В РОДИТЕЛЬСКИЙ КОМПОНЕНТ
-// // ============================================
 
 
 
+//   // useEffect(() => {
+//   //   if (!isMapReady || !mapRef.current || !routes || routes.length === 0) return;
+    
+//   //   if (routes.length === 1) {
+//   //     const route = routes[0];
+      
+//   //     const firstPlate = route.licensePlates?.[0];
+//   //     if (!firstPlate) return;
+      
+//   //     const normalizedFirstPlate = firstPlate
+//   //       .toUpperCase()
+//   //       .replace(/\s/g, '')
+//   //       .replace(/[^A-Z0-9]/g, '');
+      
+//   //     const matchingTrucks = trucks.filter(t => {
+//   //       const tName = t.name
+//   //         .toUpperCase()
+//   //         .replace(/\s/g, '')
+//   //         .replace(/[^A-Z0-9]/g, '');
+//   //       return tName === normalizedFirstPlate && t.position;
+//   //     });
+      
+//   //     matchingTrucks.sort((a, b) => {
+//   //       const timeA = a.position?.time || 0;
+//   //       const timeB = b.position?.time || 0;
+//   //       return timeA - timeB;
+//   //     });
+      
+//   //     const firstTruck = matchingTrucks[0];
+      
+//   //     if (firstTruck?.position) {
+//   //       console.log('🔵 Centering on first truck (by time):', firstTruck.name);
+//   //       mapRef.current.setCenter([firstTruck.position.lat, firstTruck.position.lng], 14);
+//   //     } else if (route.destCoords) {
+//   //       console.log('🔵 Centering on destination:', route.destination);
+//   //       mapRef.current.setCenter([route.destCoords.lat, route.destCoords.lng], 12);
+//   //     }
+//   //   }
+//   // }, [routes, isMapReady, trucks]);
 
+//   // ============================================
+//   // ПЕРЕДАЧА КАРТЫ В РОДИТЕЛЬСКИЙ КОМПОНЕНТ
+//   // ============================================
 
 //   useEffect(() => {
-//   if (onMapReady && mapRef.current) {
-//     console.log('🔵 Map ready, calling onMapReady');
-//     onMapReady(mapRef.current);
-//   }
-// }, [isMapReady, onMapReady]);
-
-
-
-
+//     if (onMapReady && mapRef.current) {
+//       console.log('🔵 Map ready, calling onMapReady');
+//       onMapReady(mapRef.current);
+//     }
+//   }, [isMapReady, onMapReady]);
 
 //   // ============================================
 //   // РЕНДЕР
@@ -1627,42 +1888,6 @@ getRouteTime(
 
 //   return (
 //     <div style={{ position: 'relative', height: '100%', width: '100%' }}>
-      
-      
-// {/*       
-//       <div style={{
-//         position: 'absolute',
-//         top: 16,
-//         left: 16,
-//         zIndex: 10,
-//         background: 'rgba(0,0,0,0.85)',
-//         backdropFilter: 'blur(12px)',
-//         padding: '14px 20px',
-//         borderRadius: 12,
-//         color: '#fff',
-//         fontSize: 13,
-//         border: '1px solid rgba(255,255,255,0.08)',
-//         boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-//       }}>
-//         <div style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
-//           <span>🚛 Всего: <strong>{trucks.length}</strong></span>
-//           <span>🟢 Активны: <strong style={{ color: '#4ade80' }}>{activeTrucks.length}</strong></span>
-//           <span style={{ opacity: 0.3 }}>|</span>
-//           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-//             <span>🚛</span> {dumpCount}
-//           </span>
-//           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-//             <span>🪨</span> {tipperCount}
-//           </span>
-//           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-//             <span>🧱</span> {mixerCount}
-//           </span>
-//         </div>
-//       </div> */}
-
-
-
-
 //       {selectedTruck && selectedTruck.position && (
 //         <div style={{
 //           position: 'absolute',
@@ -1713,5 +1938,12 @@ getRouteTime(
 //     </div>
 //   );
 // }
+
+
+
+
+
+
+
 
 

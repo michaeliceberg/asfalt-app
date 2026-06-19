@@ -1079,7 +1079,16 @@ export default function CompactView({
           <span className="col-trucks">{item.truckCount}</span>
         </div>
         
-        <AnimatePresence>
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        {/* <AnimatePresence>
           {isExpanded && (
             <motion.div
               className="compact-details"
@@ -1118,7 +1127,76 @@ export default function CompactView({
               )}
             </motion.div>
           )}
-        </AnimatePresence>
+        </AnimatePresence> */}
+
+
+
+
+
+<AnimatePresence>
+  {isExpanded && (
+    <motion.div
+      className="compact-details"
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: 'auto' }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.2 }}
+    >
+      <div className="detail-row">
+        <span className="detail-label">📦 Материал:</span>
+        <span className="detail-value">{item.material}</span>
+      </div>
+      <div className="detail-row">
+        <span className="detail-label">🏭 Завод:</span>
+        <span className="detail-value">
+          {item.factories?.join(', ') || '—'}
+        </span>
+      </div>
+      <div className="detail-row">
+        <span className="detail-label">🚛 Машин:</span>
+        <span className="detail-value">{item.truckCount}</span>
+      </div>
+      {item.vehicles.length > 0 && (
+        <div className="vehicles-list">
+          <div className="vehicles-title">🚛 Транспорт:</div>
+          {[...item.vehicles]
+            .sort((a, b) => {
+              const dateA = a.fullDateTime || a.time;
+              const dateB = b.fullDateTime || b.time;
+              return dateB.localeCompare(dateA);
+            })
+            .map((vehicle, i) => {
+              const vehicleQty = vehicle.quantity;
+              const dateTime = vehicle.fullDateTime || vehicle.time;
+              return (
+                <div key={i} className="vehicle-item">
+                  <span className="vehicle-time">{dateTime}</span>
+                  <span className="vehicle-license">{vehicle.licensePlate}</span>
+                  <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
+                  <span className="vehicle-quantity">
+                    {Math.round(vehicleQty)} {item.unit === 'м³' ? 'м³' : 'т'}
+                  </span>
+                </div>
+              );
+            })}
+        </div>
+      )}
+    </motion.div>
+  )}
+</AnimatePresence>
+
+
+
+
+
+
+
+
+
+
+
+
+
       </div>
     );
   }
