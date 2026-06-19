@@ -40,6 +40,7 @@ export async function proxy(request: NextRequest) {
     // API для аутентификации
     '/api/auth/login',
 
+    '/api/route-time', // ✅ ДОБАВЛЯЕМ
     '/api/trucks',           // ← уже есть
     '/api/truck-routes',     // ← ДОБАВИТЬ!
   ];
@@ -57,11 +58,11 @@ export async function proxy(request: NextRequest) {
     return false;
   });
 
-  console.log('🔵 Is public?', isPublicPath, 'Path:', pathname);
+  // console.log('🔵 Is public?', isPublicPath, 'Path:', pathname);
 
   // Если путь публичный — пропускаем
   if (isPublicPath) {
-    console.log('✅ PUBLIC PATH - пропускаем');
+    // console.log('✅ PUBLIC PATH - пропускаем');
     return NextResponse.next();
   }
 
@@ -70,7 +71,7 @@ export async function proxy(request: NextRequest) {
   console.log('🔵 Token exists?', !!token);
 
   if (!token) {
-    console.log('❌ NO TOKEN - редирект на /login');
+    // console.log('❌ NO TOKEN - редирект на /login');
     if (pathname.startsWith('/api')) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -80,7 +81,7 @@ export async function proxy(request: NextRequest) {
 
   try {
     await jwtVerify(token, JWT_SECRET);
-    console.log('✅ TOKEN VALID');
+    // console.log('✅ TOKEN VALID');
     return NextResponse.next();
   } catch (error) {
     console.log('❌ TOKEN INVALID - редирект на /login');

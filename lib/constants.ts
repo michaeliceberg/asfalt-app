@@ -13,12 +13,12 @@ export const FACTORIES = {
 
 export type FactoryCode = keyof typeof FACTORIES;
 
+
 // ============================================
 // КООРДИНАТЫ ОБЪЕКТОВ (ПК)
 // ============================================
 
-export const DESTINATIONS: Record<string, { lat: number; lng: number; name: string }> = {
-  // ПК 25
+export const DESTINATIONS_FALLBACK: Record<string, { lat: number; lng: number; name: string }> = {
   'ПК 25 Луховицкий': { lat: 54.9653, lng: 39.0269, name: 'ПК 25 Луховицкий' },
   'ПК 25 Зарайский': { lat: 54.7625, lng: 38.8836, name: 'ПК 25 Зарайский' },
   'ПК 25 Каширский': { lat: 54.8411, lng: 38.1653, name: 'ПК 25 Каширский' },
@@ -45,37 +45,69 @@ export const DESTINATIONS: Record<string, { lat: number; lng: number; name: stri
   'ДМ ГРУПП ООО': { lat: 55.7585, lng: 37.6191, name: 'ДМ ГРУПП ООО' },
 };
 
+
+
 // ============================================
 // ЦВЕТА ДЛЯ ЗАВОДОВ
 // ============================================
 
+// export const FACTORY_COLORS: Record<FactoryCode, string> = {
+//   'ЛХ': '#22c55e',
+//   'ЛЮ': '#3b82f6',
+//   'СП': '#eab308',
+//   'Щ': '#ef4444',
+// };
+
 export const FACTORY_COLORS: Record<FactoryCode, string> = {
-  'ЛХ': '#22c55e',   // зелёный
-  'ЛЮ': '#3b82f6',   // синий
-  'СП': '#eab308',   // жёлтый
-  'Щ': '#ef4444',    // красный
+  'ЛХ': '#166534',   // очень тёмно-зелёный
+  'ЛЮ': '#3b82f6',
+  'СП': '#713f12',   // очень тёмно-жёлтый
+  'Щ': '#7f1d1d',    // очень тёмно-красный
 };
 
-// ============================================
-// ПОЛУЧИТЬ ЦВЕТ ЗАВОДА
-// ============================================
 
 export function getFactoryColor(factory: string): string {
   return FACTORY_COLORS[factory as FactoryCode] || '#888888';
 }
-
-// ============================================
-// ПОЛУЧИТЬ КООРДИНАТЫ ЗАВОДА
-// ============================================
 
 export function getFactoryCoords(factory: string): { lat: number; lng: number; name: string } | null {
   return FACTORIES[factory as FactoryCode] || null;
 }
 
 // ============================================
-// ПОЛУЧИТЬ КООРДИНАТЫ ОБЪЕКТА
+// ПАРСИНГ КООРДИНАТ ИЗ destinationPoint
 // ============================================
 
-export function getDestinationCoords(destination: string): { lat: number; lng: number; name: string } | null {
-  return DESTINATIONS[destination] || null;
+export function parseDestinationPoint(destinationPoint: string | null): { 
+  lat: number; 
+  lng: number; 
+  address: string;
+} | null {
+  if (!destinationPoint) return null;
+  
+  // Ищем координаты в конце строки
+  const coordMatch = destinationPoint.match(/(\d+\.\d+),\s*(\d+\.\d+)\s*$/);
+  if (!coordMatch) return null;
+  
+  const lat = parseFloat(coordMatch[1]);
+  const lng = parseFloat(coordMatch[2]);
+  const address = destinationPoint.replace(/\s*\d+\.\d+,\s*\d+\.\d+\s*$/, '').trim();
+  
+  return { lat, lng, address };
 }
+
+
+
+export function getDestinationCoords(destination: string): { lat: number; lng: number; name: string } | null {
+  // Сначала пробуем распарсить координаты из строки
+  const parsed = parseDestinationPoint(destination);
+  if (parsed) {
+    return { lat: parsed.lat, lng: parsed.lng, name: parsed.address };
+  }
+  
+  // Если не получилось, используем fallback (для обратной совместимости)
+  return DESTINATIONS_FALLBACK[destination] || null;
+}
+
+
+
