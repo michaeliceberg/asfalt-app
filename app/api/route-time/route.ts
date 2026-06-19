@@ -17,7 +17,11 @@ export async function GET(request: Request) {
 
   const distance = calculateDistance(lat, lng, destLat, destLng);
   const avgSpeed = 50;
-  const durationSeconds = (distance / avgSpeed) * 3600;
+  let durationSeconds = (distance / avgSpeed) * 3600;
+
+  // ✅ Увеличиваем время на 30% (учёт пробок)
+  const trafficMultiplier = 1.3; // +30%
+  durationSeconds = durationSeconds * trafficMultiplier;
 
   return NextResponse.json({
     success: true,
