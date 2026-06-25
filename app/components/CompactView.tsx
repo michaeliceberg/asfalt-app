@@ -252,7 +252,8 @@ export default function CompactView({
   
   const requestsMap = new Map<string, { quantity: number; closed: boolean | null }>();
   outgoingRequests.forEach(req => {
-    const key = `${req.number}_${req.date}_${req.division}`;
+    // const key = `${req.number}_${req.date}_${req.division}`;
+    const key = req.number;
     requestsMap.set(key, { quantity: req.quantity, closed: req.closed || false });
   });
   
@@ -336,7 +337,7 @@ export default function CompactView({
       const requestNumber = shipment.clientRequestNumber || '';
       const requestDate = shipment.clientRequestDate || '';
       const division = shipment.division || '';
-      const requestKey = `${requestNumber}_${requestDate}_${division}`;
+      // const requestKey = `${requestNumber}_${requestDate}_${division}`;
       
       let factory = '—';
       if (shipment.division === 'ЛХ') factory = 'ЛХ';
@@ -345,11 +346,14 @@ export default function CompactView({
       else if (shipment.division === 'Щ') factory = 'Щ';
 
       const consigneeKey = shipment.consignee || shipment.customer || '—';
-      const groupKey = `${dateKey}_${requestKey}_${consigneeKey}_${shipment.material}`;
+      // const groupKey = `${dateKey}_${requestKey}_${consigneeKey}_${shipment.material}`;
+      const groupKey = `${dateKey}_${requestNumber}_${consigneeKey}_${shipment.material}`;
+
       
       let planQuantity = 0;
       let requestClosed = false;
-      const request = requestsMap.get(requestKey);
+      // const request = requestsMap.get(requestKey);
+      const request = requestsMap.get(requestNumber);
       if (request) {
         planQuantity = request.quantity;
         requestClosed = request.closed || false;
@@ -680,7 +684,8 @@ export default function CompactView({
                                       <span className="vehicle-license">{vehicle.licensePlate}</span>
                                       <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
                                       <span className="vehicle-quantity">
-                                        {Math.round(vehicleQty)} {item.unit === 'м³' ? 'м³' : 'т'}
+                                        {/* {Math.round(vehicleQty)} {item.unit === 'м³' ? 'м³' : 'т'} */}
+                                        {vehicleQty.toFixed(1)} {item.unit === 'м³' ? 'м³' : 'т'}
                                       </span>
                                     </div>
                                   );
@@ -1174,7 +1179,9 @@ export default function CompactView({
                   <span className="vehicle-license">{vehicle.licensePlate}</span>
                   <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
                   <span className="vehicle-quantity">
-                    {Math.round(vehicleQty)} {item.unit === 'м³' ? 'м³' : 'т'}
+                    {/* {Math.round(vehicleQty)} {item.unit === 'м³' ? 'м³' : 'т'} */}
+                    {vehicleQty.toFixed(1)} {item.unit === 'м³' ? 'м³' : 'т'}
+
                   </span>
                 </div>
               );

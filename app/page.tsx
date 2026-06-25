@@ -18,6 +18,7 @@ import TopCustomersView from './components/TopCustomersView';
 import ModeSwitch from './components/ModeSwitch';
 import LoadingSpinner from './components/LoadingSpinner';
 import { countActiveRequests, getFactoryName, isConcreteMaterial, isSpecialMaterial, parseRussianDate } from '@/lib/utils';
+import { useAuth } from '@/hooks/useAuth';
 
 // ============================================
 // ИНТЕРФЕЙСЫ
@@ -229,6 +230,9 @@ export default function Home() {
 
   const [lastImportInfo, setLastImportInfo] = useState<{ lastImport: string | null; totalRecords: number }>({ lastImport: null, totalRecords: 0 });
 
+
+
+  const { accessibleFactories } = useAuth();
 
    // ============================================
   // PULL-TO-REFRESH (смахивание вниз)
@@ -1045,6 +1049,7 @@ return (
           onToggle={toggleMode}
           tasSyncTime={currentSyncInfo.lastSync}
           icebergSyncTime={lastImportInfo.lastImport}
+          accessibleFactories={accessibleFactories}
         />
 
 
