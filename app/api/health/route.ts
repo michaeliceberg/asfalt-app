@@ -5,9 +5,9 @@ import path from 'path';
 
 export async function GET() {
   const checks = {
-    database: { status: 'ok' as const, details: '' },
-    filesystem: { status: 'ok' as const, details: '' },
-    sync: { status: 'ok' as const, details: '' },
+    database: { status: 'ok' as const, details: '' as string },
+    filesystem: { status: 'ok' as const, details: '' as string },
+    sync: { status: 'ok' as const, details: '' as string },
     memory: { used: 0, total: 0, percent: 0 },
   };
 
@@ -18,19 +18,19 @@ export async function GET() {
     await db.run(sql`SELECT 1`);
     checks.database.status = 'ok';
   } catch (error) {
-    checks.database.status = 'error';
+    checks.database.status = 'error' as const;
     checks.database.details = error instanceof Error ? error.message : 'Unknown error';
     alerts.push('❌ База данных не отвечает!');
   }
 
-  // 2. Проверка файловой системы (права на запись)
+  // 2. Проверка файловой системы
   try {
     const testFile = path.join(process.cwd(), 'data', 'test-write.tmp');
     fs.writeFileSync(testFile, 'test');
     fs.unlinkSync(testFile);
     checks.filesystem.status = 'ok';
   } catch (error) {
-    checks.filesystem.status = 'error';
+    checks.filesystem.status = 'error' as const;
     checks.filesystem.details = error instanceof Error ? error.message : 'Unknown error';
     alerts.push('❌ Нет прав на запись в папку data/');
   }
@@ -53,9 +53,9 @@ export async function GET() {
         }
       }
     }
-    checks.sync.status = syncOk ? 'ok' : 'warning';
+    checks.sync.status = syncOk ? 'ok' : ('warning' as const);
   } catch (error) {
-    checks.sync.status = 'warning';
+    checks.sync.status = 'warning' as const;
     checks.sync.details = error instanceof Error ? error.message : 'Unknown error';
     alerts.push('⚠️ Ошибка проверки синхронизации');
   }
