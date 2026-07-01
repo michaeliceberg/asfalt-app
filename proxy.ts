@@ -99,6 +99,8 @@ export async function proxy(request: NextRequest) {
   // ✅ ДОБАВЛЯЕМ НОВЫЙ API
   '/api/trucks-distances',
   
+  '/api/health',  // ✅ ДОБАВИТЬ
+  
   // API для тестирования
   '/api/test',
   
