@@ -45,7 +45,19 @@ export const shipments = sqliteTable('shipments', {
   destinationPoint: text('destination_point'), // ПунктНазначения с координатами
   clientRequestDate: text('client_request_date'),
   createdAt: integer('created_at').notNull(),
+
+    // ✅ НОВЫЕ ПОЛЯ ДЛЯ ОТСЛЕЖИВАНИЯ ПРИБЫТИЯ
+  arrived: integer('arrived', { mode: 'boolean' }).default(false),
+  arrived_at: text('arrived_at'),
+  distance_to_dest: real('distance_to_dest'),
+  eta_minutes: integer('eta_minutes'),
+  updated_at: text('updated_at'), // ✅ ДОЛЖНО БЫТЬ
+  
 });
+
+
+export type NewShipment = typeof shipments.$inferInsert;
+
 
 // Заявки на отгрузку (для всех заводов)
 export const outgoingRequests = sqliteTable('outgoing_requests', {

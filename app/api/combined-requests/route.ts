@@ -14,6 +14,11 @@ interface VehicleData {
   licensePlate: string;
   driver: string;
   quantity: number;
+  // ✅ ДОБАВЛЯЕМ
+  distance_to_dest?: number | null;
+  arrived?: boolean;
+  arrived_at?: string | null;
+  eta_minutes?: number | null;
 }
 
 interface ShipmentDataType {
@@ -23,6 +28,9 @@ interface ShipmentDataType {
   lastTime: Date | null;
   lastDate: Date | null;
   vehicles: VehicleData[];
+
+
+
 }
 
 interface OutgoingRequestData {
@@ -193,24 +201,34 @@ export async function GET(request: Request) {
       }
       
       return {
-        requestNumber: req.number,
-        requestDate: req.date,
-        material: req.material,
-        planQuantity: parseFloat(planQuantity.toFixed(1)),
-        factQuantity: parseFloat(factQuantity.toFixed(1)),
-        consignee: req.consignee || req.customer,
-        division: req.division,
-        closed: req.closed,
-        delivery_date: effectiveDeliveryDate,
-        lastShipmentTime: lastShipmentTime,
-        lastShipmentFullDate: lastShipmentFullDate,
-        truckCount: shipmentData.truckCount,
-        vehicles: shipmentData.vehicles.map((v: VehicleData) => ({
-          ...v,
-          quantity: v.quantity
-        })),
-        unit: unit,
-      };
+  requestNumber: req.number,
+  requestDate: req.date,
+  material: req.material,
+  planQuantity: parseFloat(planQuantity.toFixed(1)),
+  factQuantity: parseFloat(factQuantity.toFixed(1)),
+  consignee: req.consignee || req.customer,
+  division: req.division,
+  closed: req.closed,
+  delivery_date: effectiveDeliveryDate,
+  lastShipmentTime: lastShipmentTime,
+  lastShipmentFullDate: lastShipmentFullDate,
+  truckCount: shipmentData.truckCount,
+  vehicles: shipmentData.vehicles.map((v: VehicleData) => ({
+    ...v,
+    quantity: v.quantity,
+    // ✅ ДОБАВЛЯЕМ
+    distance_to_dest: v.distance_to_dest ?? null,
+    arrived: v.arrived ?? false,
+    arrived_at: v.arrived_at ?? null,
+    eta_minutes: v.eta_minutes ?? null,
+  })),
+  unit: unit,
+};
+
+
+
+
+
     });
     
     // Сортируем по дате доставки (новые сверху)

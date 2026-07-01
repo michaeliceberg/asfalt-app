@@ -27,6 +27,13 @@ export interface VehicleItem {
   driver?: string;
   material?: string;
   supplier?: string;
+
+  distance_to_dest?: number | null;
+  arrived?: boolean;
+  arrived_at?: string | null;
+  eta_minutes?: number | null;
+
+
 }
 
 export interface GroupedItem {

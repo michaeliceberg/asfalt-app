@@ -557,3 +557,98 @@ export function parseDestinationPoint(destinationPoint: string | null): {
   
   return { lat, lng, address };
 }
+
+
+
+
+
+
+// lib/utils.ts (добавить в конец файла)
+
+// ============================================
+// КООРДИНАТЫ ЗАВОДОВ
+// ============================================
+
+export const FACTORIES: Record<string, { lat: number; lng: number }> = {
+  'ЛХ': { lat: 54.961524, lng: 38.839336 },
+  'ЛЮ': { lat: 55.702066, lng: 37.995442 },
+  'СП': { lat: 56.363355, lng: 38.175478 },
+  'Щ': { lat: 55.917957, lng: 38.027629 },
+};
+
+export function getFactoryCoords(factoryCode: string): { lat: number; lng: number } | null {
+  return FACTORIES[factoryCode] || null;
+}
+
+// ============================================
+// РАСЧЕТ РАССТОЯНИЯ И ВРЕМЕНИ
+// ============================================
+
+/**
+ * Расчёт расстояния между двумя точками по формуле Гаверсинуса
+ * Возвращает расстояние в километрах
+ */
+export function calculateDistance(
+  lat1: number, 
+  lng1: number, 
+  lat2: number, 
+  lng2: number
+): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLng = (lng2 - lng1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLng/2) * Math.sin(dLng/2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+/**
+ * Расчет ETA (время до прибытия)
+ * @param distance - расстояние в километрах
+ * @param avgSpeed - средняя скорость (км/ч), по умолчанию 50
+ */
+export function calculateETA(
+  distance: number, 
+  avgSpeed: number = 50
+): { hours: number; minutes: number; totalMinutes: number } {
+  // Учитываем пробки: на дальние расстояния добавляем коэффициент
+  const speedWithTraffic = avgSpeed * (distance > 50 ? 0.7 : 0.85);
+  const totalMinutes = Math.round((distance / speedWithTraffic) * 60);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return { hours, minutes, totalMinutes };
+}
+
+/**
+ * Форматирует ETA в читаемый вид
+ */
+export function formatETA(distance: number): string {
+  if (distance < 2) return '✅ Прибыл';
+  const eta = calculateETA(distance);
+  if (eta.totalMinutes === 0) return '📍 У цели';
+  return `⏱️ ${eta.hours > 0 ? eta.hours + 'ч ' : ''}${eta.minutes}м (${distance.toFixed(1)} км)`;
+}
+
+/**
+ * Получает статус машины на основе расстояния до цели
+ */
+export function getTruckStatusByDistance(distance: number | null): 'arrived' | 'near' | 'en_route' | 'unknown' {
+  if (distance === null) return 'unknown';
+  if (distance < 2) return 'arrived';
+  if (distance < 10) return 'near';
+  return 'en_route';
+}
+
+/**
+ * Получает цвет статуса для машины
+ */
+export function getTruckStatusColor(distance: number | null): string {
+  const status = getTruckStatusByDistance(distance);
+  switch (status) {
+    case 'arrived': return '#4ade80';
+    case 'near': return '#60a5fa';
+    case 'en_route': return '#facc15';
+    default: return '#94a3b8';
+  }
+}
