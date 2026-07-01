@@ -52,7 +52,7 @@ export const shipments = sqliteTable('shipments', {
   distance_to_dest: real('distance_to_dest'),
   eta_minutes: integer('eta_minutes'),
   updated_at: text('updated_at'), // ✅ ДОЛЖНО БЫТЬ
-  
+
 });
 
 
@@ -176,3 +176,16 @@ export type UserLog = {
 
 
 
+
+
+
+
+export const pushSubscriptions = sqliteTable('push_subscriptions', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  user_id: integer('user_id').references(() => users.id),
+  endpoint: text('endpoint').notNull().unique(),
+  p256dh: text('p256dh').notNull(),
+  auth: text('auth').notNull(),
+  created_at: integer('created_at').notNull(),
+  updated_at: integer('updated_at'),
+});
