@@ -3,7 +3,6 @@ import { db } from './db';
 import { pushSubscriptions, users } from './db/schema';
 import { eq } from 'drizzle-orm';
 
-// Настройка VAPID
 webpush.setVapidDetails(
   process.env.VAPID_SUBJECT || 'mailto:your-email@example.com',
   process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '',
@@ -67,9 +66,9 @@ export async function sendPushNotification(
 
         await webpush.sendNotification(pushSubscription, payload);
         sent++;
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error(`Failed to send to ${sub.endpoint}:`, error);
-        if (error.statusCode === 410) {
+        if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 410) {
           await db
             .delete(pushSubscriptions)
             .where(eq(pushSubscriptions.endpoint, sub.endpoint));
@@ -86,11 +85,15 @@ export async function sendPushNotification(
 
 export async function sendToAdmins(notification: PushNotification) {
   try {
+    console.log('🔵 sendToAdmins called');
+    
     const adminSubscriptions = await db
       .select()
       .from(pushSubscriptions)
       .innerJoin(users, eq(users.id, pushSubscriptions.user_id))
       .where(eq(users.group_id, 1));
+
+    console.log(`🔵 Найдено ${adminSubscriptions.length} подписок админов`);
 
     let sent = 0;
     const payload = JSON.stringify({
@@ -118,11 +121,15 @@ export async function sendToAdmins(notification: PushNotification) {
           },
         };
 
+        console.log(`🔵 Отправка на ${sub.push_subscriptions.endpoint.slice(0, 50)}...`);
+        
         await webpush.sendNotification(pushSubscription, payload);
         sent++;
-      } catch (error: any) {
-        console.error(`Failed to send to admin:`, error);
-        if (error.statusCode === 410) {
+        console.log(`✅ Успешно отправлено!`);
+      } catch (error: unknown) {
+        console.error(`❌ Ошибка отправки:`, error);
+        if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 410) {
+          console.log(`🗑️ Удаляем невалидную подписку`);
           await db
             .delete(pushSubscriptions)
             .where(eq(pushSubscriptions.endpoint, sub.push_subscriptions.endpoint));
@@ -136,3 +143,120 @@ export async function sendToAdmins(notification: PushNotification) {
     return { sent: 0 };
   }
 }
+
+
+
+
+// export async function sendToAdmins(notification: PushNotification) {
+//   try {
+//     const adminSubscriptions = await db
+//       .select()
+//       .from(pushSubscriptions)
+//       .innerJoin(users, eq(users.id, pushSubscriptions.user_id))
+//       .where(eq(users.group_id, 1));
+
+//     let sent = 0;
+//     const payload = JSON.stringify({
+//       title: notification.title,
+//       body: notification.body,
+//       url: notification.url || '/',
+//       tag: notification.tag || 'alert',
+//       icon: notification.icon || '/icon-192x192.png',
+//       badge: notification.badge || '/icon-192x192.png',
+//       actions: notification.actions || [
+//         {
+//           action: 'view',
+//           title: '👀 Посмотреть',
+//         },
+//       ],
+//     });
+
+//     for (const sub of adminSubscriptions) {
+//       try {
+//         const pushSubscription = {
+//           endpoint: sub.push_subscriptions.endpoint,
+//           keys: {
+//             p256dh: sub.push_subscriptions.p256dh,
+//             auth: sub.push_subscriptions.auth,
+//           },
+//         };
+
+//         await webpush.sendNotification(pushSubscription, payload);
+//         sent++;
+//       } catch (error: any) {
+//         console.error(`Failed to send to admin:`, error);
+//         if (error.statusCode === 410) {
+//           await db
+//             .delete(pushSubscriptions)
+//             .where(eq(pushSubscriptions.endpoint, sub.push_subscriptions.endpoint));
+//         }
+//       }
+//     }
+
+//     return { sent };
+//   } catch (error) {
+//     console.error('Send to admins error:', error);
+//     return { sent: 0 };
+//   }
+// }
+// export async function sendToAdmins(notification: PushNotification) {
+//   try {
+//     console.log('🔵 sendToAdmins called');
+    
+//     const adminSubscriptions = await db
+//       .select()
+//       .from(pushSubscriptions)
+//       .innerJoin(users, eq(users.id, pushSubscriptions.user_id))
+//       .where(eq(users.group_id, 1));
+
+//     console.log(`🔵 Найдено ${adminSubscriptions.length} подписок админов`);
+
+//     let sent = 0;
+//     const payload = JSON.stringify({
+//       title: notification.title,
+//       body: notification.body,
+//       url: notification.url || '/',
+//       tag: notification.tag || 'alert',
+//       icon: notification.icon || '/icon-192x192.png',
+//       badge: notification.badge || '/icon-192x192.png',
+//       actions: notification.actions || [
+//         {
+//           action: 'view',
+//           title: '👀 Посмотреть',
+//         },
+//       ],
+//     });
+
+//     for (const sub of adminSubscriptions) {
+//       try {
+//         const pushSubscription = {
+//           endpoint: sub.push_subscriptions.endpoint,
+//           keys: {
+//             p256dh: sub.push_subscriptions.p256dh,
+//             auth: sub.push_subscriptions.auth,
+//           },
+//         };
+
+//         console.log(`🔵 Отправка на ${sub.push_subscriptions.endpoint.slice(0, 50)}...`);
+        
+//         await webpush.sendNotification(pushSubscription, payload);
+//         sent++;
+//         console.log(`✅ Успешно отправлено!`);
+//       } catch (error: any) {
+//         console.error(`❌ Ошибка отправки:`, error);
+//         console.error(`❌ Статус ошибки:`, error.statusCode);
+//         console.error(`❌ Сообщение:`, error.message);
+//         if (error.statusCode === 410) {
+//           await db
+//             .delete(pushSubscriptions)
+//             .where(eq(pushSubscriptions.endpoint, sub.push_subscriptions.endpoint));
+//         }
+//       }
+//     }
+
+//     return { sent };
+//   } catch (error) {
+//     console.error('Send to admins error:', error);
+//     return { sent: 0 };
+//   }
+// }

@@ -101,10 +101,10 @@ export async function proxy(request: NextRequest) {
   
   '/api/health',  // ✅ ДОБАВИТЬ
 
-'/api/push/subscribe',
-'/api/push/unsubscribe',
-'/api/test-push',
-
+  // API для push уведомлений
+  '/api/push/subscribe',
+  '/api/push/unsubscribe',
+  '/api/test-push',
   
   // API для тестирования
   '/api/test',
