@@ -115,7 +115,9 @@ export async function proxy(request: NextRequest) {
 
   '/api/all-data',
 
-  
+
+  '/api/health-notify',
+
 ];
 
 
