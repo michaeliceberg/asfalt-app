@@ -46,10 +46,7 @@ export default function TruckProgressBar({
     const rawProgress = ((totalDistance - distance) / totalDistance) * 100;
     progress = Math.max(0, Math.min(100, rawProgress));
     
-    // Округляем км до целых
     const kmText = Math.round(distance);
-    
-    // Форматируем время
     const mins = etaMinutes ?? 0;
     const hours = Math.floor(mins / 60);
     const minutes = mins % 60;
@@ -62,15 +59,15 @@ export default function TruckProgressBar({
   }
   
   const colors = FACTORY_COLORS[factoryCode] || FACTORY_COLORS['ЛХ'];
-  
-  // Извлекаем фамилию (без инициалов)
   const driverLastName = driver.split(' ')[0] || driver;
   
   return (
     <div className="truck-card" style={{ background: colors.bg }}>
+      {/* Верхняя строка */}
       <div className="truck-row">
         <div className="truck-left">
-          <span className="truck-time">{time}</span>
+          {/* Время в прямоугольничке */}
+          <span className="truck-time-badge">{time}</span>
           <span className="truck-plate">{licensePlate}</span>
           <span className="truck-quantity">{quantity.toFixed(1)} {unit}</span>
           <span className="truck-driver">{driverLastName}</span>
@@ -82,6 +79,7 @@ export default function TruckProgressBar({
         </div>
       </div>
       
+      {/* Прогресс-бар */}
       <div className="progress-track">
         <div className="progress-bg" />
         
@@ -101,6 +99,7 @@ export default function TruckProgressBar({
           }}
         />
         
+        {/* 🚛 Машина (только если не прибыла) */}
         {!isArrived && progress < 100 && (
           <div className="truck-marker" style={{ left: `${Math.min(progress, 98)}%` }}>
             <Truck 
@@ -113,18 +112,14 @@ export default function TruckProgressBar({
           </div>
         )}
         
-        {isArrived && (
-          <div className="truck-marker arrived" style={{ left: '98%' }}>
-            <span style={{ fontSize: 14 }}>✅</span>
-          </div>
-        )}
+        {/* ✅ Прибыл — показываем только текст, галочку на баре убираем */}
       </div>
       
       <style jsx>{`
         .truck-card {
-          padding: 8px 10px;
+          padding: 6px 10px;
           border-radius: 6px;
-          margin-bottom: 6px;
+          margin-bottom: 4px;
           border: 1px solid rgba(0,0,0,0.04);
         }
         
@@ -133,51 +128,57 @@ export default function TruckProgressBar({
           justify-content: space-between;
           align-items: center;
           flex-wrap: wrap;
-          gap: 2px 6px;
-          margin-bottom: 4px;
+          gap: 2px 4px;
+          margin-bottom: 3px;
         }
         
         .truck-left {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
           flex-wrap: wrap;
         }
         
-        .truck-time {
-          font-size: 11px;
-          color: #64748b;
-          font-weight: 500;
-          white-space: nowrap;
-        }
-        
-        .truck-plate {
-          font-weight: 700;
-          font-size: 12px;
+        .truck-time-badge {
+          font-size: 10px;
+          font-weight: 600;
           color: #1a1a2e;
           background: #ffffff;
           padding: 0 6px;
           border-radius: 3px;
-          letter-spacing: 0.2px;
           border: 1px solid rgba(0,0,0,0.06);
-          line-height: 20px;
+          line-height: 18px;
           white-space: nowrap;
+          font-variant-numeric: tabular-nums;
+        }
+        
+        .truck-plate {
+          font-weight: 700;
+          font-size: 11px;
+          color: #1a1a2e;
+          background: #ffffff;
+          padding: 0 6px;
+          border-radius: 3px;
+          border: 1px solid rgba(0,0,0,0.06);
+          line-height: 18px;
+          white-space: nowrap;
+          letter-spacing: 0.2px;
         }
         
         .truck-quantity {
-          font-size: 12px;
+          font-size: 11px;
           font-weight: 700;
           color: #1e293b;
           background: #ffffff;
           padding: 0 6px;
           border-radius: 3px;
           border: 1px solid rgba(0,0,0,0.06);
-          line-height: 20px;
+          line-height: 18px;
           white-space: nowrap;
         }
         
         .truck-driver {
-          font-size: 11px;
+          font-size: 10px;
           color: #64748b;
           white-space: nowrap;
         }
@@ -185,15 +186,15 @@ export default function TruckProgressBar({
         .truck-right {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 6px;
           flex-wrap: wrap;
         }
         
         .truck-info {
-          font-size: 11px;
+          font-size: 10px;
           font-weight: 600;
           color: #94a3b8;
-          min-width: 80px;
+          min-width: 70px;
           text-align: right;
           white-space: nowrap;
         }
@@ -254,23 +255,298 @@ export default function TruckProgressBar({
           transition: left 1s ease-in-out;
         }
         
-        .truck-marker.arrived {
-          transform: translate(-50%, -50%);
-        }
-        
+        /* Анимация для прибывшей машины (только текст, без галочки на баре) */
         @keyframes pulse-green {
-          0% { transform: translate(-50%, -50%) scale(1); }
-          50% { transform: translate(-50%, -50%) scale(1.2); }
-          100% { transform: translate(-50%, -50%) scale(1); }
+          0% { opacity: 1; }
+          50% { opacity: 0.6; }
+          100% { opacity: 1; }
         }
         
-        .truck-marker.arrived {
-          animation: pulse-green 1.5s ease-in-out infinite;
+        .truck-info.arrived {
+          animation: pulse-green 2s ease-in-out infinite;
         }
       `}</style>
     </div>
   );
 }
+
+
+
+
+
+// // app/components/TruckProgressBar.tsx
+
+// 'use client';
+
+// import { Truck } from 'lucide-react';
+
+// interface TruckProgressBarProps {
+//   licensePlate: string;
+//   driver: string;
+//   quantity: number;
+//   time: string;
+//   distance: number | null;
+//   etaMinutes: number | null;
+//   totalDistance: number;
+//   isArrived: boolean;
+//   unit?: string;
+//   factoryCode: string;
+// }
+
+// const FACTORY_COLORS: Record<string, { line: string; bg: string }> = {
+//   'ЛХ': { line: '#22c55e', bg: 'rgba(34, 197, 94, 0.06)' },
+//   'ЛЮ': { line: '#3b82f6', bg: 'rgba(59, 130, 246, 0.06)' },
+//   'СП': { line: '#eab308', bg: 'rgba(234, 179, 8, 0.06)' },
+//   'Щ': { line: '#ef4444', bg: 'rgba(239, 68, 68, 0.06)' },
+// };
+
+// export default function TruckProgressBar({
+//   licensePlate,
+//   driver,
+//   quantity,
+//   time,
+//   distance,
+//   etaMinutes,
+//   totalDistance,
+//   isArrived,
+//   unit = 'т',
+//   factoryCode,
+// }: TruckProgressBarProps) {
+//   let progress = 0;
+//   let infoText = '⏳ Нет данных';
+  
+//   if (isArrived) {
+//     progress = 100;
+//     infoText = '✅ Прибыл';
+//   } else if (distance !== null && totalDistance > 0) {
+//     const rawProgress = ((totalDistance - distance) / totalDistance) * 100;
+//     progress = Math.max(0, Math.min(100, rawProgress));
+    
+//     // Округляем км до целых
+//     const kmText = Math.round(distance);
+    
+//     // Форматируем время
+//     const mins = etaMinutes ?? 0;
+//     const hours = Math.floor(mins / 60);
+//     const minutes = mins % 60;
+//     let timeStr = '';
+//     if (hours > 0) timeStr += `${hours}ч `;
+//     if (minutes > 0 || hours === 0) timeStr += `${minutes}мин`;
+//     if (!timeStr) timeStr = '0мин';
+    
+//     infoText = `${kmText} км · ${timeStr}`;
+//   }
+  
+//   const colors = FACTORY_COLORS[factoryCode] || FACTORY_COLORS['ЛХ'];
+  
+//   // Извлекаем фамилию (без инициалов)
+//   const driverLastName = driver.split(' ')[0] || driver;
+  
+//   return (
+//     <div className="truck-card" style={{ background: colors.bg }}>
+//       <div className="truck-row">
+//         <div className="truck-left">
+//           <span className="truck-time">{time}</span>
+//           <span className="truck-plate">{licensePlate}</span>
+//           <span className="truck-quantity">{quantity.toFixed(1)} {unit}</span>
+//           <span className="truck-driver">{driverLastName}</span>
+//         </div>
+//         <div className="truck-right">
+//           <span className={`truck-info ${isArrived ? 'arrived' : ''}`}>
+//             {infoText}
+//           </span>
+//         </div>
+//       </div>
+      
+//       <div className="progress-track">
+//         <div className="progress-bg" />
+        
+//         <div 
+//           className="progress-fill"
+//           style={{ 
+//             width: `${Math.min(progress, 100)}%`,
+//             background: isArrived ? '#22c55e' : colors.line
+//           }}
+//         />
+        
+//         <div 
+//           className="progress-dashed"
+//           style={{ 
+//             left: `${Math.min(progress, 100)}%`,
+//             width: `${100 - Math.min(progress, 100)}%`,
+//           }}
+//         />
+        
+//         {!isArrived && progress < 100 && (
+//           <div className="truck-marker" style={{ left: `${Math.min(progress, 98)}%` }}>
+//             <Truck 
+//               size={14} 
+//               color={colors.line} 
+//               strokeWidth={2} 
+//               fill="#1a1a2e"
+//               style={{ display: 'block' }}
+//             />
+//           </div>
+//         )}
+        
+//         {isArrived && (
+//           <div className="truck-marker arrived" style={{ left: '98%' }}>
+//             <span style={{ fontSize: 14 }}>✅</span>
+//           </div>
+//         )}
+//       </div>
+      
+//       <style jsx>{`
+//         .truck-card {
+//           padding: 8px 10px;
+//           border-radius: 6px;
+//           margin-bottom: 6px;
+//           border: 1px solid rgba(0,0,0,0.04);
+//         }
+        
+//         .truck-row {
+//           display: flex;
+//           justify-content: space-between;
+//           align-items: center;
+//           flex-wrap: wrap;
+//           gap: 2px 6px;
+//           margin-bottom: 4px;
+//         }
+        
+//         .truck-left {
+//           display: flex;
+//           align-items: center;
+//           gap: 8px;
+//           flex-wrap: wrap;
+//         }
+        
+//         .truck-time {
+//           font-size: 11px;
+//           color: #64748b;
+//           font-weight: 500;
+//           white-space: nowrap;
+//         }
+        
+//         .truck-plate {
+//           font-weight: 700;
+//           font-size: 12px;
+//           color: #1a1a2e;
+//           background: #ffffff;
+//           padding: 0 6px;
+//           border-radius: 3px;
+//           letter-spacing: 0.2px;
+//           border: 1px solid rgba(0,0,0,0.06);
+//           line-height: 20px;
+//           white-space: nowrap;
+//         }
+        
+//         .truck-quantity {
+//           font-size: 12px;
+//           font-weight: 700;
+//           color: #1e293b;
+//           background: #ffffff;
+//           padding: 0 6px;
+//           border-radius: 3px;
+//           border: 1px solid rgba(0,0,0,0.06);
+//           line-height: 20px;
+//           white-space: nowrap;
+//         }
+        
+//         .truck-driver {
+//           font-size: 11px;
+//           color: #64748b;
+//           white-space: nowrap;
+//         }
+        
+//         .truck-right {
+//           display: flex;
+//           align-items: center;
+//           gap: 8px;
+//           flex-wrap: wrap;
+//         }
+        
+//         .truck-info {
+//           font-size: 11px;
+//           font-weight: 600;
+//           color: #94a3b8;
+//           min-width: 80px;
+//           text-align: right;
+//           white-space: nowrap;
+//         }
+        
+//         .truck-info.arrived {
+//           color: #22c55e;
+//         }
+        
+//         .progress-track {
+//           position: relative;
+//           height: 3px;
+//           border-radius: 2px;
+//           overflow: visible;
+//           background: #e2e8f0;
+//         }
+        
+//         .progress-bg {
+//           position: absolute;
+//           left: 0;
+//           top: 0;
+//           width: 100%;
+//           height: 100%;
+//           background: #e2e8f0;
+//           border-radius: 2px;
+//         }
+        
+//         .progress-fill {
+//           position: absolute;
+//           left: 0;
+//           top: 0;
+//           height: 100%;
+//           border-radius: 2px;
+//           transition: width 1s ease-in-out;
+//           z-index: 1;
+//         }
+        
+//         .progress-dashed {
+//           position: absolute;
+//           top: 0;
+//           height: 100%;
+//           background: repeating-linear-gradient(
+//             90deg,
+//             #cbd5e1,
+//             #cbd5e1 2px,
+//             transparent 2px,
+//             transparent 5px
+//           );
+//           border-radius: 2px;
+//           transition: left 1s ease-in-out;
+//           z-index: 0;
+//         }
+        
+//         .truck-marker {
+//           position: absolute;
+//           top: 50%;
+//           transform: translate(-50%, -50%);
+//           z-index: 3;
+//           transition: left 1s ease-in-out;
+//         }
+        
+//         .truck-marker.arrived {
+//           transform: translate(-50%, -50%);
+//         }
+        
+//         @keyframes pulse-green {
+//           0% { transform: translate(-50%, -50%) scale(1); }
+//           50% { transform: translate(-50%, -50%) scale(1.2); }
+//           100% { transform: translate(-50%, -50%) scale(1); }
+//         }
+        
+//         .truck-marker.arrived {
+//           animation: pulse-green 1.5s ease-in-out infinite;
+//         }
+//       `}</style>
+//     </div>
+//   );
+// }
 
 
 
