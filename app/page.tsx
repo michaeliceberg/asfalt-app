@@ -294,87 +294,169 @@ export default function Home() {
   // ЗАГРУЗКА ДАННЫХ
   // ============================================
 
-  const loadNewShipmentsCount = async () => {
-    try {
-      const [requestsResponse, shipmentsResponse] = await Promise.all([
-        fetch('/api/outgoing-requests'),
-        fetch('/api/shipments')
-      ]);
-      const allRequests = await requestsResponse.json();
-      const allShipments = await shipmentsResponse.json();
-      const activeCount = countActiveRequests(allRequests, allShipments, mode, 'asphalt');
-      setNewShipmentsCount(activeCount);
-    } catch (err) {
-      console.error(err);
-    }
-  };
+  // const loadNewShipmentsCount = async () => {
+  //   try {
+  //     const [requestsResponse, shipmentsResponse] = await Promise.all([
+  //       fetch('/api/outgoing-requests'),
+  //       fetch('/api/shipments')
+  //     ]);
+  //     const allRequests = await requestsResponse.json();
+  //     const allShipments = await shipmentsResponse.json();
+  //     const activeCount = countActiveRequests(allRequests, allShipments, mode, 'asphalt');
+  //     setNewShipmentsCount(activeCount);
+  //   } catch (err) {
+  //     console.error(err);
+  //   }
+  // };
 
-  const loadNewConcreteCount = async () => {
-    try {
-      const [requestsResponse, shipmentsResponse] = await Promise.all([
-        fetch('/api/outgoing-requests'),
-        fetch('/api/shipments')
-      ]);
-      const allRequests = await requestsResponse.json();
-      const allShipments = await shipmentsResponse.json();
-      const currentMode = mode;
-      const activeCount = countActiveRequests(allRequests, allShipments, currentMode, 'concrete');
-      if (mode === currentMode) {
-        setNewConcreteCount(activeCount);
-      }
-    } catch (err) {
-      console.error('Error loading concrete count:', err);
-    }
-  };
+  // const loadNewConcreteCount = async () => {
+  //   try {
+  //     const [requestsResponse, shipmentsResponse] = await Promise.all([
+  //       fetch('/api/outgoing-requests'),
+  //       fetch('/api/shipments')
+  //     ]);
+  //     const allRequests = await requestsResponse.json();
+  //     const allShipments = await shipmentsResponse.json();
+  //     const currentMode = mode;
+  //     const activeCount = countActiveRequests(allRequests, allShipments, currentMode, 'concrete');
+  //     if (mode === currentMode) {
+  //       setNewConcreteCount(activeCount);
+  //     }
+  //   } catch (err) {
+  //     console.error('Error loading concrete count:', err);
+  //   }
+  // };
 
-  const loadFutureRequestsCount = async () => {
-    try {
-      const [requestsResponse, shipmentsResponse] = await Promise.all([
-        fetch('/api/outgoing-requests'),
-        fetch('/api/shipments')
-      ]);
-      let allRequests = await requestsResponse.json();
-      let allShipments = await shipmentsResponse.json();
-      if (!Array.isArray(allRequests)) {
-        console.error('allRequests is not an array:', allRequests);
-        setFutureRequestsCount(0);
-        return;
-      }
-      if (!Array.isArray(allShipments)) {
-        console.error('allShipments is not an array:', allShipments);
-        setFutureRequestsCount(0);
-        return;
-      }
-      const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
-      allRequests = allRequests.filter((r) => validFactories.includes(r.division));
-      allShipments = allShipments.filter((s) => validFactories.includes(s.division));
-      if (mode === 'iceberg') {
-        setFutureRequestsCount(0);
-        return;
-      }
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const activeTodayRequests = new Set();
-      for (const shipment of allShipments) {
-        const shipmentDate = parseRussianDate(shipment.date);
-        shipmentDate.setHours(0, 0, 0, 0);
-        if (shipmentDate.getTime() === today.getTime() && shipment.clientRequestNumber) {
-          activeTodayRequests.add(shipment.clientRequestNumber);
-        }
-      }
-      const future = allRequests.filter((req: RequestItem) => {
-        if (req.closed) return false;
-        if (!req.delivery_date) return false;
-        const deliveryDate = parseRussianDate(req.delivery_date);
-        deliveryDate.setHours(0, 0, 0, 0);
-        return deliveryDate >= today && !activeTodayRequests.has(req.number);
-      });
-      setFutureRequestsCount(future.length);
-    } catch (err) {
-      console.error('Error in loadFutureRequestsCount:', err);
-      setFutureRequestsCount(0);
+  // const loadFutureRequestsCount = async () => {
+  //   try {
+  //     const [requestsResponse, shipmentsResponse] = await Promise.all([
+  //       fetch('/api/outgoing-requests'),
+  //       fetch('/api/shipments')
+  //     ]);
+  //     let allRequests = await requestsResponse.json();
+  //     let allShipments = await shipmentsResponse.json();
+  //     if (!Array.isArray(allRequests)) {
+  //       console.error('allRequests is not an array:', allRequests);
+  //       setFutureRequestsCount(0);
+  //       return;
+  //     }
+  //     if (!Array.isArray(allShipments)) {
+  //       console.error('allShipments is not an array:', allShipments);
+  //       setFutureRequestsCount(0);
+  //       return;
+  //     }
+  //     const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
+  //     allRequests = allRequests.filter((r) => validFactories.includes(r.division));
+  //     allShipments = allShipments.filter((s) => validFactories.includes(s.division));
+  //     if (mode === 'iceberg') {
+  //       setFutureRequestsCount(0);
+  //       return;
+  //     }
+  //     const today = new Date();
+  //     today.setHours(0, 0, 0, 0);
+  //     const activeTodayRequests = new Set();
+  //     for (const shipment of allShipments) {
+  //       const shipmentDate = parseRussianDate(shipment.date);
+  //       shipmentDate.setHours(0, 0, 0, 0);
+  //       if (shipmentDate.getTime() === today.getTime() && shipment.clientRequestNumber) {
+  //         activeTodayRequests.add(shipment.clientRequestNumber);
+  //       }
+  //     }
+  //     const future = allRequests.filter((req: RequestItem) => {
+  //       if (req.closed) return false;
+  //       if (!req.delivery_date) return false;
+  //       const deliveryDate = parseRussianDate(req.delivery_date);
+  //       deliveryDate.setHours(0, 0, 0, 0);
+  //       return deliveryDate >= today && !activeTodayRequests.has(req.number);
+  //     });
+  //     setFutureRequestsCount(future.length);
+  //   } catch (err) {
+  //     console.error('Error in loadFutureRequestsCount:', err);
+  //     setFutureRequestsCount(0);
+  //   }
+  // };
+
+
+
+
+
+
+
+
+
+// ✅ ДОБАВИТЬ ПОСЛЕ loadAllData
+
+// Пересчёт активных заявок из уже загруженных данных (без fetch)
+const loadNewShipmentsCount = useCallback(() => {
+  const activeCount = countActiveRequests(
+    outgoingRequests,
+    shipmentData,
+    mode,
+    'asphalt'
+  );
+  setNewShipmentsCount(activeCount);
+}, [outgoingRequests, shipmentData, mode]);
+
+// Пересчёт бетона из уже загруженных данных (без fetch)
+const loadNewConcreteCount = useCallback(() => {
+  const activeCount = countActiveRequests(
+    outgoingRequests,
+    shipmentData,
+    mode,
+    'concrete'
+  );
+  setNewConcreteCount(activeCount);
+}, [outgoingRequests, shipmentData, mode]);
+
+// Пересчёт будущих заявок из уже загруженных данных (без fetch)
+const loadFutureRequestsCount = useCallback(() => {
+  if (mode === 'iceberg') {
+    setFutureRequestsCount(0);
+    return;
+  }
+  
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const validFactories = ['ЛХ', 'ЛЮ'];
+  const filteredRequests = outgoingRequests.filter(r => 
+    validFactories.includes(r.division) && !r.closed
+  );
+  
+  const activeTodayRequests = new Set();
+  for (const shipment of shipmentData) {
+    const shipmentDate = parseRussianDate(shipment.date);
+    shipmentDate.setHours(0, 0, 0, 0);
+    if (shipmentDate.getTime() === today.getTime() && shipment.clientRequestNumber) {
+      activeTodayRequests.add(shipment.clientRequestNumber);
     }
-  };
+  }
+  
+  const future = filteredRequests.filter(req => {
+    if (!req.delivery_date) return false;
+    const deliveryDate = parseRussianDate(req.delivery_date);
+    deliveryDate.setHours(0, 0, 0, 0);
+    return deliveryDate >= today && !activeTodayRequests.has(req.number);
+  });
+  
+  setFutureRequestsCount(future.length);
+}, [outgoingRequests, shipmentData, mode]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
   const loadOutgoingRequests = async () => {
     try {
@@ -463,92 +545,198 @@ export default function Home() {
     }
   };
 
-  // ⭐ ГЛАВНАЯ ФУНКЦИЯ ЗАГРУЗКИ — используем /api/all-data
-  const loadAllData = async () => {
-    try {
-      const response = await fetch('/api/all-data');
-      const data = await response.json();
+
+
+
+
+
+  // // ⭐ ГЛАВНАЯ ФУНКЦИЯ ЗАГРУЗКИ — используем /api/all-data
+  // const loadAllData = async () => {
+  //   try {
+  //     const response = await fetch('/api/all-data');
+  //     const data = await response.json();
       
-      if (data.shipments) {
-        console.log(`📦 Загружено ${data.shipments.length} отгрузок`);
-        setShipmentData(data.shipments);
-      }
-      if (data.outgoingRequests) {
-        console.log(`📋 Загружено ${data.outgoingRequests.length} заявок`);
-        setOutgoingRequests(data.outgoingRequests);
-      }
-      if (data.incoming) {
-        console.log(`📥 Загружено ${data.incoming.length} поступлений`);
-        setIncomingData(data.incoming);
-      }
+  //     if (data.shipments) {
+  //       console.log(`📦 Загружено ${data.shipments.length} отгрузок`);
+  //       setShipmentData(data.shipments);
+  //     }
+  //     if (data.outgoingRequests) {
+  //       console.log(`📋 Загружено ${data.outgoingRequests.length} заявок`);
+  //       setOutgoingRequests(data.outgoingRequests);
+  //     }
+  //     if (data.incoming) {
+  //       console.log(`📥 Загружено ${data.incoming.length} поступлений`);
+  //       setIncomingData(data.incoming);
+  //     }
       
-      // Обновляем список заводов
-      const factorySet = new Set<string>();
-      (data.shipments || []).forEach((item: ShipmentItem) => {
-        if (item.division) factorySet.add(item.division);
-      });
-      (data.incoming || []).forEach((item: IncomingItem) => {
-        if (item.division) factorySet.add(item.division);
-        if (item.number?.startsWith('ЛХ')) factorySet.add('ЛХ');
-        if (item.number?.startsWith('ЛЮ')) factorySet.add('ЛЮ');
-        if (item.number?.startsWith('СП')) factorySet.add('СП');
-        if (item.number?.startsWith('Щ')) factorySet.add('Щ');
-      });
-      setFactories(Array.from(factorySet).sort());
-    } catch (error) {
-      console.error('Error loading all data:', error);
+  //     // Обновляем список заводов
+  //     const factorySet = new Set<string>();
+  //     (data.shipments || []).forEach((item: ShipmentItem) => {
+  //       if (item.division) factorySet.add(item.division);
+  //     });
+  //     (data.incoming || []).forEach((item: IncomingItem) => {
+  //       if (item.division) factorySet.add(item.division);
+  //       if (item.number?.startsWith('ЛХ')) factorySet.add('ЛХ');
+  //       if (item.number?.startsWith('ЛЮ')) factorySet.add('ЛЮ');
+  //       if (item.number?.startsWith('СП')) factorySet.add('СП');
+  //       if (item.number?.startsWith('Щ')) factorySet.add('Щ');
+  //     });
+  //     setFactories(Array.from(factorySet).sort());
+  //   } catch (error) {
+  //     console.error('Error loading all data:', error);
+  //   }
+  // };
+
+
+const loadAllData = async () => {
+  try {
+    const response = await fetch('/api/all-data');
+    const data = await response.json();
+    
+    if (data.shipments) {
+      console.log(`📦 Загружено ${data.shipments.length} отгрузок`);
+      setShipmentData(data.shipments);
     }
-  };
+    if (data.outgoingRequests) {
+      console.log(`📋 Загружено ${data.outgoingRequests.length} заявок`);
+      setOutgoingRequests(data.outgoingRequests);
+    }
+    if (data.incoming) {
+      console.log(`📥 Загружено ${data.incoming.length} поступлений`);
+      setIncomingData(data.incoming);
+    }
+    
+    // ✅ ОБНОВЛЯЕМ ВРЕМЯ СИНХРОНИЗАЦИИ
+    await Promise.all([
+      loadCronInfo(),
+      loadShipmentCronInfo(),
+      loadLastImportInfo()
+    ]);
+    
+  } catch (error) {
+    console.error('Error loading all data:', error);
+  }
+};
+
+
+
+
+
+
+
+
+
 
   // ============================================
   // ОБНОВЛЕНИЕ ДАННЫХ
   // ============================================
 
-  const handleRefresh = async () => {
-    if (refreshing) return;
-    setRefreshing(true);
-    try {
-      if (activeMainTab === 'incoming') {
-        await fetch('/api/cron', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
-        await loadAllData();
-        await loadCronInfo();
-        setNotificationMessage('✅ Поступления обновлены');
-      } else if (activeMainTab === 'shipment') {
-        await fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
-        await loadAllData();
-        await loadShipmentCronInfo();
-        await loadNewShipmentsCount();
-        setNotificationMessage('✅ Отгрузки асфальта обновлены');
-      } else if (activeMainTab === 'shipmentConcrete') {
-        await fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
-        await loadAllData();
-        await loadShipmentCronInfo();
-        await loadNewConcreteCount();
-        setNotificationMessage('✅ Отгрузки бетона обновлены');
-      } else if (activeMainTab === 'summary') {
-        await Promise.all([
-          fetch('/api/cron', { headers: { 'Authorization': 'Bearer icg72xf3b1' } }),
-          fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } }),
-        ]);
-        await loadAllData();
-        await loadFutureRequestsCount();
-        await loadNewShipmentsCount();
-        await loadNewConcreteCount();
-        setNotificationMessage('✅ Все данные обновлены');
-      }
-      setShowNotification(true);
-      setTimeout(() => setShowNotification(false), 2000);
-      setShouldShake(true);
-      setTimeout(() => setShouldShake(false), 500);
-    } catch (err) {
-      console.error('Ошибка при обновлении:', err);
-      setNotificationMessage('⚠️ Ошибка обновления');
-      setShowNotification(true);
-      setTimeout(() => setShowNotification(false), 2000);
-    } finally {
-      setRefreshing(false);
+
+
+
+  // const handleRefresh = async () => {
+  //   if (refreshing) return;
+  //   setRefreshing(true);
+  //   try {
+  //     if (activeMainTab === 'incoming') {
+  //       await fetch('/api/cron', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
+  //       await loadAllData();
+  //       await loadCronInfo();
+  //       setNotificationMessage('✅ Поступления обновлены');
+  //     } else if (activeMainTab === 'shipment') {
+  //       await fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
+  //       await loadAllData();
+  //       await loadShipmentCronInfo();
+  //       await loadNewShipmentsCount();
+  //       setNotificationMessage('✅ Отгрузки асфальта обновлены');
+  //     } else if (activeMainTab === 'shipmentConcrete') {
+  //       await fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
+  //       await loadAllData();
+  //       await loadShipmentCronInfo();
+  //       await loadNewConcreteCount();
+  //       setNotificationMessage('✅ Отгрузки бетона обновлены');
+  //     } else if (activeMainTab === 'summary') {
+  //       await Promise.all([
+  //         fetch('/api/cron', { headers: { 'Authorization': 'Bearer icg72xf3b1' } }),
+  //         fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } }),
+  //       ]);
+  //       await loadAllData();
+  //       await loadFutureRequestsCount();
+  //       await loadNewShipmentsCount();
+  //       await loadNewConcreteCount();
+  //       setNotificationMessage('✅ Все данные обновлены');
+  //     }
+  //     setShowNotification(true);
+  //     setTimeout(() => setShowNotification(false), 2000);
+  //     setShouldShake(true);
+  //     setTimeout(() => setShouldShake(false), 500);
+  //   } catch (err) {
+  //     console.error('Ошибка при обновлении:', err);
+  //     setNotificationMessage('⚠️ Ошибка обновления');
+  //     setShowNotification(true);
+  //     setTimeout(() => setShowNotification(false), 2000);
+  //   } finally {
+  //     setRefreshing(false);
+  //   }
+  // };
+
+
+const handleRefresh = async () => {
+  if (refreshing) return;
+  setRefreshing(true);
+  try {
+    if (activeMainTab === 'incoming') {
+      await fetch('/api/cron', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
+      await loadAllData();
+      await loadCronInfo();
+      setNotificationMessage('✅ Поступления обновлены');
+    } else if (activeMainTab === 'shipment') {
+      await fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
+      await loadAllData();
+      await loadShipmentCronInfo();
+      loadNewShipmentsCount(); // ✅ БЕЗ await
+      setNotificationMessage('✅ Отгрузки асфальта обновлены');
+    } else if (activeMainTab === 'shipmentConcrete') {
+      await fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
+      await loadAllData();
+      await loadShipmentCronInfo();
+      loadNewConcreteCount(); // ✅ БЕЗ await
+      setNotificationMessage('✅ Отгрузки бетона обновлены');
+    } else if (activeMainTab === 'summary') {
+      await Promise.all([
+        fetch('/api/cron', { headers: { 'Authorization': 'Bearer icg72xf3b1' } }),
+        fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } }),
+      ]);
+      await loadAllData();
+      loadFutureRequestsCount(); // ✅ БЕЗ await
+      loadNewShipmentsCount(); // ✅ БЕЗ await
+      loadNewConcreteCount(); // ✅ БЕЗ await
+      setNotificationMessage('✅ Все данные обновлены');
     }
-  };
+    setShowNotification(true);
+    setTimeout(() => setShowNotification(false), 2000);
+    setShouldShake(true);
+    setTimeout(() => setShouldShake(false), 500);
+  } catch (err) {
+    console.error('Ошибка при обновлении:', err);
+    setNotificationMessage('⚠️ Ошибка обновления');
+    setShowNotification(true);
+    setTimeout(() => setShowNotification(false), 2000);
+  } finally {
+    setRefreshing(false);
+  }
+};
+
+
+
+
+
+
+
+
+
+
+
 
   const handleRetry = () => {
     setLoading(true);
@@ -682,31 +870,72 @@ export default function Home() {
   // ============================================
 
   // ✅ ОСНОВНОЙ useEffect для загрузки данных
-  useEffect(() => {
-    let isMounted = true;
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        await loadAllData();
-        await loadFutureRequestsCount();
-        await loadNewShipmentsCount();
-        await loadNewConcreteCount();
-        await loadLastImportInfo();
-        if (isMounted) {
-          setLoading(false);
-        }
-      } catch (err) {
-        if (isMounted) {
-          setError(err instanceof Error ? err.message : 'Ошибка');
-          setLoading(false);
-        }
+  // useEffect(() => {
+  //   let isMounted = true;
+  //   const fetchData = async () => {
+  //     try {
+  //       setLoading(true);
+  //       await loadAllData();
+  //       await loadFutureRequestsCount();
+  //       await loadNewShipmentsCount();
+  //       await loadNewConcreteCount();
+  //       await loadLastImportInfo();
+  //       if (isMounted) {
+  //         setLoading(false);
+  //       }
+  //     } catch (err) {
+  //       if (isMounted) {
+  //         setError(err instanceof Error ? err.message : 'Ошибка');
+  //         setLoading(false);
+  //       }
+  //     }
+  //   };
+  //   fetchData();
+  //   return () => {
+  //     isMounted = false;
+  //   };
+  // }, []);
+
+
+// ✅ ОСНОВНОЙ useEffect для загрузки данных
+useEffect(() => {
+  let isMounted = true;
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      await loadAllData();
+      // ✅ Пересчёт счётчиков из загруженных данных
+      loadFutureRequestsCount();
+      loadNewShipmentsCount();
+      loadNewConcreteCount();
+      await loadLastImportInfo();
+      if (isMounted) {
+        setLoading(false);
       }
-    };
-    fetchData();
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    } catch (err) {
+      if (isMounted) {
+        setError(err instanceof Error ? err.message : 'Ошибка');
+        setLoading(false);
+      }
+    }
+  };
+  fetchData();
+  return () => {
+    isMounted = false;
+  };
+}, []);
+
+
+
+
+
+
+
+
+
+
+
+
 
   // ✅ Автообновление каждые 60 секунд
   useEffect(() => {
