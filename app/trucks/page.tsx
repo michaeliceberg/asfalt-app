@@ -200,7 +200,7 @@ useEffect(() => {
   useEffect(() => {
     const timeInterval = setInterval(() => {
       setCurrentTime(Date.now());
-    }, 30000);
+    }, 60000);
     return () => clearInterval(timeInterval);
   }, []);
 

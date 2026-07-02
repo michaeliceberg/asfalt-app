@@ -295,7 +295,7 @@ useEffect(() => {
   };
   
   fetchDistances();
-  const interval = setInterval(fetchDistances, 30000);
+  const interval = setInterval(fetchDistances, 60000);
   return () => clearInterval(interval);
 }, [mode]);
 

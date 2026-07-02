@@ -647,30 +647,53 @@ const loadFutureRequestsCount = async () => {
 
 
 
+// const loadAllData = async () => {
+//   try {
+//     const [incoming, shipment] = await Promise.all([
+//       loadIncomingData(),
+//       loadShipmentData(),
+//       loadOutgoingRequests(),
+//     ]);
+    
+//     const factorySet = new Set<string>();
+    
+//     // Добавляем все найденные заводы
+//     (incoming as IncomingItem[]).forEach(item => {
+//       if (item.division) factorySet.add(item.division);
+//       if (item.number?.startsWith('ЛХ')) factorySet.add('ЛХ');
+//       if (item.number?.startsWith('ЛЮ')) factorySet.add('ЛЮ');
+//       if (item.number?.startsWith('СП')) factorySet.add('СП');
+//       if (item.number?.startsWith('Щ')) factorySet.add('Щ');
+//     });
+    
+//     (shipment as ShipmentItem[]).forEach(item => {
+//       if (item.division) factorySet.add(item.division);
+//     });
+    
+//     setFactories(Array.from(factorySet).sort());
+//   } catch (err) {
+//     console.error('Error loading all data:', err);
+//   }
+// };
+
+// app/page.tsx
+
 const loadAllData = async () => {
   try {
-    const [incoming, shipment] = await Promise.all([
-      loadIncomingData(),
-      loadShipmentData(),
-      loadOutgoingRequests(),
-    ]);
+    // Загружаем последовательно, а не параллельно
+    console.log('🔄 Загрузка поступлений...');
+    await loadIncomingData();
+    await new Promise(resolve => setTimeout(resolve, 100));
     
-    const factorySet = new Set<string>();
+    console.log('🔄 Загрузка отгрузок...');
+    await loadShipmentData();
+    await new Promise(resolve => setTimeout(resolve, 100));
     
-    // Добавляем все найденные заводы
-    (incoming as IncomingItem[]).forEach(item => {
-      if (item.division) factorySet.add(item.division);
-      if (item.number?.startsWith('ЛХ')) factorySet.add('ЛХ');
-      if (item.number?.startsWith('ЛЮ')) factorySet.add('ЛЮ');
-      if (item.number?.startsWith('СП')) factorySet.add('СП');
-      if (item.number?.startsWith('Щ')) factorySet.add('Щ');
-    });
+    console.log('🔄 Загрузка заявок...');
+    await loadOutgoingRequests();
+    await new Promise(resolve => setTimeout(resolve, 100));
     
-    (shipment as ShipmentItem[]).forEach(item => {
-      if (item.division) factorySet.add(item.division);
-    });
-    
-    setFactories(Array.from(factorySet).sort());
+    console.log('✅ Все данные загружены');
   } catch (err) {
     console.error('Error loading all data:', err);
   }
@@ -977,7 +1000,7 @@ const loadAllData = async () => {
         loadNewConcreteCount();
       }
     }
-  }, 30000);
+  }, 60000);
   
   return () => clearInterval(interval);
 }, [activeMainTab, mode]);

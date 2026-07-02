@@ -12,7 +12,7 @@ export async function GET() {
       .select()
       .from(shipments)
       .where(isNotNull(shipments.distance_to_dest))
-      .limit(500);
+      .limit(200);
 
     console.log(`📡 Found ${allShipments.length} shipments with distances`);
 

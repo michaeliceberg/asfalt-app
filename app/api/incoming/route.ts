@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { db } from '@/lib/db';
 import { incomingMaterials } from '@/lib/db/schema';
 import { getUserAccessibleFactories } from '@/lib/auth';
-import { sql, eq } from 'drizzle-orm';
+import { sql, eq, desc } from 'drizzle-orm';
 
 export async function GET(request: Request) {
   try {
@@ -64,6 +64,8 @@ export async function GET(request: Request) {
         createdAt: incomingMaterials.createdAt,
       })
       .from(incomingMaterials)
+      .orderBy(desc(incomingMaterials.date))
+      .limit(200)
       .groupBy(
         incomingMaterials.number,
         incomingMaterials.date,
