@@ -678,24 +678,39 @@ const loadFutureRequestsCount = async () => {
 
 // app/page.tsx
 
+// const loadAllData = async () => {
+//   try {
+//     // Загружаем последовательно, а не параллельно
+//     console.log('🔄 Загрузка поступлений...');
+//     await loadIncomingData();
+//     await new Promise(resolve => setTimeout(resolve, 100));
+    
+//     console.log('🔄 Загрузка отгрузок...');
+//     await loadShipmentData();
+//     await new Promise(resolve => setTimeout(resolve, 100));
+    
+//     console.log('🔄 Загрузка заявок...');
+//     await loadOutgoingRequests();
+//     await new Promise(resolve => setTimeout(resolve, 100));
+    
+//     console.log('✅ Все данные загружены');
+//   } catch (err) {
+//     console.error('Error loading all data:', err);
+//   }
+// };
+
+
+// Вместо loadIncomingData(), loadShipmentData(), loadOutgoingRequests()
 const loadAllData = async () => {
   try {
-    // Загружаем последовательно, а не параллельно
-    console.log('🔄 Загрузка поступлений...');
-    await loadIncomingData();
-    await new Promise(resolve => setTimeout(resolve, 100));
+    const response = await fetch('/api/all-data');
+    const data = await response.json();
     
-    console.log('🔄 Загрузка отгрузок...');
-    await loadShipmentData();
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    console.log('🔄 Загрузка заявок...');
-    await loadOutgoingRequests();
-    await new Promise(resolve => setTimeout(resolve, 100));
-    
-    console.log('✅ Все данные загружены');
-  } catch (err) {
-    console.error('Error loading all data:', err);
+    if (data.shipments) setShipmentData(data.shipments);
+    if (data.outgoingRequests) setOutgoingRequests(data.outgoingRequests);
+    if (data.incoming) setIncomingData(data.incoming);
+  } catch (error) {
+    console.error('Error loading data:', error);
   }
 };
 

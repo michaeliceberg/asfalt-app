@@ -111,6 +111,11 @@ export async function proxy(request: NextRequest) {
   
   // API для здоровья
   '/api/health',
+
+
+  '/api/all-data',
+
+  
 ];
 
 
