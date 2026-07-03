@@ -588,6 +588,36 @@ const loadFutureRequestsCount = useCallback(() => {
   // };
 
 
+// const loadAllData = async () => {
+//   try {
+//     const response = await fetch('/api/all-data');
+//     const data = await response.json();
+    
+//     if (data.shipments) {
+//       console.log(`📦 Загружено ${data.shipments.length} отгрузок`);
+//       setShipmentData(data.shipments);
+//     }
+//     if (data.outgoingRequests) {
+//       console.log(`📋 Загружено ${data.outgoingRequests.length} заявок`);
+//       setOutgoingRequests(data.outgoingRequests);
+//     }
+//     if (data.incoming) {
+//       console.log(`📥 Загружено ${data.incoming.length} поступлений`);
+//       setIncomingData(data.incoming);
+//     }
+    
+//     // ✅ ОБНОВЛЯЕМ ВРЕМЯ СИНХРОНИЗАЦИИ
+//     await Promise.all([
+//       loadCronInfo(),
+//       loadShipmentCronInfo(),
+//       loadLastImportInfo()
+//     ]);
+    
+//   } catch (error) {
+//     console.error('Error loading all data:', error);
+//   }
+// };
+
 const loadAllData = async () => {
   try {
     const response = await fetch('/api/all-data');
@@ -606,19 +636,40 @@ const loadAllData = async () => {
       setIncomingData(data.incoming);
     }
     
-    // ✅ ОБНОВЛЯЕМ ВРЕМЯ СИНХРОНИЗАЦИИ
-    await Promise.all([
-      loadCronInfo(),
-      loadShipmentCronInfo(),
-      loadLastImportInfo()
-    ]);
+    // ✅ Обновляем список заводов из всех данных
+    const factorySet = new Set<string>();
+    
+    // Из отгрузок
+    (data.shipments || []).forEach((item: ShipmentItem) => {
+      if (item.division) factorySet.add(item.division);
+    });
+    
+    // Из заявок
+    (data.outgoingRequests || []).forEach((item: OutgoingRequest) => {
+      if (item.division) factorySet.add(item.division);
+    });
+    
+    // Из поступлений
+    (data.incoming || []).forEach((item: IncomingItem) => {
+      if (item.division) factorySet.add(item.division);
+      if (item.number?.startsWith('ЛХ')) factorySet.add('ЛХ');
+      if (item.number?.startsWith('ЛЮ')) factorySet.add('ЛЮ');
+      if (item.number?.startsWith('СП')) factorySet.add('СП');
+      if (item.number?.startsWith('Щ')) factorySet.add('Щ');
+    });
+    
+    setFactories(Array.from(factorySet).sort());
+    console.log('🏭 Заводы:', Array.from(factorySet).sort());
+    
+    // Пересчёт счётчиков
+    loadNewShipmentsCount();
+    loadNewConcreteCount();
+    loadFutureRequestsCount();
     
   } catch (error) {
     console.error('Error loading all data:', error);
   }
 };
-
-
 
 
 
