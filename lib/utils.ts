@@ -49,19 +49,35 @@ export const getDateKey = (dateString: string): string => {
 // МАТЕРИАЛЫ
 // ============================================
 
+
+
 export const isConcreteMaterial = (material: string): boolean => {
   if (!material) return false;
   const lower = material.toLowerCase();
   
-  // Исключения — то, что точно НЕ бетон
+  // ❌ Исключения — то, что точно НЕ бетон
   const excludeMarkers = ['асфальт', 'а/б', 'щма', 'пбв', 'гранит', 'щебень', 'песок', 'битум', 'эмульсия'];
-  
   for (const marker of excludeMarkers) {
     if (lower.includes(marker)) return false;
   }
   
-  // Маркеры бетона
-  const concreteMarkers = ['бст', 'бсм', 'бетон', 'раствор'];
+  // ✅ Маркеры бетона (добавляем новые)
+  const concreteMarkers = [
+    'бст',      // бетонная смесь тяжелая
+    'бсм',      // бетонная смесь мелкозернистая
+    'бетон',    // бетон
+    'раствор',  // раствор
+    'в25',      // класс бетона В25
+    'в30',      // класс бетона В30
+    'в35',      // класс бетона В35
+    'f200',     // морозостойкость
+    'f300',     // морозостойкость
+    'w6',       // водонепроницаемость
+    'w8',       // водонепроницаемость
+    'w10',      // водонепроницаемость
+    'п4',       // подвижность
+    'п5',       // подвижность
+  ];
   
   for (const marker of concreteMarkers) {
     if (lower.includes(marker)) return true;
@@ -69,6 +85,36 @@ export const isConcreteMaterial = (material: string): boolean => {
   
   return false;
 };
+
+
+
+// export const isConcreteMaterial = (material: string): boolean => {
+//   if (!material) return false;
+//   const lower = material.toLowerCase();
+  
+//   // Исключения — то, что точно НЕ бетон
+//   const excludeMarkers = ['асфальт', 'а/б', 'щма', 'пбв', 'гранит', 'щебень', 'песок', 'битум', 'эмульсия'];
+  
+//   for (const marker of excludeMarkers) {
+//     if (lower.includes(marker)) return false;
+//   }
+  
+//   // Маркеры бетона
+//   const concreteMarkers = ['бст', 'бсм', 'бетон', 'раствор'];
+  
+//   for (const marker of concreteMarkers) {
+//     if (lower.includes(marker)) return true;
+//   }
+  
+//   return false;
+// };
+
+
+
+
+
+
+
 
 export const isSpecialMaterial = (material: string): boolean => {
   if (!material) return false;
