@@ -189,3 +189,14 @@ export const pushSubscriptions = sqliteTable('push_subscriptions', {
   created_at: integer('created_at').notNull(),
   updated_at: integer('updated_at'),
 });
+
+
+
+
+
+export const shipmentStartNotifications = sqliteTable('shipment_start_notifications', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  request_number: text('request_number').notNull().unique(),
+  sent_at: integer('sent_at').notNull(),
+  factory: text('factory').notNull(),
+});

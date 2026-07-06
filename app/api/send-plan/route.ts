@@ -44,9 +44,15 @@ async function sendWithKeyboard(chatId: string, message: string): Promise<boolea
     }
 }
 
-// Отправка обычного сообщения (без клавиатуры)
+
+
+
+
 async function sendMessage(chatId: string, message: string): Promise<boolean> {
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 секунд таймаут
+        
         const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
         const response = await fetch(url, {
             method: 'POST',
@@ -55,8 +61,10 @@ async function sendMessage(chatId: string, message: string): Promise<boolean> {
                 chat_id: chatId,
                 text: message,
                 parse_mode: 'Markdown'
-            })
+            }),
+            signal: controller.signal,
         });
+        clearTimeout(timeoutId);
         return response.ok;
     } catch (error) {
         console.error('Send error:', error);
@@ -191,65 +199,6 @@ async function getNewRequests(): Promise<OutgoingRequest[]> {
     });
 }
 
-// Отправка новых заявок
-// async function sendNewRequests(): Promise<number> {
-//     const newRequests = await getNewRequests();
-    
-//     if (newRequests.length === 0) {
-//         return 0;
-//     }
-    
-//     const today = new Date();
-//     const todayStr = today.toISOString().split('T')[0];
-    
-//     const byDivision = new Map();
-//     for (const req of newRequests) {
-//         const division = req.division || 'Другие';
-//         if (!byDivision.has(division)) byDivision.set(division, new Map());
-//         const byConsignee = byDivision.get(division);
-//         const consignee = req.consignee || req.customer || 'Неизвестно';
-//         if (!byConsignee.has(consignee)) byConsignee.set(consignee, { total: 0, items: [], deliveryDate: req.delivery_date });
-//         const group = byConsignee.get(consignee);
-//         group.total += req.quantity;
-//         group.items.push({ material: req.material, quantity: req.quantity });
-//     }
-    
-//     let message = `🆕 *НОВЫЕ ЗАЯВКИ*\n\n`;
-//     for (const [division, byConsignee] of byDivision) {
-//         const divisionName = division === 'Люберцы' ? '🏭 Люберецкий' : '🏭 Луховицкий';
-//         message += `*${divisionName}*\n`;
-//         for (const [consignee, data] of byConsignee) {
-//             const dateLabel = data.deliveryDate && data.deliveryDate.split('T')[0] === todayStr ? '🚨 СЕГОДНЯ' : '📅 НА ЗАВТРА';
-//             message += `▫️ ${consignee} — ${data.total} т ${dateLabel}\n`;
-//             if (data.items.length === 1 && data.items[0].material) {
-//                 message += `   • ${data.items[0].material}\n`;
-//             }
-//         }
-//     }
-//     message += `\n📌 Всего новых: ${newRequests.length}\n🕐 ${new Date().toLocaleTimeString('ru-RU')}`;
-    
-//     // Сохраняем отправленные заявки
-//     for (const req of newRequests) {
-//         const existing = await db.select().from(sentNotifications).where(eq(sentNotifications.requestNumber, req.number));
-//         if (existing.length === 0) {
-//             await db.insert(sentNotifications).values({
-//                 requestNumber: req.number,
-//                 sentAt: Date.now(),
-//             });
-//         }
-//     }
-    
-//     // Отправляем сообщение
-//     let successCount = 0;
-//     for (const chatId of TELEGRAM_CHAT_IDS) {
-//         const sent = await sendMessage(chatId.trim(), message);
-//         if (sent) successCount++;
-//     }
-    
-//     return successCount;
-// }
-
-
 
 
 
@@ -305,28 +254,8 @@ async function sendNewRequests(): Promise<number> {
 
 
 
-//   // ✅ Отправляем push-уведомления
-//   try {
-//     // Отправляем всем администраторам
-//     const adminUsers = await db
-//       .select()
-//       .from(users)
-//       .where(eq(users.group_id, 1)); // Админы
-    
-//     for (const user of adminUsers) {
-//       await sendPushNotification(user.id, {
-//         title: `📋 Новые заявки (${newRequests.length})`,
-//         body: `Появилось ${newRequests.length} новых заявок на сегодня/завтра`,
-//         tag: `new-requests-${Date.now()}`,
-//         url: '/',
-//       });
-//     }
-//     console.log(`✅ Push-уведомления отправлены ${adminUsers.length} пользователям`);
-//   } catch (error) {
-//     console.error('❌ Ошибка отправки push-уведомлений о новых заявках:', error);
-//   }
   
-// Отправляем push-уведомления
+
 try {
   const adminUsers = await db
     .select()

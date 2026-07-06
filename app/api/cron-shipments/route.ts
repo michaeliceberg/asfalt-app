@@ -34,6 +34,8 @@ interface ShipmentItem {
 // ФУНКЦИЯ ДЛЯ ОТСЛЕЖИВАНИЯ НОВЫХ ОТГРУЗОК
 // ============================================
 
+
+
 async function checkNewShipmentStarts(shipmentsData: ShipmentItem[]) {
   try {
     // Получаем уже отправленные уведомления
@@ -49,7 +51,7 @@ async function checkNewShipmentStarts(shipmentsData: ShipmentItem[]) {
       const requestNumber = shipment.ЗаявкаНаОтгрузкуНомер;
       if (!requestNumber) continue;
       
-      // Пропускаем, если уведомление уже отправлено
+      // ✅ ПРОПУСКАЕМ, ЕСЛИ УВЕДОМЛЕНИЕ УЖЕ ОТПРАВЛЕНО
       if (sentRequestNumbers.has(requestNumber)) continue;
       
       if (!shipmentsByRequest.has(requestNumber)) {
@@ -60,7 +62,7 @@ async function checkNewShipmentStarts(shipmentsData: ShipmentItem[]) {
 
     // Проверяем каждую заявку
     for (const [requestNumber, requestShipments] of shipmentsByRequest) {
-      // Проверяем, есть ли уже отгрузки по этой заявке в БД
+      // ✅ Проверяем, есть ли уже отгрузки по этой заявке в БД
       const existingShipments = await db
         .select()
         .from(shipments)
@@ -79,14 +81,14 @@ async function checkNewShipmentStarts(shipmentsData: ShipmentItem[]) {
       const firstShipment = requestShipments[0];
       if (!firstShipment) continue;
 
-      // Определяем название завода
+      // ✅ ОПРЕДЕЛЯЕМ НАЗВАНИЕ ЗАВОДА
       let factoryName = '';
       const division = firstShipment.Подразделение;
       if (division === 'Луховицы') factoryName = 'ЛХ';
       else if (division === 'Люберцы') factoryName = 'ЛЮ';
       else if (division === 'Сергиев Посад') factoryName = 'СП';
       else if (division === 'Щёлково') factoryName = 'Щ';
-      else continue;
+      else continue; // Неизвестный завод — пропускаем
 
       // Определяем пункт назначения
       const consignee = firstShipment.Грузополучатель || 'ПК';
@@ -110,7 +112,7 @@ async function checkNewShipmentStarts(shipmentsData: ShipmentItem[]) {
         await sendPushNotification(admin.id, message);
       }
 
-      // Сохраняем, что уведомление отправлено
+      // ✅ Сохраняем, что уведомление отправлено
       await db.insert(shipmentStartNotifications).values({
         request_number: requestNumber,
         sent_at: Date.now(),
@@ -123,6 +125,98 @@ async function checkNewShipmentStarts(shipmentsData: ShipmentItem[]) {
     console.error('❌ Ошибка проверки новых отгрузок:', error);
   }
 }
+
+
+
+// async function checkNewShipmentStarts(shipmentsData: ShipmentItem[]) {
+//   try {
+//     // Получаем уже отправленные уведомления
+//     const sentNotifications = await db
+//       .select()
+//       .from(shipmentStartNotifications);
+
+//     const sentRequestNumbers = new Set(sentNotifications.map(n => n.request_number));
+
+//     // Группируем отгрузки по заявкам
+//     const shipmentsByRequest = new Map<string, ShipmentItem[]>();
+//     for (const shipment of shipmentsData) {
+//       const requestNumber = shipment.ЗаявкаНаОтгрузкуНомер;
+//       if (!requestNumber) continue;
+      
+//       // Пропускаем, если уведомление уже отправлено
+//       if (sentRequestNumbers.has(requestNumber)) continue;
+      
+//       if (!shipmentsByRequest.has(requestNumber)) {
+//         shipmentsByRequest.set(requestNumber, []);
+//       }
+//       shipmentsByRequest.get(requestNumber)!.push(shipment);
+//     }
+
+//     // Проверяем каждую заявку
+//     for (const [requestNumber, requestShipments] of shipmentsByRequest) {
+//       // Проверяем, есть ли уже отгрузки по этой заявке в БД
+//       const existingShipments = await db
+//         .select()
+//         .from(shipments)
+//         .where(eq(shipments.clientRequestNumber, requestNumber))
+//         .orderBy(shipments.date);
+
+//       // Если уже есть отгрузки в БД — пропускаем
+//       if (existingShipments.length > 0) {
+//         const existingNumbers = new Set(existingShipments.map(s => s.number));
+//         const newNumbers = new Set(requestShipments.map(s => s.Номер));
+//         const hasExisting = [...existingNumbers].some(id => !newNumbers.has(id));
+//         if (hasExisting) continue;
+//       }
+
+//       // ✅ Это первая отгрузка по заявке!
+//       const firstShipment = requestShipments[0];
+//       if (!firstShipment) continue;
+
+//       // Определяем название завода
+//       let factoryName = '';
+//       const division = firstShipment.Подразделение;
+//       if (division === 'Луховицы') factoryName = 'ЛХ';
+//       else if (division === 'Люберцы') factoryName = 'ЛЮ';
+//       else if (division === 'Сергиев Посад') factoryName = 'СП';
+//       else if (division === 'Щёлково') factoryName = 'Щ';
+//       else continue;
+
+//       // Определяем пункт назначения
+//       const consignee = firstShipment.Грузополучатель || 'ПК';
+//       const quantity = Math.round(firstShipment.Количество || 0);
+
+//       // Формируем сообщение
+//       const message = {
+//         title: '🚀 Началась отгрузка!',
+//         body: `${factoryName} ${quantity} т\n${consignee}`,
+//         tag: `start-${requestNumber}`,
+//         url: '/',
+//       };
+
+//       // Отправляем администраторам
+//       const adminUsers = await db
+//         .select()
+//         .from(users)
+//         .where(eq(users.group_id, 1));
+
+//       for (const admin of adminUsers) {
+//         await sendPushNotification(admin.id, message);
+//       }
+
+//       // Сохраняем, что уведомление отправлено
+//       await db.insert(shipmentStartNotifications).values({
+//         request_number: requestNumber,
+//         sent_at: Date.now(),
+//         factory: factoryName,
+//       });
+
+//       console.log(`📤 Уведомление о начале отгрузки по заявке ${requestNumber} (${factoryName})`);
+//     }
+//   } catch (error) {
+//     console.error('❌ Ошибка проверки новых отгрузок:', error);
+//   }
+// }
 
 // ============================================
 // ОСНОВНАЯ ФУНКЦИЯ СИНХРОНИЗАЦИИ
