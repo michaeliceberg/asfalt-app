@@ -300,27 +300,137 @@ async function sendNewRequests(): Promise<number> {
     }
   }
   
-  // ✅ Отправляем push-уведомления
-  try {
-    // Отправляем всем администраторам
-    const adminUsers = await db
-      .select()
-      .from(users)
-      .where(eq(users.group_id, 1)); // Админы
+
+
+
+
+
+//   // ✅ Отправляем push-уведомления
+//   try {
+//     // Отправляем всем администраторам
+//     const adminUsers = await db
+//       .select()
+//       .from(users)
+//       .where(eq(users.group_id, 1)); // Админы
     
-    for (const user of adminUsers) {
-      await sendPushNotification(user.id, {
-        title: `📋 Новые заявки (${newRequests.length})`,
-        body: `Появилось ${newRequests.length} новых заявок на сегодня/завтра`,
+//     for (const user of adminUsers) {
+//       await sendPushNotification(user.id, {
+//         title: `📋 Новые заявки (${newRequests.length})`,
+//         body: `Появилось ${newRequests.length} новых заявок на сегодня/завтра`,
+//         tag: `new-requests-${Date.now()}`,
+//         url: '/',
+//       });
+//     }
+//     console.log(`✅ Push-уведомления отправлены ${adminUsers.length} пользователям`);
+//   } catch (error) {
+//     console.error('❌ Ошибка отправки push-уведомлений о новых заявках:', error);
+//   }
+  
+// Отправляем push-уведомления
+try {
+  const adminUsers = await db
+    .select()
+    .from(users)
+    .where(eq(users.group_id, 1));
+  
+  // Группируем заявки по заводам для красивого сообщения
+  const byDivision = new Map<string, { total: number; items: { consignee: string; material: string; quantity: number; deliveryDate: string }[] }>();
+  for (const req of newRequests) {
+    const division = req.division || 'Другие';
+    if (!byDivision.has(division)) {
+      byDivision.set(division, { total: 0, items: [] });
+    }
+    const group = byDivision.get(division)!;
+    group.total += req.quantity;
+    const consignee = (req.consignee || req.customer || 'Неизвестно').replace('ПК 25 ', '').replace('ПК 26 ', '');
+    group.items.push({
+      consignee,
+      material: req.material || 'Асфальт',
+      quantity: req.quantity,
+      deliveryDate: req.delivery_date || '',
+    });
+  }
+  
+  // Отправляем каждому админу
+  for (const admin of adminUsers) {
+    // Первое уведомление — самое важное
+    let firstBody = '';
+    for (const [division, group] of byDivision) {
+      const divisionName = division === 'Люберцы' ? 'ЛЮ' : 
+                          division === 'Луховицы' ? 'ЛХ' : 
+                          division === 'СП' ? 'СП' : 
+                          division === 'Щ' ? 'Щ' : division;
+      // Берём первую заявку для примера
+      const firstItem = group.items[0];
+      if (firstItem) {
+        firstBody = `${divisionName} ${firstItem.quantity} т\n${firstItem.consignee}`;
+      }
+      break; // только первая заявка для краткости
+    }
+    
+    if (newRequests.length === 1) {
+      // Одна заявка — подробно
+      const firstGroup = byDivision.values().next().value;
+      const firstItem = firstGroup?.items[0];
+      if (firstItem) {
+        const divisionName = [...byDivision.keys()][0] === 'Люберцы' ? 'ЛЮ' : 'ЛХ';
+        await sendPushNotification(admin.id, {
+          title: `🟢 Новая заявка!`,
+          body: `${divisionName} ${firstItem.quantity} т\n${firstItem.consignee}`,
+          tag: `new-request-${Date.now()}`,
+          url: '/',
+        });
+      }
+    } else {
+      // Несколько заявок — общая сводка
+      let body = '';
+      let count = 0;
+      for (const [division, group] of byDivision) {
+        if (count >= 3) {
+          const remaining = newRequests.length - count;
+          if (remaining > 0) body += `\n… и ещё ${remaining} заявок`;
+          break;
+        }
+        const divisionName = division === 'Люберцы' ? 'ЛЮ' : 
+                            division === 'Луховицы' ? 'ЛХ' : 
+                            division === 'СП' ? 'СП' : 
+                            division === 'Щ' ? 'Щ' : division;
+        const firstItem = group.items[0];
+        if (firstItem) {
+          body += `${divisionName} ${firstItem.quantity} т → ${firstItem.consignee}`;
+          if (group.items.length > 1) {
+            body += ` (+${group.items.length - 1})`;
+          }
+          body += '\n';
+          count += group.items.length;
+        }
+      }
+      
+      await sendPushNotification(admin.id, {
+        title: `🟢 Новые заявки (${newRequests.length})`,
+        body: body.trim() || `Появилось ${newRequests.length} новых заявок`,
         tag: `new-requests-${Date.now()}`,
         url: '/',
       });
     }
-    console.log(`✅ Push-уведомления отправлены ${adminUsers.length} пользователям`);
-  } catch (error) {
-    console.error('❌ Ошибка отправки push-уведомлений о новых заявках:', error);
   }
-  
+  console.log(`✅ Push-уведомления отправлены ${adminUsers.length} пользователям`);
+} catch (error) {
+  console.error('❌ Ошибка отправки push-уведомлений о новых заявках:', error);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
   // Отправляем Telegram сообщение
   let successCount = 0;
   for (const chatId of TELEGRAM_CHAT_IDS) {
