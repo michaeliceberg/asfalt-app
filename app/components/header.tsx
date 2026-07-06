@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MapPin, LogOut, RefreshCw } from 'lucide-react';
+import { MapPin, LogOut, RefreshCw, User } from 'lucide-react';
 import PushNotifications from './PushNotifications';
 
 interface HeaderProps {
@@ -44,34 +44,105 @@ export default function Header({
   }, []);
 
   return (
-    <div className="header-top">
-      <div className="logo-container">
-        <div className="logo-icon">
-          <span className="factory-emoji">🏭</span>
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      padding: '4px 0 4px 0',
+      background: 'transparent',
+      flexWrap: 'nowrap',
+      gap: '8px',
+    }}>
+      {/* Логотип */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '6px',
+        flexShrink: 0,
+        paddingLeft: 0,
+      }}>
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          background: 'rgba(0,0,0,0.3)',
+          padding: '4px 12px 4px 8px',
+          borderRadius: '20px',
+          border: '1px solid rgba(255,255,255,0.08)',
+        }}>
+          <span style={{
+            background: 'linear-gradient(135deg, #ffd93d, #f6b93b)',
+            color: '#1a1a2e',
+            fontSize: '13px',
+            fontWeight: 800,
+            padding: '0 10px',
+            borderRadius: '12px',
+            lineHeight: '22px',
+            letterSpacing: '0.5px',
+          }}>
+            АБЗ
+          </span>
+          <span style={{
+            fontSize: '13px',
+            color: '#94a3b8',
+            fontWeight: 300,
+          }}>⚡</span>
+          <span style={{
+            fontSize: '13px',
+            fontWeight: 500,
+            color: '#e2e8f0',
+            letterSpacing: '0.3px',
+          }}>
+            Контроль
+          </span>
         </div>
-        <div className="logo-text">
-          <h1>АБЗ ⚡ Контроль</h1>
-          <p className="logo-subtitle">
-            <span className="status-dot"></span>
-            {user?.username && (
-              <span className="user-name-header">{user.username} | </span>
-            )}
-            Актуально на {currentTime}
-            {isDemoMode && <span className="demo-badge">🎯 ДЕМО</span>}
-          </p>
+
+        {/* 👤 Пользователь */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '4px',
+          padding: '2px 10px 2px 6px',
+          borderRadius: '16px',
+          // background: 'rgba(255,255,255,0.06)',
+          // border: '1px dashed rgba(255,255,255,0.15)',
+          // background: 'rgba(255,255,255,0.06)',
+          // border: '1px rgba(255,255,255,0.15)',
+          background: 'transparent',
+border: 'none',
+          transition: 'all 0.2s',
+        }}>
+          <User size={13} color="#ffffff" strokeWidth={2} />
+          <span style={{
+            fontSize: '12px',
+            fontWeight: 600,
+            color: '#ffffff',
+            letterSpacing: '0.3px',
+          }}>
+            {user?.username || 'Гость'}
+          </span>
         </div>
+
+        {isDemoMode && <span className="demo-badge" style={{ marginLeft: '2px' }}>🎯 ДЕМО</span>}
       </div>
 
-      <div className="header-buttons">
-        {/* GPS - MapPin */}
+      {/* Кнопки */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '4px',
+        flexShrink: 0,
+        paddingRight: 0,
+      }}>
+        <PushNotifications />
         <Link href="/trucks">
           <button
             className={`header-btn ${isTrucksPage ? 'active' : ''}`}
             title="GPS-мониторинг"
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 8,
+              width: 32,
+              height: 32,
+              borderRadius: 6,
               border: 'none',
               background: isTrucksPage ? '#ffd93d' : 'transparent',
               color: isTrucksPage ? '#1a1a2e' : '#fff',
@@ -82,24 +153,19 @@ export default function Header({
               transition: 'all 0.2s',
             }}
           >
-            <MapPin size={20} strokeWidth={2} />
+            <MapPin size={18} strokeWidth={2} />
           </button>
         </Link>
-
-        {/* ✅ Push уведомления */}
-        <PushNotifications />
-
-        {/* Выйти - LogOut */}
         {!isDemoMode && !hideLogout && (
           <button
             className="header-btn"
             onClick={logout}
             disabled={refreshing}
-            title="Выйти из системы"
+            title="Выйти"
             style={{
-              width: 36,
-              height: 36,
-              borderRadius: 8,
+              width: 32,
+              height: 32,
+              borderRadius: 6,
               border: 'none',
               background: 'transparent',
               color: '#fff',
@@ -111,20 +177,18 @@ export default function Header({
               opacity: refreshing ? 0.5 : 1,
             }}
           >
-            <LogOut size={20} strokeWidth={2} />
+            <LogOut size={18} strokeWidth={2} />
           </button>
         )}
-
-        {/* Обновить - RefreshCw */}
         <motion.button
           className={`header-btn ${refreshing ? 'refreshing' : ''}`}
           onClick={onRefresh}
           disabled={refreshing}
           title="Обновить"
           style={{
-            width: 36,
-            height: 36,
-            borderRadius: 8,
+            width: 32,
+            height: 32,
+            borderRadius: 6,
             border: 'none',
             background: 'transparent',
             color: '#fff',
@@ -141,13 +205,370 @@ export default function Header({
             animate={{ rotate: refreshing ? 360 : 0 }}
             transition={{ duration: 0.8, repeat: refreshing ? Infinity : 0, ease: 'linear' }}
           >
-            <RefreshCw size={20} strokeWidth={2.5} />
+            <RefreshCw size={18} strokeWidth={2.5} />
           </motion.div>
         </motion.button>
       </div>
     </div>
   );
 }
+
+
+
+
+// // app/components/header.tsx
+
+// 'use client';
+
+// import { motion } from 'framer-motion';
+// import { useEffect, useState } from 'react';
+// import { useAuth } from '@/hooks/useAuth';
+// import Link from 'next/link';
+// import { usePathname } from 'next/navigation';
+// import { MapPin, LogOut, RefreshCw } from 'lucide-react';
+// import PushNotifications from './PushNotifications';
+
+// interface HeaderProps {
+//   refreshing: boolean;
+//   onRefresh: () => void;
+//   isDemoMode?: boolean;
+//   hideLogout?: boolean;
+// }
+
+// export default function Header({
+//   refreshing,
+//   onRefresh,
+//   isDemoMode = false,
+//   hideLogout = false,
+// }: HeaderProps) {
+//   const [currentTime, setCurrentTime] = useState('');
+//   const { user, logout } = useAuth();
+//   const pathname = usePathname();
+//   const isTrucksPage = pathname === '/trucks';
+
+//   useEffect(() => {
+//     const updateTime = () => {
+//       const now = new Date();
+//       setCurrentTime(
+//         now.toLocaleTimeString('ru-RU', {
+//           hour: '2-digit',
+//           minute: '2-digit',
+//         })
+//       );
+//     };
+//     updateTime();
+//     const interval = setInterval(updateTime, 60000);
+//     return () => clearInterval(interval);
+//   }, []);
+
+//   return (
+//     <div style={{
+//       display: 'flex',
+//       justifyContent: 'space-between',
+//       alignItems: 'center',
+//       padding: '8px 12px',
+//       background: 'transparent',
+//       flexWrap: 'nowrap',
+//       gap: '8px',
+//     }}>
+//       {/* Логотип — прижат к левому краю */}
+//       <div style={{
+//         display: 'flex',
+//         alignItems: 'center',
+//         gap: '6px',
+//         flexShrink: 0,
+//       }}>
+//         <div style={{
+//           display: 'flex',
+//           alignItems: 'center',
+//           gap: '4px',
+//           background: 'rgba(0,0,0,0.3)',
+//           padding: '4px 12px 4px 8px',
+//           borderRadius: '20px',
+//           border: '1px solid rgba(255,255,255,0.08)',
+//         }}>
+//           <span style={{
+//             background: 'linear-gradient(135deg, #ffd93d, #f6b93b)',
+//             color: '#1a1a2e',
+//             fontSize: '13px',
+//             fontWeight: 800,
+//             padding: '0 10px',
+//             borderRadius: '12px',
+//             lineHeight: '22px',
+//             letterSpacing: '0.5px',
+//           }}>
+//             АБЗ
+//           </span>
+//           <span style={{
+//             fontSize: '13px',
+//             color: '#94a3b8',
+//             fontWeight: 300,
+//           }}>⚡</span>
+//           <span style={{
+//             fontSize: '13px',
+//             fontWeight: 500,
+//             color: '#e2e8f0',
+//             letterSpacing: '0.3px',
+//           }}>
+//             Контроль
+//           </span>
+//         </div>
+//         <p style={{
+//           fontSize: '10px',
+//           color: '#94a3b8',
+//           margin: 0,
+//           whiteSpace: 'nowrap',
+//           overflow: 'hidden',
+//           textOverflow: 'ellipsis',
+//         }}>
+//           <span className="status-dot"></span>
+//           {user?.username && (
+//             <span style={{ color: '#94a3b8' }}>{user.username} | </span>
+//           )}
+//           {currentTime}
+//           {isDemoMode && <span className="demo-badge">🎯 ДЕМО</span>}
+//         </p>
+//       </div>
+
+//       {/* Кнопки — прижаты к правому краю */}
+//       <div style={{
+//         display: 'flex',
+//         alignItems: 'center',
+//         gap: '4px',
+//         flexShrink: 0,
+//       }}>
+//         <PushNotifications />
+//         <Link href="/trucks">
+//           <button
+//             className={`header-btn ${isTrucksPage ? 'active' : ''}`}
+//             title="GPS-мониторинг"
+//             style={{
+//               width: 32,
+//               height: 32,
+//               borderRadius: 6,
+//               border: 'none',
+//               background: isTrucksPage ? '#ffd93d' : 'transparent',
+//               color: isTrucksPage ? '#1a1a2e' : '#fff',
+//               cursor: 'pointer',
+//               display: 'flex',
+//               alignItems: 'center',
+//               justifyContent: 'center',
+//               transition: 'all 0.2s',
+//             }}
+//           >
+//             <MapPin size={18} strokeWidth={2} />
+//           </button>
+//         </Link>
+//         {!isDemoMode && !hideLogout && (
+//           <button
+//             className="header-btn"
+//             onClick={logout}
+//             disabled={refreshing}
+//             title="Выйти"
+//             style={{
+//               width: 32,
+//               height: 32,
+//               borderRadius: 6,
+//               border: 'none',
+//               background: 'transparent',
+//               color: '#fff',
+//               cursor: 'pointer',
+//               display: 'flex',
+//               alignItems: 'center',
+//               justifyContent: 'center',
+//               transition: 'all 0.2s',
+//               opacity: refreshing ? 0.5 : 1,
+//             }}
+//           >
+//             <LogOut size={18} strokeWidth={2} />
+//           </button>
+//         )}
+//         <motion.button
+//           className={`header-btn ${refreshing ? 'refreshing' : ''}`}
+//           onClick={onRefresh}
+//           disabled={refreshing}
+//           title="Обновить"
+//           style={{
+//             width: 32,
+//             height: 32,
+//             borderRadius: 6,
+//             border: 'none',
+//             background: 'transparent',
+//             color: '#fff',
+//             cursor: 'pointer',
+//             display: 'flex',
+//             alignItems: 'center',
+//             justifyContent: 'center',
+//             transition: 'all 0.2s',
+//             opacity: refreshing ? 0.5 : 1,
+//           }}
+//           whileTap={{ scale: 0.9 }}
+//         >
+//           <motion.div
+//             animate={{ rotate: refreshing ? 360 : 0 }}
+//             transition={{ duration: 0.8, repeat: refreshing ? Infinity : 0, ease: 'linear' }}
+//           >
+//             <RefreshCw size={18} strokeWidth={2.5} />
+//           </motion.div>
+//         </motion.button>
+//       </div>
+//     </div>
+//   );
+// }
+
+
+
+
+// // app/components/header.tsx
+
+// 'use client';
+
+// import { motion } from 'framer-motion';
+// import { useEffect, useState } from 'react';
+// import { useAuth } from '@/hooks/useAuth';
+// import Link from 'next/link';
+// import { usePathname } from 'next/navigation';
+// import { MapPin, LogOut, RefreshCw } from 'lucide-react';
+// import PushNotifications from './PushNotifications';
+
+// interface HeaderProps {
+//   refreshing: boolean;
+//   onRefresh: () => void;
+//   isDemoMode?: boolean;
+//   hideLogout?: boolean;
+// }
+
+// export default function Header({
+//   refreshing,
+//   onRefresh,
+//   isDemoMode = false,
+//   hideLogout = false,
+// }: HeaderProps) {
+//   const [currentTime, setCurrentTime] = useState('');
+//   const { user, logout } = useAuth();
+//   const pathname = usePathname();
+//   const isTrucksPage = pathname === '/trucks';
+
+//   useEffect(() => {
+//     const updateTime = () => {
+//       const now = new Date();
+//       setCurrentTime(
+//         now.toLocaleTimeString('ru-RU', {
+//           hour: '2-digit',
+//           minute: '2-digit',
+//         })
+//       );
+//     };
+//     updateTime();
+//     const interval = setInterval(updateTime, 60000);
+//     return () => clearInterval(interval);
+//   }, []);
+
+//   return (
+//     <div className="header-top">
+//       <div className="logo-container">
+//         <div className="logo-icon">
+//           <span className="factory-emoji">🏭</span>
+//         </div>
+//         <div className="logo-text">
+//           <h1>АБЗ ⚡ Контроль</h1>
+//           <p className="logo-subtitle">
+//             <span className="status-dot"></span>
+//             {user?.username && (
+//               <span className="user-name-header">{user.username} | </span>
+//             )}
+//             Актуально на {currentTime}
+//             {isDemoMode && <span className="demo-badge">🎯 ДЕМО</span>}
+//           </p>
+//         </div>
+//       </div>
+
+//       <div className="header-buttons">
+//         {/* GPS - MapPin */}
+//         <Link href="/trucks">
+//           <button
+//             className={`header-btn ${isTrucksPage ? 'active' : ''}`}
+//             title="GPS-мониторинг"
+//             style={{
+//               width: 36,
+//               height: 36,
+//               borderRadius: 8,
+//               border: 'none',
+//               background: isTrucksPage ? '#ffd93d' : 'transparent',
+//               color: isTrucksPage ? '#1a1a2e' : '#fff',
+//               cursor: 'pointer',
+//               display: 'flex',
+//               alignItems: 'center',
+//               justifyContent: 'center',
+//               transition: 'all 0.2s',
+//             }}
+//           >
+//             <MapPin size={20} strokeWidth={2} />
+//           </button>
+//         </Link>
+
+//         {/* ✅ Push уведомления */}
+//         <PushNotifications />
+
+//         {/* Выйти - LogOut */}
+//         {!isDemoMode && !hideLogout && (
+//           <button
+//             className="header-btn"
+//             onClick={logout}
+//             disabled={refreshing}
+//             title="Выйти из системы"
+//             style={{
+//               width: 36,
+//               height: 36,
+//               borderRadius: 8,
+//               border: 'none',
+//               background: 'transparent',
+//               color: '#fff',
+//               cursor: 'pointer',
+//               display: 'flex',
+//               alignItems: 'center',
+//               justifyContent: 'center',
+//               transition: 'all 0.2s',
+//               opacity: refreshing ? 0.5 : 1,
+//             }}
+//           >
+//             <LogOut size={20} strokeWidth={2} />
+//           </button>
+//         )}
+
+//         {/* Обновить - RefreshCw */}
+//         <motion.button
+//           className={`header-btn ${refreshing ? 'refreshing' : ''}`}
+//           onClick={onRefresh}
+//           disabled={refreshing}
+//           title="Обновить"
+//           style={{
+//             width: 36,
+//             height: 36,
+//             borderRadius: 8,
+//             border: 'none',
+//             background: 'transparent',
+//             color: '#fff',
+//             cursor: 'pointer',
+//             display: 'flex',
+//             alignItems: 'center',
+//             justifyContent: 'center',
+//             transition: 'all 0.2s',
+//             opacity: refreshing ? 0.5 : 1,
+//           }}
+//           whileTap={{ scale: 0.9 }}
+//         >
+//           <motion.div
+//             animate={{ rotate: refreshing ? 360 : 0 }}
+//             transition={{ duration: 0.8, repeat: refreshing ? Infinity : 0, ease: 'linear' }}
+//           >
+//             <RefreshCw size={20} strokeWidth={2.5} />
+//           </motion.div>
+//         </motion.button>
+//       </div>
+//     </div>
+//   );
+// }
 
 
 
