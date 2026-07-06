@@ -383,13 +383,12 @@ export async function POST(request: Request) {
 
 // GET запрос для проверки новых заявок и первоначальной отправки
 export async function GET(request: Request) {
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
+    //const authHeader = request.headers.get('authorization');
+    //const cronSecret = process.env.CRON_SECRET;
     
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    //if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    //    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    //}
     try {
         // Проверяем и отправляем новые заявки
         const newSentCount = await sendNewRequests();
