@@ -1,0 +1,108 @@
+
+> asfalt-app@0.1.0 build
+> next build
+
+▲ Next.js 16.2.6 (Turbopack)
+- Environments: .env.local, .env.production
+
+⚠ The "middleware" file convention is deprecated. Please use "proxy" instead. Learn more: https://nextjs.org/docs/messages/middleware-to-proxy
+  Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 6 errors:
+./app/api/cron-google-sheets/route.ts:4:1
+Export factoryOperations doesn't exist in target module
+  [90m2 |[0m [36mimport[0m { [33mNextResponse[0m } [36mfrom[0m [32m'next/server'[0m;
+  [90m3 |[0m [36mimport[0m { db } [36mfrom[0m [32m'@/lib/db'[0m;
+[31m[1m>[0m [90m4 |[0m [36mimport[0m { factoryOperations, factoryRequests } [36mfrom[0m [32m'@/lib/db/schema'[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m [36mimport[0m { eq } [36mfrom[0m [32m'drizzle-orm'[0m;
+  [90m6 |[0m [36mimport[0m fs [36mfrom[0m [32m'fs'[0m;
+  [90m7 |[0m [36mimport[0m path [36mfrom[0m [32m'path'[0m;
+
+The export factoryOperations was not found in module [project]/lib/db/schema.ts [app-route] (ecmascript).
+Did you mean to import factories?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+
+./app/api/cron-info-factory/route.ts:4:1
+Export factoryOperations doesn't exist in target module
+  [90m2 |[0m [36mimport[0m { [33mNextResponse[0m } [36mfrom[0m [32m'next/server'[0m;
+  [90m3 |[0m [36mimport[0m { db } [36mfrom[0m [32m'@/lib/db'[0m;
+[31m[1m>[0m [90m4 |[0m [36mimport[0m { factoryOperations } [36mfrom[0m [32m'@/lib/db/schema'[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m [36mimport[0m fs [36mfrom[0m [32m'fs'[0m;
+  [90m6 |[0m [36mimport[0m path [36mfrom[0m [32m'path'[0m;
+  [90m7 |[0m
+
+The export factoryOperations was not found in module [project]/lib/db/schema.ts [app-route] (ecmascript).
+Did you mean to import factories?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+
+./app/api/factory-summary/route.ts:6:1
+Export factoryOperations doesn't exist in target module
+  [90m4 |[0m [36mimport[0m { [33mNextResponse[0m } [36mfrom[0m [32m'next/server'[0m;
+  [90m5 |[0m [36mimport[0m { db } [36mfrom[0m [32m'@/lib/db'[0m;
+[31m[1m>[0m [90m6 |[0m [36mimport[0m { factoryRequests, factoryOperations } [36mfrom[0m [32m'@/lib/db/schema'[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m7 |[0m [36mimport[0m { eq } [36mfrom[0m [32m'drizzle-orm'[0m;
+  [90m8 |[0m
+  [90m9 |[0m [36mexport[0m [36masync[0m [36mfunction[0m [33mGET[0m(request: [33mRequest[0m) {
+
+The export factoryOperations was not found in module [project]/lib/db/schema.ts [app-route] (ecmascript).
+Did you mean to import factories?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+
+./app/api/cron-google-sheets/route.ts:4:1
+Export factoryRequests doesn't exist in target module
+  [90m2 |[0m [36mimport[0m { [33mNextResponse[0m } [36mfrom[0m [32m'next/server'[0m;
+  [90m3 |[0m [36mimport[0m { db } [36mfrom[0m [32m'@/lib/db'[0m;
+[31m[1m>[0m [90m4 |[0m [36mimport[0m { factoryOperations, factoryRequests } [36mfrom[0m [32m'@/lib/db/schema'[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m [36mimport[0m { eq } [36mfrom[0m [32m'drizzle-orm'[0m;
+  [90m6 |[0m [36mimport[0m fs [36mfrom[0m [32m'fs'[0m;
+  [90m7 |[0m [36mimport[0m path [36mfrom[0m [32m'path'[0m;
+
+The export factoryRequests was not found in module [project]/lib/db/schema.ts [app-route] (ecmascript).
+Did you mean to import factories?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+
+./app/api/factory-requests/route.ts:4:1
+Export factoryRequests doesn't exist in target module
+  [90m2 |[0m [36mimport[0m { [33mNextResponse[0m } [36mfrom[0m [32m'next/server'[0m;
+  [90m3 |[0m [36mimport[0m { db } [36mfrom[0m [32m'@/lib/db'[0m;
+[31m[1m>[0m [90m4 |[0m [36mimport[0m { factoryRequests } [36mfrom[0m [32m'@/lib/db/schema'[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m5 |[0m [36mimport[0m { desc } [36mfrom[0m [32m'drizzle-orm'[0m;
+  [90m6 |[0m
+  [90m7 |[0m [36mexport[0m [36masync[0m [36mfunction[0m [33mGET[0m() {
+
+The export factoryRequests was not found in module [project]/lib/db/schema.ts [app-route] (ecmascript).
+Did you mean to import factories?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+
+./app/api/factory-summary/route.ts:6:1
+Export factoryRequests doesn't exist in target module
+  [90m4 |[0m [36mimport[0m { [33mNextResponse[0m } [36mfrom[0m [32m'next/server'[0m;
+  [90m5 |[0m [36mimport[0m { db } [36mfrom[0m [32m'@/lib/db'[0m;
+[31m[1m>[0m [90m6 |[0m [36mimport[0m { factoryRequests, factoryOperations } [36mfrom[0m [32m'@/lib/db/schema'[0m;
+  [90m  |[0m [31m[1m^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^[0m
+  [90m7 |[0m [36mimport[0m { eq } [36mfrom[0m [32m'drizzle-orm'[0m;
+  [90m8 |[0m
+  [90m9 |[0m [36mexport[0m [36masync[0m [36mfunction[0m [33mGET[0m(request: [33mRequest[0m) {
+
+The export factoryRequests was not found in module [project]/lib/db/schema.ts [app-route] (ecmascript).
+Did you mean to import factories?
+All exports of the module are statically known (It doesn't have dynamic exports). So it's known statically that the requested export doesn't exist.
+
+
+    at <unknown> (./app/api/cron-google-sheets/route.ts:4:1)
+    at <unknown> (./app/api/cron-info-factory/route.ts:4:1)
+    at <unknown> (./app/api/factory-summary/route.ts:6:1)
+    at <unknown> (./app/api/cron-google-sheets/route.ts:4:1)
+    at <unknown> (./app/api/factory-requests/route.ts:4:1)
+    at <unknown> (./app/api/factory-summary/route.ts:6:1)

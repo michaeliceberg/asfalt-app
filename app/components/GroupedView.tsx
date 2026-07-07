@@ -1,6 +1,4 @@
 // components/GroupedView.tsx
-// import { IncomingItem, ShipmentItem } from '../app/page'; // или определите типы внутри
-
 import { IncomingItem, ShipmentItem } from "../page";
 
 type UnifiedDataItem = IncomingItem | ShipmentItem;
@@ -22,6 +20,31 @@ interface GroupedViewProps {
   getUniqueFactories: (records: UnifiedDataItem[]) => string[];
 }
 
+// Функция для форматирования даты в человекочитаемый формат
+
+
+// Функция для форматирования даты в человекочитаемый формат
+const formatDateLabel = (dateStr: string): string => {
+  if (!dateStr) return dateStr;
+  
+  // Парсим дату в формате ДД.ММ.ГГГГ
+  const parts = dateStr.split('.');
+  if (parts.length !== 3) return dateStr;
+  
+  const day = parseInt(parts[0], 10);
+  const month = parseInt(parts[1], 10) - 1;
+  const year = parseInt(parts[2], 10);
+  
+  const date = new Date(year, month, day);
+  if (isNaN(date.getTime())) return dateStr;
+  
+  const months = ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'];
+  return `${day} ${months[date.getMonth()]}`;
+};
+
+
+
+
 export default function GroupedView({ 
   groupedData, 
   dates, 
@@ -30,8 +53,9 @@ export default function GroupedView({
   getUniqueFactories 
 }: GroupedViewProps) {
   const isToday = (dateStr: string): boolean => {
-    const today = new Date().toLocaleDateString('ru-RU');
-    return dateStr === today;
+    const today = new Date();
+    const todayStr = `${today.getDate().toString().padStart(2, '0')}.${(today.getMonth() + 1).toString().padStart(2, '0')}.${today.getFullYear()}`;
+    return dateStr === todayStr;
   };
 
   if (dates.length === 0) {
@@ -49,24 +73,32 @@ export default function GroupedView({
         const isDateToday = isToday(date);
         const allRecordsForDay = records.flatMap((r) => r.records);
         const uniqueFactories = getUniqueFactories(allRecordsForDay);
+        const dateLabel = formatDateLabel(date);
         
         return (
           <div key={date} className="date-group">
+            
+            
+            
             <div className={`date-separator ${isDateToday ? 'today-separator' : ''}`}>
-              <div className="date-text">
-                <span>{date}</span>
-                {isDateToday && <span className="today-badge-header">СЕГОДНЯ</span>}
-              </div>
-              {uniqueFactories.length > 0 && (
-                <div className="factory-badges-group">
-                  {uniqueFactories.map((factory) => (
-                    <div key={factory} className={`factory-badge-group ${factory}`}>
-                      {factory}
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+  <div className="date-wrapper">
+    <span className="date-text">{formatDateLabel(date)}</span>
+    {isDateToday && <span className="today-badge">СЕГОДНЯ</span>}
+  </div>
+  {uniqueFactories.length > 0 && (
+    <div className="factory-badges-group">
+      {uniqueFactories.map((factory) => (
+        <div key={factory} className={`factory-badge-group ${factory}`}>
+          {factory}
+        </div>
+      ))}
+    </div>
+  )}
+</div>
+
+
+
+
             
             {records.map((record, idx) => {
               const cardFactories = getUniqueFactories(record.records);
@@ -109,3 +141,5 @@ export default function GroupedView({
     </div>
   );
 }
+
+

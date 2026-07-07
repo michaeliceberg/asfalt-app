@@ -1,8 +1,9 @@
 // app/api/send-plan/route.ts
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { outgoingRequests, OutgoingRequest, sentNotifications } from '@/lib/db/schema';
+import { outgoingRequests, OutgoingRequest, sentNotifications, users } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { sendPushNotification } from '@/lib/push-notifications';
 
 const TELEGRAM_BOT_TOKEN = process.env.TELEGRAM_BOT_TOKEN;
 const TELEGRAM_CHAT_IDS = (process.env.TELEGRAM_CHAT_IDS || '').split(',').filter(Boolean);
@@ -43,9 +44,15 @@ async function sendWithKeyboard(chatId: string, message: string): Promise<boolea
     }
 }
 
-// Отправка обычного сообщения (без клавиатуры)
+
+
+
+
 async function sendMessage(chatId: string, message: string): Promise<boolean> {
     try {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 секунд таймаут
+        
         const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
         const response = await fetch(url, {
             method: 'POST',
@@ -54,8 +61,10 @@ async function sendMessage(chatId: string, message: string): Promise<boolean> {
                 chat_id: chatId,
                 text: message,
                 parse_mode: 'Markdown'
-            })
+            }),
+            signal: controller.signal,
         });
+        clearTimeout(timeoutId);
         return response.ok;
     } catch (error) {
         console.error('Send error:', error);
@@ -190,63 +199,177 @@ async function getNewRequests(): Promise<OutgoingRequest[]> {
     });
 }
 
-// Отправка новых заявок
+
+
+
 async function sendNewRequests(): Promise<number> {
-    const newRequests = await getNewRequests();
-    
-    if (newRequests.length === 0) {
-        return 0;
+  const newRequests = await getNewRequests();
+  
+  if (newRequests.length === 0) {
+    return 0;
+  }
+  
+  const today = new Date();
+  const todayStr = today.toISOString().split('T')[0];
+  
+  const byDivision = new Map();
+  for (const req of newRequests) {
+    const division = req.division || 'Другие';
+    if (!byDivision.has(division)) byDivision.set(division, new Map());
+    const byConsignee = byDivision.get(division);
+    const consignee = req.consignee || req.customer || 'Неизвестно';
+    if (!byConsignee.has(consignee)) byConsignee.set(consignee, { total: 0, items: [], deliveryDate: req.delivery_date });
+    const group = byConsignee.get(consignee);
+    group.total += req.quantity;
+    group.items.push({ material: req.material, quantity: req.quantity });
+  }
+  
+  let message = `🆕 *НОВЫЕ ЗАЯВКИ*\n\n`;
+  for (const [division, byConsignee] of byDivision) {
+    const divisionName = division === 'Люберцы' ? '🏭 Люберецкий' : '🏭 Луховицкий';
+    message += `*${divisionName}*\n`;
+    for (const [consignee, data] of byConsignee) {
+      const dateLabel = data.deliveryDate && data.deliveryDate.split('T')[0] === todayStr ? '🚨 СЕГОДНЯ' : '📅 НА ЗАВТРА';
+      message += `▫️ ${consignee} — ${data.total} т ${dateLabel}\n`;
+      if (data.items.length === 1 && data.items[0].material) {
+        message += `   • ${data.items[0].material}\n`;
+      }
+    }
+  }
+  message += `\n📌 Всего новых: ${newRequests.length}\n🕐 ${new Date().toLocaleTimeString('ru-RU')}`;
+  
+  // Сохраняем отправленные заявки
+  for (const req of newRequests) {
+    const existing = await db.select().from(sentNotifications).where(eq(sentNotifications.requestNumber, req.number));
+    if (existing.length === 0) {
+      await db.insert(sentNotifications).values({
+        requestNumber: req.number,
+        sentAt: Date.now(),
+      });
+    }
+  }
+  
+
+
+
+
+
+  
+
+try {
+  const adminUsers = await db
+    .select()
+    .from(users)
+    .where(eq(users.group_id, 1));
+  
+  // Группируем заявки по заводам для красивого сообщения
+  const byDivision = new Map<string, { total: number; items: { consignee: string; material: string; quantity: number; deliveryDate: string }[] }>();
+  for (const req of newRequests) {
+    const division = req.division || 'Другие';
+    if (!byDivision.has(division)) {
+      byDivision.set(division, { total: 0, items: [] });
+    }
+    const group = byDivision.get(division)!;
+    group.total += req.quantity;
+    const consignee = (req.consignee || req.customer || 'Неизвестно').replace('ПК 25 ', '').replace('ПК 26 ', '');
+    group.items.push({
+      consignee,
+      material: req.material || 'Асфальт',
+      quantity: req.quantity,
+      deliveryDate: req.delivery_date || '',
+    });
+  }
+  
+  // Отправляем каждому админу
+  for (const admin of adminUsers) {
+    // Первое уведомление — самое важное
+    let firstBody = '';
+    for (const [division, group] of byDivision) {
+      const divisionName = division === 'Люберцы' ? 'ЛЮ' : 
+                          division === 'Луховицы' ? 'ЛХ' : 
+                          division === 'СП' ? 'СП' : 
+                          division === 'Щ' ? 'Щ' : division;
+      // Берём первую заявку для примера
+      const firstItem = group.items[0];
+      if (firstItem) {
+        firstBody = `${divisionName} ${firstItem.quantity} т\n${firstItem.consignee}`;
+      }
+      break; // только первая заявка для краткости
     }
     
-    const today = new Date();
-    const todayStr = today.toISOString().split('T')[0];
-    
-    const byDivision = new Map();
-    for (const req of newRequests) {
-        const division = req.division || 'Другие';
-        if (!byDivision.has(division)) byDivision.set(division, new Map());
-        const byConsignee = byDivision.get(division);
-        const consignee = req.consignee || req.customer || 'Неизвестно';
-        if (!byConsignee.has(consignee)) byConsignee.set(consignee, { total: 0, items: [], deliveryDate: req.delivery_date });
-        const group = byConsignee.get(consignee);
-        group.total += req.quantity;
-        group.items.push({ material: req.material, quantity: req.quantity });
-    }
-    
-    let message = `🆕 *НОВЫЕ ЗАЯВКИ*\n\n`;
-    for (const [division, byConsignee] of byDivision) {
-        const divisionName = division === 'Люберцы' ? '🏭 Люберецкий' : '🏭 Луховицкий';
-        message += `*${divisionName}*\n`;
-        for (const [consignee, data] of byConsignee) {
-            const dateLabel = data.deliveryDate && data.deliveryDate.split('T')[0] === todayStr ? '🚨 СЕГОДНЯ' : '📅 НА ЗАВТРА';
-            message += `▫️ ${consignee} — ${data.total} т ${dateLabel}\n`;
-            if (data.items.length === 1 && data.items[0].material) {
-                message += `   • ${data.items[0].material}\n`;
-            }
+    if (newRequests.length === 1) {
+      // Одна заявка — подробно
+      const firstGroup = byDivision.values().next().value;
+      const firstItem = firstGroup?.items[0];
+      if (firstItem) {
+        const divisionName = [...byDivision.keys()][0] === 'Люберцы' ? 'ЛЮ' : 'ЛХ';
+        await sendPushNotification(admin.id, {
+          title: `🟢 Новая заявка!`,
+          body: `${divisionName} ${firstItem.quantity} т\n${firstItem.consignee}`,
+          tag: `new-request-${Date.now()}`,
+          url: '/',
+        });
+      }
+    } else {
+      // Несколько заявок — общая сводка
+      let body = '';
+      let count = 0;
+      for (const [division, group] of byDivision) {
+        if (count >= 3) {
+          const remaining = newRequests.length - count;
+          if (remaining > 0) body += `\n… и ещё ${remaining} заявок`;
+          break;
         }
-    }
-    message += `\n📌 Всего новых: ${newRequests.length}\n🕐 ${new Date().toLocaleTimeString('ru-RU')}`;
-    
-    // Сохраняем отправленные заявки
-    for (const req of newRequests) {
-        const existing = await db.select().from(sentNotifications).where(eq(sentNotifications.requestNumber, req.number));
-        if (existing.length === 0) {
-            await db.insert(sentNotifications).values({
-                requestNumber: req.number,
-                sentAt: Date.now(),
-            });
+        const divisionName = division === 'Люберцы' ? 'ЛЮ' : 
+                            division === 'Луховицы' ? 'ЛХ' : 
+                            division === 'СП' ? 'СП' : 
+                            division === 'Щ' ? 'Щ' : division;
+        const firstItem = group.items[0];
+        if (firstItem) {
+          body += `${divisionName} ${firstItem.quantity} т → ${firstItem.consignee}`;
+          if (group.items.length > 1) {
+            body += ` (+${group.items.length - 1})`;
+          }
+          body += '\n';
+          count += group.items.length;
         }
+      }
+      
+      await sendPushNotification(admin.id, {
+        title: `🟢 Новые заявки (${newRequests.length})`,
+        body: body.trim() || `Появилось ${newRequests.length} новых заявок`,
+        tag: `new-requests-${Date.now()}`,
+        url: '/',
+      });
     }
-    
-    // Отправляем сообщение
-    let successCount = 0;
-    for (const chatId of TELEGRAM_CHAT_IDS) {
-        const sent = await sendMessage(chatId.trim(), message);
-        if (sent) successCount++;
-    }
-    
-    return successCount;
+  }
+  console.log(`✅ Push-уведомления отправлены ${adminUsers.length} пользователям`);
+} catch (error) {
+  console.error('❌ Ошибка отправки push-уведомлений о новых заявках:', error);
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+  // Отправляем Telegram сообщение
+  let successCount = 0;
+  for (const chatId of TELEGRAM_CHAT_IDS) {
+    const sent = await sendMessage(chatId.trim(), message);
+    if (sent) successCount++;
+  }
+  
+  return successCount;
+}
+
 
 // Обработка callback-запросов от кнопок
 export async function POST(request: Request) {
@@ -299,13 +422,12 @@ export async function POST(request: Request) {
 
 // GET запрос для проверки новых заявок и первоначальной отправки
 export async function GET(request: Request) {
-    const authHeader = request.headers.get('authorization');
-    const cronSecret = process.env.CRON_SECRET;
+    //const authHeader = request.headers.get('authorization');
+    //const cronSecret = process.env.CRON_SECRET;
     
-    if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    //if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+    //    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    //}
     try {
         // Проверяем и отправляем новые заявки
         const newSentCount = await sendNewRequests();

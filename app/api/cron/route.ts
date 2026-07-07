@@ -1,36 +1,37 @@
 // app/api/cron/route.ts
+
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { incomingMaterials } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
 
 const LAST_SYNC_FILE = path.join(process.cwd(), 'data', 'last-sync.json');
 
+// Временно отключаем проверку SSL
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 interface IncomingItem {
+  Подразделение: string;
   Номер: string;
   Дата: string;
   Поставщик: string;
   Номенклатура: string;
   Брутто: number;
-  Tapa: number;
+  Тара: number;
   Количество: number;
   Водитель: string;
   ГосНомер: string;
 }
 
-export async function GET(request: Request) {
-  const authHeader = request.headers.get('authorization');
-  const cronSecret = process.env.CRON_SECRET;
-  
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
+export async function GET() {
   try {
     const UNF_BASE_URL = process.env.UNF_BASE_URL;
     const LOGIN = process.env.UNF_LOGIN;
     const PASSWORD = process.env.UNF_PASSWORD;
+    
+    console.log('Fetching incoming from 1C (SSL verification disabled)...');
     
     const response = await fetch(`${UNF_BASE_URL}/hs/WebData-API/incoming`, {
       headers: {
@@ -43,6 +44,7 @@ export async function GET(request: Request) {
     }
     
     const data: IncomingItem[] = await response.json();
+    console.log(`Received ${data.length} records from 1C`);
     
     let insertedCount = 0;
     for (const record of data) {
@@ -56,20 +58,21 @@ export async function GET(request: Request) {
         await db.insert(incomingMaterials).values({
           number: record.Номер,
           date: record.Дата,
+          division: record.Подразделение === 'Луховицы' ? 'ЛХ' : record.Подразделение === 'Люберцы' ? 'ЛЮ' : record.Подразделение,
           supplier: record.Поставщик,
           material: record.Номенклатура,
           gross: record.Брутто || null,
-          tara: record.Tapa || null,
+          tara: record.Тара || null,
           quantity: record.Количество,
           driver: record.Водитель || null,
           licensePlate: record.ГосНомер || null,
           createdAt: Date.now(),
+          
         });
         insertedCount++;
       }
     }
     
-    // ✅ СОХРАНЯЕМ ВРЕМЯ ПОСЛЕДНЕЙ СИНХРОНИЗАЦИИ
     fs.writeFileSync(LAST_SYNC_FILE, JSON.stringify({
       lastSync: new Date().toISOString(),
     }));
@@ -78,17 +81,15 @@ export async function GET(request: Request) {
       success: true,
       total: data.length,
       newRecords: insertedCount,
+      source: "1c",
       timestamp: new Date().toISOString(),
     });
     
   } catch (error) {
     console.error('Cron error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: String(error) },
       { status: 500 }
     );
   }
 }
-
-// Добавьте импорт eq
-import { eq } from 'drizzle-orm';
