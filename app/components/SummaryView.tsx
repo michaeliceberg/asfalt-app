@@ -40,13 +40,18 @@ export default function SummaryView({ mode = 'tas' }: SummaryViewProps) {
 
   const fetchFutureRequests = useCallback(async () => {
     try {
-      const [requestsResponse, shipmentsResponse] = await Promise.all([
-        fetch('/api/outgoing-requests'),
-        fetch('/api/shipments')
-      ]);
-      
-      let allRequests = await requestsResponse.json();
-      const allShipments = await shipmentsResponse.json();
+      // ⚠️ Раньше брали данные из /api/outgoing-requests и /api/shipments —
+      // эти эндпоинты режут выдачу до 300 записей (ORDER BY date DESC LIMIT 300),
+      // а в колонке shipments.date вперемешку лежат ISO- и русские даты,
+      // из-за чего сортировка по дате как по тексту ломается и свежие
+      // отгрузки ТАС могли не попасть в лимит. В итоге заявки, которые
+      // уже отгружаются сегодня, ошибочно показывались как "будущие".
+      // /api/all-data отдаёт всё без лимита — используем его, как и счётчик на кнопке.
+      const allDataResponse = await fetch('/api/all-data');
+      const allData = await allDataResponse.json();
+
+      let allRequests = allData.outgoingRequests || [];
+      const allShipments = allData.shipments || [];
       
       // Фильтруем по заводам текущего режима
       const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
