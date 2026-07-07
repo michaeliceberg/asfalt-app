@@ -17,6 +17,16 @@ if (vapidConfigured) {
   console.warn('⚠️ VAPID-ключи не заданы — push-уведомления отключены');
 }
 
+// Подписка мертва навсегда и её нужно удалить, если push-сервис отвечает:
+// 410 Gone — пользователь сам отписался/сбросил разрешение в браузере
+// 401/403 — ключ не подходит к этой подписке (например, VapidPkHashMismatch
+// после смены VAPID-ключей на сервере) — тоже никогда не заработает повторно
+function isDeadSubscriptionError(error: unknown): boolean {
+  if (!error || typeof error !== 'object' || !('statusCode' in error)) return false;
+  const statusCode = (error as { statusCode: number }).statusCode;
+  return statusCode === 410 || statusCode === 401 || statusCode === 403;
+}
+
 interface PushNotification {
   title: string;
   body: string;
@@ -79,7 +89,8 @@ export async function sendPushNotification(
         sent++;
       } catch (error: unknown) {
         console.error(`Failed to send to ${sub.endpoint}:`, error);
-        if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 410) {
+        if (isDeadSubscriptionError(error)) {
+          console.log(`🗑️ Удаляем невалидную подписку (${sub.endpoint.slice(0, 50)}...)`);
           await db
             .delete(pushSubscriptions)
             .where(eq(pushSubscriptions.endpoint, sub.endpoint));
@@ -139,7 +150,7 @@ export async function sendToAdmins(notification: PushNotification) {
         console.log(`✅ Успешно отправлено!`);
       } catch (error: unknown) {
         console.error(`❌ Ошибка отправки:`, error);
-        if (error && typeof error === 'object' && 'statusCode' in error && error.statusCode === 410) {
+        if (isDeadSubscriptionError(error)) {
           console.log(`🗑️ Удаляем невалидную подписку`);
           await db
             .delete(pushSubscriptions)
