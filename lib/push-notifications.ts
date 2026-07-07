@@ -3,11 +3,19 @@ import { db } from './db';
 import { pushSubscriptions, users } from './db/schema';
 import { eq } from 'drizzle-orm';
 
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT || 'mailto:your-email@example.com',
-  process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '',
-  process.env.VAPID_PRIVATE_KEY || ''
-);
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY || '';
+const VAPID_PRIVATE_KEY = process.env.VAPID_PRIVATE_KEY || '';
+const vapidConfigured = Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
+
+if (vapidConfigured) {
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT || 'mailto:your-email@example.com',
+    VAPID_PUBLIC_KEY,
+    VAPID_PRIVATE_KEY
+  );
+} else {
+  console.warn('⚠️ VAPID-ключи не заданы — push-уведомления отключены');
+}
 
 interface PushNotification {
   title: string;
@@ -27,6 +35,9 @@ export async function sendPushNotification(
   userId: number,
   notification: PushNotification
 ) {
+  if (!vapidConfigured) {
+    return { sent: 0 };
+  }
   try {
     const subscriptions = await db
       .select()
