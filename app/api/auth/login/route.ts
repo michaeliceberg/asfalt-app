@@ -11,6 +11,18 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 // Cколько живёт сессия — и токен, и cookie должны совпадать
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 дней
 
+// За Nginx-прокси Node.js видит запрос как http://localhost:3000/...
+// (request.url отражает то, что видит сам сервер, а не публичный домен).
+// Настоящий домен/протокол берём из заголовков, которые пробрасывает Nginx.
+function getOrigin(request: Request): string {
+  const host =
+    request.headers.get('x-forwarded-host') ||
+    request.headers.get('host') ||
+    'localhost:3000';
+  const proto = request.headers.get('x-forwarded-proto') || 'https';
+  return `${proto}://${host}`;
+}
+
 function setSessionCookie(response: NextResponse, token: string) {
   response.cookies.set('token', token, {
     httpOnly: true,
@@ -53,7 +65,7 @@ export async function POST(request: Request) {
 
     const fail = (message: string) => {
       if (isFormSubmit) {
-        const url = new URL('/login', request.url);
+        const url = new URL('/login', getOrigin(request));
         url.searchParams.set('error', message);
         return NextResponse.redirect(url, 303);
       }
@@ -94,7 +106,7 @@ export async function POST(request: Request) {
     console.log('✅ Успешный вход:', username);
 
     if (isFormSubmit) {
-      const response = NextResponse.redirect(new URL('/', request.url), 303);
+      const response = NextResponse.redirect(new URL('/', getOrigin(request)), 303);
       setSessionCookie(response, token);
       return response;
     }
@@ -114,7 +126,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('❌ Login error:', error);
     if (isFormSubmit) {
-      const url = new URL('/login', request.url);
+      const url = new URL('/login', getOrigin(request));
       url.searchParams.set('error', 'Ошибка сервера');
       return NextResponse.redirect(url, 303);
     }
