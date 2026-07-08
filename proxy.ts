@@ -92,9 +92,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Получаем токен
-  const token = request.cookies.get('token')?.value;
-  console.log('🔵 Token exists?', !!token);
+  // Получаем токен — сначала пробуем заголовок Authorization (нужно для
+  // мобильного приложения, у него нет доступа к httpOnly cookie), иначе cookie (веб)
+  const authHeader = request.headers.get('authorization');
+  const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
+  const token = bearerToken || request.cookies.get('token')?.value;
+  console.log('🔵 Token exists?', !!token, bearerToken ? '(из Authorization)' : '(из cookie)');
 
   if (!token) {
     console.log('❌ NO TOKEN');
