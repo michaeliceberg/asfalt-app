@@ -22,10 +22,18 @@ if [ -d drizzle/migrations ] && [ -n "$(ls -A drizzle/migrations 2>/dev/null)" ]
   npm run db:migrate
 fi
 
+echo "==> Чистим .next перед сборкой"
+rm -rf .next
+
 echo "==> build"
 npm run build
 
 echo "==> pm2 reload"
 pm2 reload ecosystem.config.js --update-env
+pm2 save
+
+echo "==> Статус"
+pm2 status
+pm2 logs asfalt-app --lines 20 --nostream
 
 echo "==> Готово"

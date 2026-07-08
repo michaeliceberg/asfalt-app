@@ -74,6 +74,10 @@ interface VehicleItem {
   driver?: string;
   material?: string;
   supplier?: string;
+  // Уникальный номер конкретной отгрузки (рейса) — для сопоставления
+  // статуса "прибыл" именно с этим рейсом, а не с госномером машины
+  // (см. truckDistances ниже).
+  shipmentNumber?: string;
 }
 
 interface GroupedItem {
@@ -264,15 +268,22 @@ useEffect(() => {
       const data = await response.json();
       if (data.success) {
         const map = new Map();
-        data.shipments.forEach((s: { 
-          licensePlate: string; 
-          distance_to_dest: number | null; 
-          eta_minutes: number | null; 
-          arrived: boolean; 
+        data.shipments.forEach((s: {
+          licensePlate: string;
+          number: string;
+          distance_to_dest: number | null;
+          eta_minutes: number | null;
+          arrived: boolean;
           arrived_at: string | null;
         }) => {
-          if (s.licensePlate) {
-            map.set(s.licensePlate, {
+          // Ключ — номер конкретной отгрузки (рейса), а не госномер машины.
+          // Раньше ключом был только госномер, из-за чего статус "прибыл"
+          // от ПРЕДЫДУЩЕГО рейса той же машины "протекал" в новую заявку —
+          // машина только выехала с завода, а карточка уже показывала
+          // "прибыл", потому что в карте лежала старая запись по тому же
+          // госномеру.
+          if (s.number) {
+            map.set(s.number, {
               distance: s.distance_to_dest,
               eta: s.eta_minutes,
               arrived: s.arrived || false,
@@ -506,6 +517,7 @@ useEffect(() => {
             quantity: shipment.quantity,
             time: itemTime,
             driver: shipment.driver || '—',
+            shipmentNumber: shipment.number,
           }],
         });
       } else {
@@ -524,6 +536,7 @@ useEffect(() => {
           quantity: shipment.quantity,
           time: itemTime,
           driver: shipment.driver || '—',
+          shipmentNumber: shipment.number,
         });
         if (itemTime > existing.time) {
           existing.time = itemTime;
@@ -1123,7 +1136,12 @@ useEffect(() => {
               return dateB.localeCompare(dateA);
             })
             .map((vehicle, i) => {
-              const distData = truckDistances.get(vehicle.licensePlate);
+              // Смотрим статус конкретно ЭТОГО рейса (по номеру отгрузки),
+              // а не по госномеру машины — иначе подхватится статус
+              // "прибыл" от прошлого рейса этой же машины.
+              const distData = vehicle.shipmentNumber
+                ? truckDistances.get(vehicle.shipmentNumber)
+                : undefined;
               const distance = distData?.distance ?? null;
               const isArrived = distData?.arrived ?? false;
               

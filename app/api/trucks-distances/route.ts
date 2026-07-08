@@ -1,17 +1,22 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { shipments } from '@/lib/db/schema';
-import { isNotNull } from 'drizzle-orm';
+import { isNotNull, desc } from 'drizzle-orm';
 
 export async function GET() {
   try {
     console.log('🔄 Trucks-distances API called');
-    
-    // Получаем все отгрузки с расстояниями
+
+    // Получаем отгрузки с расстояниями. Сортируем по id (по возрастанию
+    // времени добавления записи — надёжнее, чем поле date, где вперемешку
+    // ISO и русский формат) и берём самые СВЕЖИЕ 200, а не первые попавшиеся —
+    // иначе со временем старые уже прибывшие рейсы могли вытеснить из лимита
+    // активные текущие рейсы.
     const allShipments = await db
       .select()
       .from(shipments)
       .where(isNotNull(shipments.distance_to_dest))
+      .orderBy(desc(shipments.id))
       .limit(200);
 
     console.log(`📡 Found ${allShipments.length} shipments with distances`);

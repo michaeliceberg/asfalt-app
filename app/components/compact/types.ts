@@ -28,6 +28,12 @@ export interface VehicleItem {
   material?: string;
   supplier?: string;
 
+  // Уникальный номер конкретной отгрузки (рейса) — используется вместо
+  // одного только госномера для сопоставления статуса "прибыл", т.к.
+  // одна машина может делать несколько рейсов подряд (в т.ч. по разным
+  // заявкам), и госномер один и тот же для всех её рейсов.
+  shipmentNumber?: string;
+
   distance_to_dest?: number | null;
   arrived?: boolean;
   arrived_at?: string | null;
