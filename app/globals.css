@@ -3557,7 +3557,8 @@ body {
   max-width: 30px;
   min-width: 12px;
   border-radius: 4px;
-  transition: height 0.2s;
+  /* высота теперь анимируется через framer-motion (spring) в ActivityChart.tsx,
+     CSS-transition тут не нужен и будет конфликтовать */
 }
 
 .activity-chart-bar.active {
@@ -3566,7 +3567,8 @@ body {
 
 .activity-chart-bar.inactive {
   background: #e9ecef;
-  height: 2px !important;
+  /* высоту (2px) теперь всегда считает и анимирует JS/framer-motion,
+     !important тут раньше глушил анимацию */
 }
 
 .activity-chart-labels-row {

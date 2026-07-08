@@ -282,6 +282,25 @@ export default function Home() {
     localStorage.setItem('appMode', newMode);
   };
 
+  // ✅ Те же плавные fade+slide переходы контента (motion.div key={contentKey}
+  // ниже), что и при смене ТАС/Айсберг — теперь и на смену вкладки, фильтра
+  // завода и вида (список/компактно). Анимируется один контейнер целиком,
+  // а не каждая строка по отдельности — лёгкая нагрузка на телефон.
+  const handleMainTabChange = (tab: MainTab) => {
+    setActiveMainTab(tab);
+    setContentKey(prev => prev + 1);
+  };
+
+  const handleFactoryChange = (factory: string) => {
+    setActiveFactory(factory);
+    setContentKey(prev => prev + 1);
+  };
+
+  const handleViewTabChange = (tab: ViewTab) => {
+    setActiveViewTab(tab);
+    setContentKey(prev => prev + 1);
+  };
+
   useEffect(() => {
     if (mode === 'iceberg') {
       document.body.classList.add('iceberg-mode');
@@ -1083,9 +1102,9 @@ useEffect(() => {
             accessibleFactories={accessibleFactories}
           />
 
-          <MainTabs 
-            activeTab={activeMainTab} 
-            onTabChange={setActiveMainTab}
+          <MainTabs
+            activeTab={activeMainTab}
+            onTabChange={handleMainTabChange}
             futureRequestsCount={futureRequestsCount}
             newShipmentsCount={newShipmentsCount}
             newConcreteCount={newConcreteCount}
@@ -1094,13 +1113,13 @@ useEffect(() => {
 
           {activeMainTab !== 'summary' && (
             <>
-              <FactoryFilter 
-                factories={availableFactories} 
-                activeFactory={activeFactory} 
-                onFactoryChange={setActiveFactory} 
+              <FactoryFilter
+                factories={availableFactories}
+                activeFactory={activeFactory}
+                onFactoryChange={handleFactoryChange}
               />
-              
-              <ViewTabs activeTab={activeViewTab} onTabChange={setActiveViewTab} />
+
+              <ViewTabs activeTab={activeViewTab} onTabChange={handleViewTabChange} />
               
               <div className="stats">
                 Всего записей: <strong>{filteredData.length}</strong>

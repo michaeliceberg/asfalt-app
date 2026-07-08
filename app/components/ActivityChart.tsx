@@ -5,6 +5,7 @@
 import { ShipmentItem } from '@/app/page';
 import { isConcreteMaterial, isSpecialMaterial, parseRussianDate } from '@/lib/utils';
 import { useEffect, useState, useRef } from 'react';
+import { motion } from 'framer-motion';
 
 interface ActivityChartProps {
   shipments: ShipmentItem[];
@@ -154,19 +155,25 @@ if (materialType === 'asphalt') {
   return (
     <div className="activity-chart-wrapper">
       <div className="activity-chart-bars-row">
-        {activityData.map((item, idx) => {
+        {activityData.map((item) => {
           const height = getHeight(item.totalTons, item.hasActivity);
-          
+
           return (
-            <div key={idx} className="activity-chart-bar-wrapper">
+            // key = period, а не индекс — так framer-motion понимает, что это
+            // тот же самый столбик, и плавно анимирует высоту при любом
+            // изменении данных (смена режима ТАС/Айсберг, фильтр завода и т.д.),
+            // а не просто рисует его заново с нуля
+            <div key={item.period} className="activity-chart-bar-wrapper">
               {item.hasActivity && (
                 <div className={`activity-chart-bar-value ${item.isCurrent ? 'current' : ''}`}>
                   {formatTons(item.totalTons)}
                 </div>
               )}
-              <div 
+              <motion.div
                 className={`activity-chart-bar ${item.hasActivity ? 'active' : 'inactive'} ${item.isCurrent ? 'current-bar' : ''}`}
-                style={{ height: `${height}px` }}
+                initial={{ height: 0 }}
+                animate={{ height }}
+                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
                 title={`${item.period}: ${item.totalTons} т`}
               />
               <div className="activity-chart-label">
