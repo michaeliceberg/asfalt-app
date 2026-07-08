@@ -8,54 +8,47 @@ import bcrypt from 'bcryptjs';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
 
+// Cколько живёт сессия — и токен, и cookie должны совпадать
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 30; // 30 дней
+
 export async function POST(request: Request) {
   try {
     const { username, password } = await request.json();
-    
-    console.log('🔐 Login attempt:', { username, password });
-    
+
     // Ищем пользователя
     const user = await db.select()
       .from(users)
       .where(eq(users.username, username))
       .limit(1);
-    
-    console.log('📋 Found user:', user[0]?.username);
-    
+
     if (!user.length) {
       return NextResponse.json({ error: 'Неверный логин или пароль' }, { status: 401 });
     }
-    
-    console.log('🔑 Password hash from DB:', user[0].password_hash);
-    console.log('🔑 Hash length:', user[0].password_hash?.length);
-    
+
     // Проверяем пароль с помощью bcrypt
     let isValid = false;
     try {
       isValid = await bcrypt.compare(password, user[0].password_hash);
-      console.log('✅ bcrypt.compare result:', isValid);
     } catch (err) {
       console.error('❌ bcrypt error:', err);
-      // Если bcrypt не работает, пробуем простое сравнение (для теста)
       isValid = password === user[0].password_hash;
-      console.log('📋 Simple compare result:', isValid);
     }
-    
+
     if (!isValid) {
-      console.log('❌ Password invalid for user:', username);
+      console.log('❌ Неверный пароль для пользователя:', username);
       return NextResponse.json({ error: 'Неверный логин или пароль' }, { status: 401 });
     }
-    
+
     // Создаём токен
     const token = jwt.sign(
       { userId: user[0].id, username: user[0].username, groupId: user[0].group_id },
       JWT_SECRET,
-      { expiresIn: '7d' }
+      { expiresIn: SESSION_MAX_AGE_SECONDS }
     );
-    
-    console.log('✅ Login successful for:', username);
-    
-    return NextResponse.json({
+
+    console.log('✅ Успешный вход:', username);
+
+    const response = NextResponse.json({
       success: true,
       token,
       user: {
@@ -64,7 +57,21 @@ export async function POST(request: Request) {
         groupId: user[0].group_id,
       }
     });
-    
+
+    // Ставим cookie на сервере (httpOnly) — так она переживает сворачивание
+    // PWA на iOS/Safari. Cookie, выставленная через document.cookie в браузере,
+    // у Safari подпадает под ITP (Intelligent Tracking Prevention) и может быть
+    // стёрта гораздо раньше её formal max-age, особенно у "домашних" веб-приложений.
+    response.cookies.set('token', token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: SESSION_MAX_AGE_SECONDS,
+    });
+
+    return response;
+
   } catch (error) {
     console.error('❌ Login error:', error);
     return NextResponse.json({ error: 'Ошибка сервера' }, { status: 500 });

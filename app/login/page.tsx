@@ -32,9 +32,12 @@ export default function LoginPage() {
       const data = await response.json();
       
       if (response.ok) {
-        // Сохраняем токен в cookie (для middleware)
-        document.cookie = `token=${data.token}; path=/; max-age=604800; SameSite=Lax`;
-        // Сохраняем в localStorage (для клиента)
+        // Cookie для middleware сервер уже поставил сам (httpOnly, 30 дней) —
+        // тут её больше не выставляем через document.cookie, это как раз и
+        // ломало сохранение сессии в PWA на Safari/iOS (ITP срезает
+        // "скриптовые" cookie гораздо раньше их формального срока).
+        // localStorage оставляем — от него зависит клиентская проверка
+        // авторизации в hooks/useAuth.ts (отдельная от серверной middleware).
         localStorage.setItem('token', data.token);
         localStorage.setItem('user', JSON.stringify(data.user));
         router.push('/');

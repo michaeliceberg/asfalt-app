@@ -53,6 +53,7 @@ export async function proxy(request: NextRequest) {
     
     // API для аутентификации
     '/api/auth/login',
+    '/api/auth/logout',
 
     // API для GPS и маршрутов
     '/api/route-time',
