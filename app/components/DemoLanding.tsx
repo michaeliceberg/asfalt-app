@@ -82,7 +82,7 @@ export default function DemoLanding() {
             alignItems: 'center'
           }}>
             <a
-              href="mailto:your-email@example.com?subject=Запрос%20на%20внедрение%20АБЗ%20Контроль"
+              href="mailto:abziceberg@gmail.com?subject=Запрос%20на%20внедрение%20АБЗ%20Контроль"
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',

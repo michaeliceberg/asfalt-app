@@ -92,13 +92,12 @@ export default function LandingPage() {
       <section className="hero">
         <div className="hero-content">
           <div className="logo">
-  <span className="logo-icon">🧩</span>
+  <span className="logo-icon">🏭</span>
   <h1>
-    <span className="logo-prefix">i</span>
-    <span className="logo-name">Combinator</span>
+    <span className="logo-name">АБЗ Контроль</span>
   </h1>
 </div>
-          <p className="tagline">Комбинируйте данные вашего бизнеса</p>
+          <p className="tagline">Контроль отгрузок и поступлений в реальном времени</p>
           <p className="description">
             Соберите идеальное приложение для контроля отгрузок, 
             поступлений и аналитики. Добавляйте модули как конструктор.
@@ -174,7 +173,7 @@ export default function LandingPage() {
                   <span className="battery">🔋 100%</span>
                 </div>
                 <div className="phone-app">
-                  <div className="app-header">КОМБИНАТОР</div>
+                  <div className="app-header">АБЗ КОНТРОЛЬ</div>
                   <div className="app-content">
                     {activeModules.includes('shipments') && (
                       <div className="demo-card">
@@ -287,7 +286,7 @@ export default function LandingPage() {
 
       {/* Преимущества */}
       <section className="features">
-        <h2 className="section-title">✨ Почему Комбинатор?</h2>
+        <h2 className="section-title">✨ Почему АБЗ Контроль?</h2>
         <div className="features-grid">
           <div className="feature">
             <div className="feature-icon">⚡</div>
@@ -340,20 +339,20 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="footer">
         <div className="footer-content">
-          <div className="footer-logo">КОМБИНАТОР</div>
+          <div className="footer-logo">АБЗ КОНТРОЛЬ</div>
           <div className="footer-links">
             <a href="#">О нас</a>
             <a href="#">Тарифы</a>
             <a href="#">Документация</a>
-            <a href="#">Контакты</a>
+            <a href="mailto:abziceberg@gmail.com">Контакты</a>
           </div>
           <div className="footer-contacts">
-            <span>📧 info@combinator.ru</span>
-            <span>📞 +7 (495) 000-00-00</span>
+            <span>📧 abziceberg@gmail.com</span>
+            <span>📞 <a href="tel:+79160991997" style={{ color: 'inherit', textDecoration: 'none' }}>+7 (916) 099-19-97</a></span>
           </div>
         </div>
         <div className="footer-bottom">
-          © 2026 Комбинатор. Все права защищены.
+          © 2026 АБЗ Контроль. Все права защищены.
         </div>
       </footer>
     </div>

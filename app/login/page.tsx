@@ -12,7 +12,7 @@ function LoginForm() {
   return (
     <div className="login-container">
       <div className="login-card">
-        <h1>🏭 iCombinator</h1>
+        <h1>🏭 АБЗ Контроль</h1>
         <p className="subtitle">Вход в систему контроля отгрузок</p>
 
         {/*
