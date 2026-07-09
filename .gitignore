@@ -16,7 +16,8 @@
 # database (сам файл БД не коммитим, миграции drizzle — коммитим)
 /data/*.db
 /data/*.db-journal
-/last-sync.json
+/data/*.db.backup*
+/data/last-*.json
 /backups/
 
 # debug
