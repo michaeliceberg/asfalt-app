@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { incomingMaterials } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { normalizePlate } from '@/lib/utils';
 import fs from 'fs';
 import path from 'path';
 
@@ -65,7 +66,7 @@ export async function GET() {
           tara: record.Тара || null,
           quantity: record.Количество,
           driver: record.Водитель || null,
-          licensePlate: record.ГосНомер || null,
+          licensePlate: record.ГосНомер ? normalizePlate(record.ГосНомер) : null,
           createdAt: Date.now(),
           
         });

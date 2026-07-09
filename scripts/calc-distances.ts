@@ -1,7 +1,7 @@
 import { db } from '../lib/db';
 import { shipments } from '../lib/db/schema';
 import { eq, and, gte } from 'drizzle-orm';
-import { calculateDistance, calculateETA, parseDestinationPoint } from '../lib/utils';
+import { calculateDistance, calculateETA, parseDestinationPoint, normalizePlate } from '../lib/utils';
 import { TRUCKS } from '../lib/trucks';
 
 const AUTH_TOKEN = 'XBNlAqRnZxU3Q%2BSLHe3qKZSIIYiSGWym3mN8%2BbXmbSZE74YqB3bYf4TLIWAzLPyg%2BR9qd2Mf9AxDn2K3f4j5lA%3D%3D';
@@ -33,7 +33,11 @@ async function getTruckPositions() {
       TRUCKS.forEach((truck) => {
         const pos = data.positions[truck.uid];
         if (pos) {
-          positions.set(truck.name, pos);
+          // Ключ — нормализованный госномер (без пробелов, кириллица
+          // вместо латиницы-омографов), чтобы совпадать с тем, как
+          // нормализуется shipment.licensePlate ниже — иначе "грязные"
+          // значения из 1С (хвостовые пробелы и т.п.) молча не находят пару.
+          positions.set(normalizePlate(truck.name), pos);
         }
       });
     }
@@ -84,7 +88,7 @@ async function main() {
     const destCoords = parseDestinationPoint(shipment.destinationPoint);
     if (!destCoords) continue;
     
-    const truckPos = truckPositions.get(shipment.licensePlate);
+    const truckPos = truckPositions.get(normalizePlate(shipment.licensePlate));
     if (!truckPos) continue;
     
     const distance = calculateDistance(truckPos.lat, truckPos.lng, destCoords.lat, destCoords.lng);

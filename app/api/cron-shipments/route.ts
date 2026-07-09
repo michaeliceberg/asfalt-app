@@ -10,6 +10,7 @@ import { eq } from 'drizzle-orm';
 import fs from 'fs';
 import path from 'path';
 import { sendPushNotification } from '@/lib/push-notifications';
+import { normalizePlate } from '@/lib/utils';
 
 const LAST_SYNC_FILE = path.join(process.cwd(), 'data', 'last-sync-shipments.json');
 
@@ -264,7 +265,7 @@ export async function GET(request: Request) {
           tara: record.Тара || null,
           quantity: record.Количество,
           driver: record.Водитель || null,
-          licensePlate: record.ГосНомер || null,
+          licensePlate: record.ГосНомер ? normalizePlate(record.ГосНомер) : null,
           clientRequestNumber: record.ЗаявкаНаОтгрузкуНомер || null,
           clientRequestDate: record.ЗаявкаНаОтгрузкуДата || null,
           destinationPoint: record.ПунктНазначения || null,
@@ -283,7 +284,7 @@ export async function GET(request: Request) {
             tara: record.Тара || null,
             quantity: record.Количество,
             driver: record.Водитель || null,
-            licensePlate: record.ГосНомер || null,
+            licensePlate: record.ГосНомер ? normalizePlate(record.ГосНомер) : null,
             clientRequestNumber: record.ЗаявкаНаОтгрузкуНомер || null,
             clientRequestDate: record.ЗаявкаНаОтгрузкуДата || null,
             createdAt: Date.now(),
@@ -397,7 +398,7 @@ export async function GET(request: Request) {
 //           tara: record.Тара || null,
 //           quantity: record.Количество,
 //           driver: record.Водитель || null,
-//           licensePlate: record.ГосНомер || null,
+//           licensePlate: record.ГосНомер ? normalizePlate(record.ГосНомер) : null,
 //           clientRequestNumber: record.ЗаявкаНаОтгрузкуНомер || null,
 //           clientRequestDate: record.ЗаявкаНаОтгрузкуДата || null,
 //           destinationPoint: record.ПунктНазначения || null,
@@ -416,7 +417,7 @@ export async function GET(request: Request) {
 //             tara: record.Тара || null,
 //             quantity: record.Количество,
 //             driver: record.Водитель || null,
-//             licensePlate: record.ГосНомер || null,
+//             licensePlate: record.ГосНомер ? normalizePlate(record.ГосНомер) : null,
 //             clientRequestNumber: record.ЗаявкаНаОтгрузкуНомер || null,
 //             clientRequestDate: record.ЗаявкаНаОтгрузкуДата || null,
 //             createdAt: Date.now(),
