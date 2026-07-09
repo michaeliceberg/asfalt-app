@@ -1,5 +1,7 @@
 'use client';
 
+import { Ship, Truck, Package, ClipboardList } from 'lucide-react';
+
 interface MainTabsProps {
   activeTab: 'incoming' | 'shipment' | 'shipmentConcrete' | 'summary';
   onTabChange: (tab: 'incoming' | 'shipment' | 'shipmentConcrete' | 'summary') => void;
@@ -46,7 +48,7 @@ export default function MainTabs({
         className={`main-tab ${activeTab === 'incoming' ? 'active' : ''}`}
         onClick={() => onTabChange('incoming')}
       >
-        <span className="tab-icon">🚢</span>
+        <span className="tab-icon"><Ship size={16} strokeWidth={2.2} /></span>
         <span className="tab-label">Поступление</span>
       </button>
       
@@ -55,7 +57,7 @@ export default function MainTabs({
         className={`main-tab ${activeTab === 'shipment' ? 'active' : ''} ${hasNewShipments ? 'has-new' : ''}`}
         onClick={handleShipmentClick}
       >
-        <span className="tab-icon">🚛</span>
+        <span className="tab-icon"><Truck size={16} strokeWidth={2.2} /></span>
         <span className="tab-label">Отгрузка Асф</span>
         {hasNewShipments && (
           <div className="tab-badge">
@@ -71,7 +73,7 @@ export default function MainTabs({
           className={`main-tab ${activeTab === 'shipmentConcrete' ? 'active' : ''} ${hasNewConcrete ? 'has-new' : ''}`}
           onClick={handleConcreteClick}
         >
-          <span className="tab-icon">🧱</span>
+          <span className="tab-icon"><Package size={16} strokeWidth={2.2} /></span>
           <span className="tab-label">Отгрузка Бет</span>
           {hasNewConcrete && (
             <div className="tab-badge">
@@ -87,7 +89,7 @@ export default function MainTabs({
         className={`main-tab ${activeTab === 'summary' ? 'active' : ''} ${hasFutureRequests ? 'has-future' : ''}`}
         onClick={() => onTabChange('summary')}
       >
-        <span className="tab-icon">📋</span>
+        <span className="tab-icon"><ClipboardList size={16} strokeWidth={2.2} /></span>
         <span className="tab-label">На будущее</span>
         {hasFutureRequests && (
           <div className="tab-badge">

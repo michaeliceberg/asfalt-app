@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MapPin, LogOut, RefreshCw, User } from 'lucide-react';
+import { MapPin, LogOut, RefreshCw, User, Sparkles } from 'lucide-react';
 import PushNotifications from './PushNotifications';
 
 interface HeaderProps {
@@ -123,7 +123,12 @@ border: 'none',
           </span>
         </div>
 
-        {isDemoMode && <span className="demo-badge" style={{ marginLeft: '2px' }}>🎯 ДЕМО</span>}
+        {isDemoMode && (
+          <span className="demo-badge" style={{ marginLeft: '2px' }}>
+            <Sparkles size={11} strokeWidth={2.4} />
+            ДЕМО
+          </span>
+        )}
       </div>
 
       {/* Кнопки */}

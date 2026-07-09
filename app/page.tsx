@@ -19,6 +19,7 @@ import ModeSwitch from './components/ModeSwitch';
 import LoadingSpinner from './components/LoadingSpinner';
 import { countActiveRequests, getFactoryName, isConcreteMaterial, isSpecialMaterial, parseRussianDate } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
+import { AlertTriangle, RefreshCw, ArrowDown } from 'lucide-react';
 
 // ============================================
 // ИНТЕРФЕЙСЫ
@@ -759,19 +760,19 @@ const handleRefresh = async () => {
       await fetch('/api/cron', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
       await loadAllData();
       await loadCronInfo();
-      setNotificationMessage('✅ Поступления обновлены');
+      setNotificationMessage('Поступления обновлены');
     } else if (activeMainTab === 'shipment') {
       await fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
       await loadAllData();
       await loadShipmentCronInfo();
       loadNewShipmentsCount(); // ✅ БЕЗ await
-      setNotificationMessage('✅ Отгрузки асфальта обновлены');
+      setNotificationMessage('Отгрузки асфальта обновлены');
     } else if (activeMainTab === 'shipmentConcrete') {
       await fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
       await loadAllData();
       await loadShipmentCronInfo();
       loadNewConcreteCount(); // ✅ БЕЗ await
-      setNotificationMessage('✅ Отгрузки бетона обновлены');
+      setNotificationMessage('Отгрузки бетона обновлены');
     } else if (activeMainTab === 'summary') {
       await Promise.all([
         fetch('/api/cron', { headers: { 'Authorization': 'Bearer icg72xf3b1' } }),
@@ -781,7 +782,7 @@ const handleRefresh = async () => {
       loadFutureRequestsCount(); // ✅ БЕЗ await
       loadNewShipmentsCount(); // ✅ БЕЗ await
       loadNewConcreteCount(); // ✅ БЕЗ await
-      setNotificationMessage('✅ Все данные обновлены');
+      setNotificationMessage('Все данные обновлены');
     }
     setShowNotification(true);
     setTimeout(() => setShowNotification(false), 2000);
@@ -789,7 +790,7 @@ const handleRefresh = async () => {
     setTimeout(() => setShouldShake(false), 500);
   } catch (err) {
     console.error('Ошибка при обновлении:', err);
-    setNotificationMessage('⚠️ Ошибка обновления');
+    setNotificationMessage('Ошибка обновления');
     setShowNotification(true);
     setTimeout(() => setShowNotification(false), 2000);
   } finally {
@@ -921,11 +922,11 @@ const handleRefresh = async () => {
         headers: { 'Authorization': 'Bearer icg72xf3b1' }
       });
       const data = await response.json();
-      setNotificationMessage(`✅ План отправлен! ${data.planCount} заказов`);
+      setNotificationMessage(`План отправлен! ${data.planCount} заказов`);
       setShowNotification(true);
       setTimeout(() => setShowNotification(false), 3000);
     } catch (err) {
-      setNotificationMessage('⚠️ Ошибка отправки');
+      setNotificationMessage('Ошибка отправки');
       setShowNotification(true);
       setTimeout(() => setShowNotification(false), 3000);
     } finally {
@@ -1061,7 +1062,9 @@ useEffect(() => {
   if (error) {
     return (
       <div className="error">
-        <p>⚠️ Ошибка: {error}</p>
+        <p style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+          <AlertTriangle size={16} strokeWidth={2.2} />Ошибка: {error}
+        </p>
         <button onClick={handleRetry}>Попробовать снова</button>
       </div>
     );
@@ -1082,7 +1085,11 @@ useEffect(() => {
           opacity: Math.min(pullOffset / 60, 1)
         }}
       >
-        {pullOffset > 60 ? '🔄 Отпустите для обновления' : '👇 Тяните вниз для обновления'}
+        {pullOffset > 60 ? (
+          <><RefreshCw size={13} strokeWidth={2.2} style={{ marginRight: 5, verticalAlign: -2 }} />Отпустите для обновления</>
+        ) : (
+          <><ArrowDown size={13} strokeWidth={2.2} style={{ marginRight: 5, verticalAlign: -2 }} />Тяните вниз для обновления</>
+        )}
       </div>
       
       <Notification message={notificationMessage} show={showNotification} />

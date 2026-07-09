@@ -214,6 +214,8 @@ export const detectFactory = (
     if (item.division === 'ЛЮ') return 'ЛЮ';
     if (item.division === 'СП') return 'СП';
     if (item.division === 'Щ') return 'Щ';
+    if (item.division === 'ДЕМО-СЕВ') return 'СЕВ';
+    if (item.division === 'ДЕМО-ЮГ') return 'ЮГ';
     if (item.number?.startsWith('ЛХ')) return 'ЛХ';
     if (item.number?.startsWith('ЛЮ')) return 'ЛЮ';
     if (item.number?.startsWith('СП')) return 'СП';
@@ -223,6 +225,8 @@ export const detectFactory = (
     if (item.division === 'ЛЮ') return 'ЛЮ';
     if (item.division === 'СП') return 'СП';
     if (item.division === 'Щ') return 'Щ';
+    if (item.division === 'ДЕМО-СЕВ') return 'СЕВ';
+    if (item.division === 'ДЕМО-ЮГ') return 'ЮГ';
   }
   return 'Другой';
 };

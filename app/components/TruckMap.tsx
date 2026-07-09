@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getTruckType, getStatusColor } from '@/lib/truck-icons';
 import { FACTORIES, FACTORY_COLORS, FactoryCode, getFactoryColor } from '@/lib/constants';
+import { Truck as TruckIconLucide, Zap, Clock, Target, MapPin } from 'lucide-react';
 
 // ============================================
 // ТИПЫ
@@ -107,6 +108,40 @@ function getTruckTypeEmoji(type: string): string {
     case 'tipper': return '🪨';
     default: return '🚛';
   }
+}
+
+// Версия статуса для JSX (карточка выбранной машины) — цветной кружок + текст
+// вместо emoji-строки (та используется в HTML-балунах Яндекс.Карт, где JSX
+// не работает, поэтому getStatusLabel выше оставлен как есть).
+function renderStatusBadge(vel: number, lastUpdate: string | null) {
+  let color = '#9ca3af';
+  let text = 'Нет данных';
+
+  if (lastUpdate) {
+    const now = Date.now();
+    const minutesSinceUpdate = (now - new Date(lastUpdate).getTime()) / 1000 / 60;
+
+    if (minutesSinceUpdate > 60) {
+      color = '#9ca3af'; text = 'Офлайн';
+    } else if (vel === 0 && minutesSinceUpdate > 30) {
+      color = '#ef4444'; text = 'Стоит';
+    } else if (vel === 0) {
+      color = '#facc15'; text = 'Загружается';
+    } else if (vel < 20) {
+      color = '#facc15'; text = 'Медленно';
+    } else if (vel < 50) {
+      color = '#22c55e'; text = 'Едет';
+    } else {
+      color = '#3b82f6'; text = 'Быстро';
+    }
+  }
+
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      <span style={{ width: 8, height: 8, borderRadius: '50%', background: color, display: 'inline-block' }} />
+      {text}
+    </span>
+  );
 }
 
 function getTruckTypeLabel(type: string): string {
@@ -890,21 +925,21 @@ const drawFactories = useCallback(() => {
           boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
         }}>
           <div style={{ fontSize: 18, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            {getTruckTypeEmoji(getTruckType(selectedTruck.name))}
+            <TruckIconLucide size={18} strokeWidth={2.2} />
             {selectedTruck.name}
           </div>
           <div style={{ display: 'flex', gap: 20, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap', fontSize: 14 }}>
-            <span>{getStatusLabel(selectedTruck.position.vel, selectedTruck.lastUpdate)}</span>
-            <span>⚡ {selectedTruck.position.vel} км/ч</span>
-            <span>🕐 {new Date(selectedTruck.position.time * 1000).toLocaleTimeString()}</span>
+            <span>{renderStatusBadge(selectedTruck.position.vel, selectedTruck.lastUpdate)}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Zap size={13} strokeWidth={2.2} />{selectedTruck.position.vel} км/ч</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Clock size={13} strokeWidth={2.2} />{new Date(selectedTruck.position.time * 1000).toLocaleTimeString()}</span>
           </div>
           {selectedTruck.destination && (
-            <div style={{ fontSize: 14, color: '#ffd93d', marginTop: 4 }}>
-              🎯 {selectedTruck.destination}
+            <div style={{ fontSize: 14, color: '#ffd93d', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+              <Target size={13} strokeWidth={2.2} />{selectedTruck.destination}
             </div>
           )}
-          <div style={{ fontSize: 12, color: '#888', marginTop: 4 }}>
-            📍 {selectedTruck.position.lat.toFixed(6)}, {selectedTruck.position.lng.toFixed(6)}
+          <div style={{ fontSize: 12, color: '#888', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
+            <MapPin size={11} strokeWidth={2.2} />{selectedTruck.position.lat.toFixed(6)}, {selectedTruck.position.lng.toFixed(6)}
           </div>
         </div>
       )}

@@ -1,4 +1,5 @@
 import { getFactoryName } from "@/lib/utils";
+import { LayoutGrid } from "lucide-react";
 
 interface FactoryFilterProps {
   factories: string[];
@@ -13,10 +14,10 @@ export default function FactoryFilter({ factories, activeFactory, onFactoryChang
         className={`factory-btn ${activeFactory === 'all' ? 'active' : ''}`}
         onClick={() => onFactoryChange('all')}
       >
-        📦 Все заводы
+        <LayoutGrid size={14} strokeWidth={2.2} style={{ marginRight: 4, verticalAlign: -2 }} />
+        Все заводы
       </button>
       {factories.map(factory => (
-        
         <button
           key={factory}
           className={`factory-btn ${activeFactory === factory ? 'active' : ''}`}
@@ -24,9 +25,6 @@ export default function FactoryFilter({ factories, activeFactory, onFactoryChang
         >
           {getFactoryName(factory)}
         </button>
-
-
-
       ))}
     </div>
   );

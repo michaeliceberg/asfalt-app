@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
+import { Sun, Mountain, RefreshCw } from 'lucide-react';
 
 interface ModeSwitchProps {
   mode: 'tas' | 'iceberg';
@@ -101,7 +102,7 @@ export default function ModeSwitch({
         <div className="mode-switch-container" style={{ opacity: 0.7, cursor: 'default' }}>
           <div className="mode-option active" style={{ width: '100%', justifyContent: 'center' }}>
             <div className="mode-option-top">
-              <span className="mode-icon">🏔️</span>
+              <span className="mode-icon"><Mountain size={20} strokeWidth={2.2} /></span>
               <span className="mode-label">Айсберг</span>
             </div>
             <span className="mode-location">Щёлково • Сергиев Посад</span>
@@ -109,7 +110,7 @@ export default function ModeSwitch({
               className="mode-sync-badge"
               style={{ backgroundColor: icebergSync.bgColor, color: icebergSync.color }}
             >
-              🔄 {icebergSync.text}
+              <RefreshCw size={11} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -1 }} />{icebergSync.text}
             </span>
           </div>
         </div>
@@ -124,7 +125,7 @@ export default function ModeSwitch({
         <div className="mode-switch-container" style={{ opacity: 0.7, cursor: 'default' }}>
           <div className="mode-option active" style={{ width: '100%', justifyContent: 'center' }}>
             <div className="mode-option-top">
-              <span className="mode-icon">☀️</span>
+              <span className="mode-icon"><Sun size={20} strokeWidth={2.2} /></span>
               <span className="mode-label">ТАС</span>
             </div>
             <span className="mode-location">Транс-Авто-Сервис</span>
@@ -132,7 +133,7 @@ export default function ModeSwitch({
               className="mode-sync-badge"
               style={{ backgroundColor: tasSync.bgColor, color: tasSync.color }}
             >
-              🔄 {tasSync.text}
+              <RefreshCw size={11} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -1 }} />{tasSync.text}
             </span>
           </div>
         </div>
@@ -154,7 +155,7 @@ export default function ModeSwitch({
           onClick={onToggle}
         >
           <div className="mode-option-top">
-            <span className="mode-icon">☀️</span>
+            <span className="mode-icon"><Sun size={20} strokeWidth={2.2} /></span>
             <span className="mode-label">ТАС</span>
           </div>
           <span className="mode-location">Транс-Авто-Сервис</span>
@@ -162,7 +163,7 @@ export default function ModeSwitch({
             className="mode-sync-badge"
             style={{ backgroundColor: tasSync.bgColor, color: tasSync.color }}
           >
-            🔄 {tasSync.text}
+            <RefreshCw size={11} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -1 }} />{tasSync.text}
           </span>
         </button>
         <button
@@ -170,7 +171,7 @@ export default function ModeSwitch({
           onClick={onToggle}
         >
           <div className="mode-option-top">
-            <span className="mode-icon">🏔️</span>
+            <span className="mode-icon"><Mountain size={20} strokeWidth={2.2} /></span>
             <span className="mode-label">Айсберг</span>
           </div>
           <span className="mode-location">Щёлково • Сергиев Посад</span>
@@ -178,7 +179,7 @@ export default function ModeSwitch({
             className="mode-sync-badge"
             style={{ backgroundColor: icebergSync.bgColor, color: icebergSync.color }}
           >
-            🔄 {icebergSync.text}
+            <RefreshCw size={11} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -1 }} />{icebergSync.text}
           </span>
         </button>
       </div>

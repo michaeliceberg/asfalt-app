@@ -4,6 +4,7 @@
 
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
+import { Bell, BellOff, Loader2 } from 'lucide-react';
 
 export default function PushNotifications() {
   const { user } = useAuth();
@@ -170,11 +171,11 @@ export default function PushNotifications() {
       }}
     >
       {loading ? (
-        <span style={{ fontSize: 14 }}>⏳</span>
+        <Loader2 size={14} strokeWidth={2.2} className="spin" />
       ) : isSubscribed ? (
-        <span style={{ fontSize: 16 }}>🔔</span>
+        <Bell size={16} strokeWidth={2.2} />
       ) : (
-        <span style={{ fontSize: 16, opacity: 0.5 }}>🔕</span>
+        <BellOff size={16} strokeWidth={2.2} style={{ opacity: 0.5 }} />
       )}
       {isSubscribed && (
         <span style={{

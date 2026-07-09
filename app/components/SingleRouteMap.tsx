@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import LoadingSpinner from './LoadingSpinner';
 import { YandexMap } from '@/lib/yandex-maps-types';
+import { Target, Truck as TruckIconLucide, BarChart3, Factory } from 'lucide-react';
 
 interface TruckData {
   licensePlate: string;
@@ -194,13 +195,13 @@ export default function SingleRouteMap({ requestNumber, mapInstance, onMapReady 
         boxShadow: '0 2px 12px rgba(0,0,0,0.1)',
         border: '1px solid #e2e8f0',
       }}>
-        <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e' }}>
-          🎯 {route.destination}
+        <div style={{ fontSize: 16, fontWeight: 700, color: '#1a1a2e', display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Target size={16} strokeWidth={2.2} />{route.destination}
         </div>
         <div style={{ display: 'flex', gap: 16, marginTop: 4, fontSize: 13, color: '#4a5568' }}>
-          <span>🚛 {route.count} машин</span>
-          <span>📊 {route.totalQuantity} т</span>
-          <span>🏭 {route.factory}</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><TruckIconLucide size={13} strokeWidth={2.2} />{route.count} машин</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><BarChart3 size={13} strokeWidth={2.2} />{route.totalQuantity} т</span>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Factory size={13} strokeWidth={2.2} />{route.factory}</span>
         </div>
       </div>
 
@@ -220,8 +221,8 @@ export default function SingleRouteMap({ requestNumber, mapInstance, onMapReady 
         maxHeight: 120,
         overflow: 'auto',
       }}>
-        <div style={{ fontSize: 12, fontWeight: 600, color: '#4a5568', marginBottom: 4 }}>
-          🚛 Машины в колонне:
+        <div style={{ fontSize: 12, fontWeight: 600, color: '#4a5568', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 4 }}>
+          <TruckIconLucide size={12} strokeWidth={2.2} />Машины в колонне:
         </div>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           {route.licensePlates.map((plate, idx) => (

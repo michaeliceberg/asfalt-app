@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { ShipmentItem } from '@/app/page';
 import LoadingSpinner from './LoadingSpinner';
 import { isConcreteMaterial, parseRussianDate } from '@/lib/utils';
+import { Trophy, Factory, Truck } from 'lucide-react';
 
 interface TopCustomersViewProps {
   data: ShipmentItem[];
@@ -154,8 +155,9 @@ export default function TopCustomersView({ data, mode = 'tas' }: TopCustomersVie
   return (
     <div className="top-customers-view">
       <div className="top-customers-header">
-        <div className="top-customers-title">
-          🏆 Топ-10 грузополучателей (а
+        <div className="top-customers-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Trophy size={16} strokeWidth={2.2} />
+          Топ-10 грузополучателей (а
           {mode === 'tas' ? 'сфальт, ЛХ/ЛЮ' : 'сфальт, СП/Щ'}
         </div>
         <div className="top-customers-controls">
@@ -166,7 +168,11 @@ export default function TopCustomersView({ data, mode = 'tas' }: TopCustomersVie
                 className={`factory-filter-btn ${selectedFactory === factory ? 'active' : ''}`}
                 onClick={() => setSelectedFactory(factory)}
               >
-                {factory === 'all' ? 'Все заводы' : `🏭 ${getFactoryLabel(factory)}`}
+                {factory === 'all' ? 'Все заводы' : (
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <Factory size={12} strokeWidth={2.2} />{getFactoryLabel(factory)}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -201,7 +207,7 @@ export default function TopCustomersView({ data, mode = 'tas' }: TopCustomersVie
                 <div className="customer-name">{customer.name}</div>
                 <div className="customer-stats">
                   <span className="customer-total">{Math.round(customer.total)} т</span>
-                  <span className="customer-count">🚛 {customer.count} машин</span>
+                  <span className="customer-count"><Truck size={11} strokeWidth={2.2} style={{ marginRight: 2, verticalAlign: -1 }} />{customer.count} машин</span>
                 </div>
                 <div className="customer-bar-wrapper">
                   <div 

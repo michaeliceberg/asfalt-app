@@ -1,5 +1,6 @@
 // components/GroupedView.tsx
 import { IncomingItem, ShipmentItem } from "../page";
+import { Package, Truck } from "lucide-react";
 
 type UnifiedDataItem = IncomingItem | ShipmentItem;
 
@@ -124,11 +125,11 @@ export default function GroupedView({
                   
                   <div className="group-card-stats">
                     <div className="stat-item">
-                      <span className="stat-label">📦 Всего:</span>
+                      <span className="stat-label"><Package size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Всего:</span>
                       <span className="stat-value highlight">{formatWeight(record.totalQuantity)}</span>
                     </div>
                     <div className="stat-item">
-                      <span className="stat-label">🚛 Машин:</span>
+                      <span className="stat-label"><Truck size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Машин:</span>
                       <span className="stat-value">{record.vehicleCount}</span>
                     </div>
                   </div>

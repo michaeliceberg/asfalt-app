@@ -1,9 +1,8 @@
 // components/ViewTabs.tsx
+'use client';
 
-// type ViewTab = 'grouped' | 'list' | 'compact';
-// type ViewTab = 'compact' | 'grouped' | 'list';
+import { LayoutGrid, List, BarChart2, Trophy } from 'lucide-react';
 
-// type ViewTab = 'compact' | 'grouped' | 'list' | 'charts';
 type ViewTab = 'compact' | 'grouped' | 'list' | 'charts' | 'topCustomers';
 
 interface ViewTabsProps {
@@ -14,51 +13,33 @@ interface ViewTabsProps {
 export default function ViewTabs({ activeTab, onTabChange }: ViewTabsProps) {
   return (
     <div className="tabs">
-      <button 
+      <button
         className={`tab ${activeTab === 'compact' ? 'active' : ''}`}
         onClick={() => onTabChange('compact')}
       >
-        📋 Компактно
+        <LayoutGrid size={15} strokeWidth={2.2} /> Компактно
       </button>
 
-      <button 
-  className={`tab ${activeTab === 'list' ? 'active' : ''}`}
-  onClick={() => onTabChange('list')}
->
-  📋 Список
-</button>
-
-
-<button 
-  className={`tab ${activeTab === 'charts' ? 'active' : ''}`}
-  onClick={() => onTabChange('charts')}
->
-  📊 Графики
-</button>
-
-
-
-<button 
-  className={`tab ${activeTab === 'topCustomers' ? 'active' : ''}`}
-  onClick={() => onTabChange('topCustomers')}
->
-  🏆 Топ-10
-</button>
-
-
-
-      {/* <button 
+      <button
         className={`tab ${activeTab === 'list' ? 'active' : ''}`}
         onClick={() => onTabChange('list')}
       >
-        📋 Список
-      </button> */}
-      {/* <button 
-        className={`tab ${activeTab === 'grouped' ? 'active' : ''}`}
-        onClick={() => onTabChange('grouped')}
+        <List size={15} strokeWidth={2.2} /> Список
+      </button>
+
+      <button
+        className={`tab ${activeTab === 'charts' ? 'active' : ''}`}
+        onClick={() => onTabChange('charts')}
       >
-        📊 Итоги по дням
-      </button> */}
+        <BarChart2 size={15} strokeWidth={2.2} /> Графики
+      </button>
+
+      <button
+        className={`tab ${activeTab === 'topCustomers' ? 'active' : ''}`}
+        onClick={() => onTabChange('topCustomers')}
+      >
+        <Trophy size={15} strokeWidth={2.2} /> Топ-10
+      </button>
     </div>
   );
 }

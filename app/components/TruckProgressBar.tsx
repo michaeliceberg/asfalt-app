@@ -2,7 +2,7 @@
 
 'use client';
 
-import { Truck } from 'lucide-react';
+import { Truck, CheckCircle2, Clock } from 'lucide-react';
 
 interface TruckProgressBarProps {
   licensePlate: string;
@@ -37,11 +37,11 @@ export default function TruckProgressBar({
   factoryCode,
 }: TruckProgressBarProps) {
   let progress = 0;
-  let infoText = '⏳ Нет данных';
-  
+  let infoText = 'Нет данных';
+
   if (isArrived) {
     progress = 100;
-    infoText = '✅ Прибыл';
+    infoText = 'Прибыл';
   } else if (distance !== null && totalDistance > 0) {
     const rawProgress = ((totalDistance - distance) / totalDistance) * 100;
     progress = Math.max(0, Math.min(100, rawProgress));
@@ -74,6 +74,11 @@ export default function TruckProgressBar({
         </div>
         <div className="truck-right">
           <span className={`truck-info ${isArrived ? 'arrived' : ''}`}>
+            {isArrived ? (
+              <CheckCircle2 size={11} strokeWidth={2.4} style={{ marginRight: 3, verticalAlign: -1 }} />
+            ) : distance !== null ? (
+              <Clock size={11} strokeWidth={2.4} style={{ marginRight: 3, verticalAlign: -1 }} />
+            ) : null}
             {infoText}
           </span>
         </div>

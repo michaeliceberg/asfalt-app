@@ -21,6 +21,7 @@ import {
   isIncomingDateToday
 } from '@/lib/utils';
 import TruckProgressBar from './TruckProgressBar';
+import { Factory, Truck, Package, User, Lock, MousePointerClick } from 'lucide-react';
 
 type UnifiedDataItem = IncomingItem | ShipmentItem;
 
@@ -214,7 +215,13 @@ export default function CompactView({
   
   const isShipment = mainTab === 'shipment' || mainTab === 'shipmentConcrete';
   const isConcreteOnly = mainTab === 'shipmentConcrete';
-  const shouldUseCombined = mode === 'iceberg' && isShipment;
+  // В демо НЕ используем "combined"-режим — он самостоятельно тянет
+  // реальные боевые данные с /api/combined-requests?factory=СП|Щ в обход
+  // props (data/demoMode), из-за чего в демо утекали настоящие боевые
+  // отгрузки и не работали ни диаграмма машин, ни подсказка "нажми".
+  // Для демо всегда строим группировку локально из переданных props
+  // (см. groupedByDateAndRequest ниже) — ровно как для ТАС.
+  const shouldUseCombined = mode === 'iceberg' && isShipment && !demoMode;
   const effectiveData = shouldUseCombined ? [] : data;
   
 
@@ -445,6 +452,11 @@ useEffect(() => {
       else if (incoming.division === 'ЛЮ') factory = 'ЛЮ';
       else if (incoming.division === 'СП') factory = 'СП';
       else if (incoming.division === 'Щ') factory = 'Щ';
+      // Демо (и любые прочие незнакомые коды) — показываем короткой
+      // меткой, вместо того чтобы схлопывать в "—".
+      else if (incoming.division === 'ДЕМО-СЕВ') factory = 'СЕВ';
+      else if (incoming.division === 'ДЕМО-ЮГ') factory = 'ЮГ';
+      else if (incoming.division) factory = incoming.division;
       
       const documentNumber = incoming.number || 'unknown';
       const vehicleId = incoming.licensePlate || incoming.driver || 'unknown';
@@ -519,6 +531,10 @@ useEffect(() => {
       else if (shipment.division === 'ЛЮ') factory = 'ЛЮ';
       else if (shipment.division === 'СП') factory = 'СП';
       else if (shipment.division === 'Щ') factory = 'Щ';
+      // Демо (и любые прочие незнакомые коды) — показываем короткой меткой.
+      else if (shipment.division === 'ДЕМО-СЕВ') factory = 'СЕВ';
+      else if (shipment.division === 'ДЕМО-ЮГ') factory = 'ЮГ';
+      else if (shipment.division) factory = shipment.division;
 
       const consigneeKey = shipment.consignee || shipment.customer || '—';
       const groupKey = `${dateKey}_${requestNumber}_${consigneeKey}_${shipment.material}`;
@@ -682,8 +698,8 @@ useEffect(() => {
                   <span className="col-slash"></span>
                   <span className="col-plan">Заяв {unitLabel}</span>
                   <span className="col-consignee">Грузополучатель</span>
-                  <span className="col-factory">🏭</span>
-                  <span className="col-trucks">🚛</span>
+                  <span className="col-factory"><Factory size={13} strokeWidth={2.2} /></span>
+                  <span className="col-trucks"><Truck size={13} strokeWidth={2.2} /></span>
                 </div>
                 
                 {sortedItems.map((item, idx) => {
@@ -726,7 +742,7 @@ useEffect(() => {
                             <span style={{ whiteSpace: 'nowrap' }}>
                               {displayPlan}
                               {item.closed ? (
-                                <span className="closed-lock"> 🔒</span>
+                                <span className="closed-lock"> <Lock size={10} strokeWidth={2.4} style={{ verticalAlign: -1 }} /></span>
                               ) : (
                                 !isCompleted && item.factQuantity > 0 && percentComplete < 90 && (
                                   <span className="active-dot" title="Идут отгрузки"></span>
@@ -757,27 +773,27 @@ useEffect(() => {
                             transition={{ duration: 0.2 }}
                           >
                             <div className="detail-row">
-                              <span className="detail-label">📦 Материал:</span>
+                              <span className="detail-label"><Package size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Материал:</span>
                               <span className="detail-value">{item.material}</span>
                             </div>
                             <div className="detail-row">
-                              <span className="detail-label">🏭 Завод:</span>
+                              <span className="detail-label"><Factory size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Завод:</span>
                               <span className="detail-value">{item.division}</span>
                             </div>
                             <div className="detail-row">
-                              <span className="detail-label">🚛 Машин:</span>
+                              <span className="detail-label"><Truck size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Машин:</span>
                               <span className="detail-value">{item.truckCount}</span>
                             </div>
                             {item.vehicles.length > 0 && (
                               <div className="vehicles-list">
-                                <div className="vehicles-title">🚛 Транспорт:</div>
+                                <div className="vehicles-title"><Truck size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Транспорт:</div>
                                 {item.vehicles.map((vehicle, vIdx) => {
                                   const vehicleQty = vehicle.quantity;
                                   return (
                                     <div key={vIdx} className="vehicle-item">
                                       <span className="vehicle-time">{vehicle.fullDateTime || vehicle.time}</span>
                                       <span className="vehicle-license">{vehicle.licensePlate}</span>
-                                      <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
+                                      <span className="vehicle-driver-inline"><User size={11} strokeWidth={2.2} style={{ marginRight: 2, verticalAlign: -1 }} />{vehicle.driver}</span>
                                       <span className="vehicle-quantity">
                                         {vehicleQty.toFixed(1)} {item.unit === 'м³' ? 'м³' : 'т'}
                                       </span>
@@ -932,8 +948,8 @@ useEffect(() => {
                   <span className="col-fact">Вып</span>
                   <span className="col-material-header">Материал</span>
                   <span className="col-supplier">Контрагент</span>
-                  <span className="col-factory">🏭</span>
-                  <span className="col-trucks">🚛</span>
+                  <span className="col-factory"><Factory size={13} strokeWidth={2.2} /></span>
+                  <span className="col-trucks"><Truck size={13} strokeWidth={2.2} /></span>
                 </div>
                 
                 {sortedItems.map((item, idx) => {
@@ -974,7 +990,7 @@ useEffect(() => {
                           </div>
                         </span>
                         <span className="col-trucks">{item.truckCount}</span>
-                        {demoMode && !isExpanded && <span className="tap-hint" aria-hidden="true">👆</span>}
+                        {demoMode && !isExpanded && <span className="tap-hint" aria-hidden="true"><MousePointerClick size={14} strokeWidth={2.4} /></span>}
                       </div>
 
                       <AnimatePresence>
@@ -987,25 +1003,25 @@ useEffect(() => {
                             transition={{ duration: 0.2 }}
                           >
                             <div className="detail-row">
-                              <span className="detail-label">📦 Материал:</span>
+                              <span className="detail-label"><Package size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Материал:</span>
                               <span className="detail-value">{item.material}</span>
                             </div>
                             <div className="detail-row">
-                              <span className="detail-label">🏭 Завод:</span>
+                              <span className="detail-label"><Factory size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Завод:</span>
                               <span className="detail-value">{item.factories.join(', ')}</span>
                             </div>
                             <div className="detail-row">
-                              <span className="detail-label">🚛 Машин:</span>
+                              <span className="detail-label"><Truck size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Машин:</span>
                               <span className="detail-value">{item.truckCount}</span>
                             </div>
                             {sortedVehicles.length > 0 && (
                               <div className="vehicles-list">
-                                <div className="vehicles-title">🚛 Транспорт:</div>
+                                <div className="vehicles-title"><Truck size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Транспорт:</div>
                                 {sortedVehicles.map((vehicle, i) => (
                                   <div key={i} className="vehicle-item">
                                     <span className="vehicle-time">{vehicle.fullDateTime || vehicle.time}</span>
                                     <span className="vehicle-license">{vehicle.licensePlate}</span>
-                                    <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
+                                    <span className="vehicle-driver-inline"><User size={11} strokeWidth={2.2} style={{ marginRight: 2, verticalAlign: -1 }} />{vehicle.driver}</span>
                                     <span className="vehicle-quantity">
                                       {Math.round(vehicle.quantity)} т
                                     </span>
@@ -1065,8 +1081,8 @@ useEffect(() => {
                   <span className="col-slash"></span>
                   <span className="col-plan">Заяв (т)</span>
                   <span className="col-consignee">Грузополучатель</span>
-                  <span className="col-factory">🏭</span>
-                  <span className="col-trucks">🚛</span>
+                  <span className="col-factory"><Factory size={13} strokeWidth={2.2} /></span>
+                  <span className="col-trucks"><Truck size={13} strokeWidth={2.2} /></span>
                 </div>
               )}
               
@@ -1076,8 +1092,8 @@ useEffect(() => {
                   <span className="col-fact">Вып</span>
                   <span className="col-material-header">Материал</span>
                   <span className="col-supplier">Контрагент</span>
-                  <span className="col-factory">🏭</span>
-                  <span className="col-trucks">🚛</span>
+                  <span className="col-factory"><Factory size={13} strokeWidth={2.2} /></span>
+                  <span className="col-trucks"><Truck size={13} strokeWidth={2.2} /></span>
                 </div>
               )}
 
@@ -1119,7 +1135,7 @@ useEffect(() => {
                             <span style={{ whiteSpace: 'nowrap' }}>
                               {Math.round(item.planQuantity)}
                               {item.closed ? (
-                                <span className="closed-lock"> 🔒</span>
+                                <span className="closed-lock"> <Lock size={10} strokeWidth={2.4} style={{ verticalAlign: -1 }} /></span>
                               ) : (
                                 !isCompleted && hasTodayShipments(allShipments, item.requestNumber) && percentComplete < 90 && (
                                   <span className="active-dot" title="Идут отгрузки"></span>
@@ -1139,7 +1155,7 @@ useEffect(() => {
                           </div>
                         </span>
                         <span className="col-trucks">{item.truckCount}</span>
-                        {demoMode && !isExpanded && <span className="tap-hint" aria-hidden="true">👆</span>}
+                        {demoMode && !isExpanded && <span className="tap-hint" aria-hidden="true"><MousePointerClick size={14} strokeWidth={2.4} /></span>}
                       </div>
 
 
@@ -1160,15 +1176,13 @@ useEffect(() => {
       exit={{ opacity: 0, height: 0 }}
       transition={{ duration: 0.2 }}
     >
-      {/* ✅ Только материал, без дублей */}
+      {/* Материал, без дублей */}
       <div className="detail-row">
-        {/* <span className="detail-label">📦 Материал:</span> */}
-        {/* <span className="detail-value">Асфальт</span> */}
-          <span className="detail-label">📦 Материал:</span>
+          <span className="detail-label"><Package size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Материал:</span>
           <span className="detail-value">{item.material}</span>
       </div>
-      
-      {/* ✅ Прогресс-бар для каждой машины */}
+
+      {/* Прогресс-бар для каждой машины */}
       {item.vehicles.length > 0 && (mode === 'tas' || demoMode) && (
         <div className="truck-progress-list">
           {[...item.vehicles]
@@ -1255,7 +1269,7 @@ useEffect(() => {
       {/* Для Айсберг — простой список без прогресс-бара (кроме демо — там показываем диаграмму) */}
       {item.vehicles.length > 0 && mode !== 'tas' && !demoMode && (
         <div className="vehicles-list">
-          <div className="vehicles-title">🚛 Транспорт:</div>
+          <div className="vehicles-title"><Truck size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Транспорт:</div>
           {[...item.vehicles]
             .sort((a, b) => {
               const dateA = a.fullDateTime || a.time;
@@ -1269,7 +1283,7 @@ useEffect(() => {
                 <div key={i} className="vehicle-item">
                   <span className="vehicle-time">{dateTime}</span>
                   <span className="vehicle-license">{vehicle.licensePlate}</span>
-                  <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
+                  <span className="vehicle-driver-inline"><User size={11} strokeWidth={2.2} style={{ marginRight: 2, verticalAlign: -1 }} />{vehicle.driver}</span>
                   <span className="vehicle-quantity">
                     {vehicleQty.toFixed(1)} {item.unit === 'м³' ? 'м³' : 'т'}
                   </span>
@@ -1338,27 +1352,27 @@ useEffect(() => {
                           transition={{ duration: 0.2 }}
                         >
                           <div className="detail-row">
-                            <span className="detail-label">📦 Материал:</span>
+                            <span className="detail-label"><Package size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Материал:</span>
                             <span className="detail-value">{item.material}</span>
                           </div>
                           <div className="detail-row">
-                            <span className="detail-label">🏭 Завод:</span>
+                            <span className="detail-label"><Factory size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Завод:</span>
                             <span className="detail-value">{item.factories.join(', ')}</span>
                           </div>
                           <div className="detail-row">
-                            <span className="detail-label">🚛 Машин:</span>
+                            <span className="detail-label"><Truck size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Машин:</span>
                             <span className="detail-value">{item.truckCount}</span>
                           </div>
                           {item.vehicles.length > 0 && (
                             <div className="vehicles-list">
-                              <div className="vehicles-title">🚛 Транспорт:</div>
+                              <div className="vehicles-title"><Truck size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Транспорт:</div>
                               {item.vehicles.map((vehicle, i) => {
                                 const vehicleQty = vehicle.quantity;
                                 return (
                                   <div key={i} className="vehicle-item">
                                     <span className="vehicle-time">{vehicle.time}</span>
                                     <span className="vehicle-license">{vehicle.licensePlate}</span>
-                                    <span className="vehicle-driver-inline">👤 {vehicle.driver}</span>
+                                    <span className="vehicle-driver-inline"><User size={11} strokeWidth={2.2} style={{ marginRight: 2, verticalAlign: -1 }} />{vehicle.driver}</span>
                                     <span className="vehicle-quantity">{Math.round(vehicleQty)} т</span>
                                   </div>
                                 );
@@ -1995,7 +2009,7 @@ useEffect(() => {
 //                             <span style={{ whiteSpace: 'nowrap' }}>
 //                               {displayPlan}
 //                               {item.closed ? (
-//                                 <span className="closed-lock"> 🔒</span>
+//                                 <span className="closed-lock"> <Lock size={10} strokeWidth={2.4} style={{ verticalAlign: -1 }} /></span>
 //                               ) : (
 //                                 !isCompleted && item.factQuantity > 0 && percentComplete < 90 && (
 //                                   <span className="active-dot" title="Идут отгрузки"></span>
@@ -2026,11 +2040,11 @@ useEffect(() => {
 //                             transition={{ duration: 0.2 }}
 //                           >
 //                             <div className="detail-row">
-//                               <span className="detail-label">📦 Материал:</span>
+//                               <span className="detail-label"><Package size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Материал:</span>
 //                               <span className="detail-value">{item.material}</span>
 //                             </div>
 //                             <div className="detail-row">
-//                               <span className="detail-label">🏭 Завод:</span>
+//                               <span className="detail-label"><Factory size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Завод:</span>
 //                               <span className="detail-value">{item.division}</span>
 //                             </div>
 //                             <div className="detail-row">
@@ -2255,11 +2269,11 @@ useEffect(() => {
 //                             transition={{ duration: 0.2 }}
 //                           >
 //                             <div className="detail-row">
-//                               <span className="detail-label">📦 Материал:</span>
+//                               <span className="detail-label"><Package size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Материал:</span>
 //                               <span className="detail-value">{item.material}</span>
 //                             </div>
 //                             <div className="detail-row">
-//                               <span className="detail-label">🏭 Завод:</span>
+//                               <span className="detail-label"><Factory size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Завод:</span>
 //                               <span className="detail-value">{item.factories.join(', ')}</span>
 //                             </div>
 //                             <div className="detail-row">
@@ -2387,7 +2401,7 @@ useEffect(() => {
 //                             <span style={{ whiteSpace: 'nowrap' }}>
 //                               {Math.round(item.planQuantity)}
 //                               {item.closed ? (
-//                                 <span className="closed-lock"> 🔒</span>
+//                                 <span className="closed-lock"> <Lock size={10} strokeWidth={2.4} style={{ verticalAlign: -1 }} /></span>
 //                               ) : (
 //                                 !isCompleted && hasTodayShipments(allShipments, item.requestNumber) && percentComplete < 90 && (
 //                                   <span className="active-dot" title="Идут отгрузки"></span>
@@ -2419,11 +2433,11 @@ useEffect(() => {
 //                             transition={{ duration: 0.2 }}
 //                           >
 //                             <div className="detail-row">
-//                               <span className="detail-label">📦 Материал:</span>
+//                               <span className="detail-label"><Package size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Материал:</span>
 //                               <span className="detail-value">{item.material}</span>
 //                             </div>
 //                             <div className="detail-row">
-//                               <span className="detail-label">🏭 Завод:</span>
+//                               <span className="detail-label"><Factory size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Завод:</span>
 //                               <span className="detail-value">
 //                                 {item.factories?.join(', ') || '—'}
 //                               </span>
@@ -3350,11 +3364,11 @@ useEffect(() => {
 //                             transition={{ duration: 0.2 }}
 //                           >
 //                             <div className="detail-row">
-//                               <span className="detail-label">📦 Материал:</span>
+//                               <span className="detail-label"><Package size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Материал:</span>
 //                               <span className="detail-value">{item.material}</span>
 //                             </div>
 //                             <div className="detail-row">
-//                               <span className="detail-label">🏭 Завод:</span>
+//                               <span className="detail-label"><Factory size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Завод:</span>
 //                               <span className="detail-value">{item.division}</span>
 //                             </div>
 //                             <div className="detail-row">
@@ -3615,11 +3629,11 @@ useEffect(() => {
 //                             transition={{ duration: 0.2 }}
 //                           >
 //                             <div className="detail-row">
-//                               <span className="detail-label">📦 Материал:</span>
+//                               <span className="detail-label"><Package size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Материал:</span>
 //                               <span className="detail-value">{item.material}</span>
 //                             </div>
 //                             <div className="detail-row">
-//                               <span className="detail-label">🏭 Завод:</span>
+//                               <span className="detail-label"><Factory size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Завод:</span>
 //                               <span className="detail-value">{item.factories.join(', ')}</span>
 //                             </div>
 //                             <div className="detail-row">

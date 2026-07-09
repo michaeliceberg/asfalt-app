@@ -2,6 +2,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { Lock } from 'lucide-react';
 
 interface PinModalProps {
   onSuccess: () => void;
@@ -68,7 +69,7 @@ export default function PinModal({ onSuccess }: PinModalProps) {
     <div className="pin-modal-overlay">
       <div className="pin-modal">
         <div className="pin-modal-header">
-          <div className="pin-lock-icon">🔒</div>
+          <div className="pin-lock-icon"><Lock size={28} strokeWidth={2.2} /></div>
           <h2>Доступ ограничен</h2>
           <p>Введите PIN-код для входа</p>
         </div>

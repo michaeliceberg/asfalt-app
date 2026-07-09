@@ -14,11 +14,13 @@ import MainTabs from '@/app/components/MainTabs';
 import ViewTabs from '@/app/components/ViewTabs';
 import FactoryFilter from '@/app/components/FactoryFilter';
 import DemoLanding from '@/app/components/DemoLanding'; // ← Новый компонент
+import SummaryView from '@/app/components/SummaryView';
 import { IncomingItem, ShipmentItem } from '@/app/page';
 import { getFactoryName, isConcreteMaterial, isSpecialMaterial } from '@/lib/utils';
-import { getDemoData } from '@/lib/demo-data';
+import { getDemoData, demoRequests, demoFutureRequests } from '@/lib/demo-data';
+import { Tag, Factory, BarChart3, Inbox } from 'lucide-react';
 
-type MainTab = 'incoming' | 'shipment' | 'shipmentConcrete';
+type MainTab = 'incoming' | 'shipment' | 'shipmentConcrete' | 'summary';
 type ViewTab = 'compact' | 'list' | 'charts' | 'topCustomers';
 
 type UnifiedDataItem = IncomingItem | ShipmentItem;
@@ -34,45 +36,17 @@ export default function DemoPage() {
   });
 
   useEffect(() => {
-    const loadDemoData = async () => {
-      try {
-        const [incomingRes, shipmentsRes] = await Promise.all([
-          fetch('/api/incoming?demo=true'),
-          fetch('/api/shipments?demo=true'),
-        ]);
-        
-        let incoming = await incomingRes.json();
-        let shipments = await shipmentsRes.json();
-        
-        if (!Array.isArray(incoming) || incoming.length === 0) {
-          console.log('🔄 Используем встроенные демо-данные для поступлений');
-          const demo = getDemoData();
-          incoming = demo.incoming;
-        }
-        
-        if (!Array.isArray(shipments) || shipments.length === 0) {
-          console.log('🔄 Используем встроенные демо-данные для отгрузок');
-          const demo = getDemoData();
-          shipments = demo.shipments;
-        }
-        
-        setData({
-          incoming: Array.isArray(incoming) ? incoming : [],
-          shipments: Array.isArray(shipments) ? shipments : [],
-        });
-      } catch (err) {
-        console.error('Error loading demo data from API, using fallback:', err);
-        const demo = getDemoData();
-        setData({
-          incoming: demo.incoming,
-          shipments: demo.shipments,
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    loadDemoData();
+    // ⚠️ Раньше здесь ходили в /api/incoming?demo=true и /api/shipments?demo=true —
+    // они читают строки с division='ДЕМО' из БОЕВОЙ базы напрямую, в обход
+    // анонимизации из lib/demo-data.ts. Это утекало реальные отгрузки
+    // (настоящие грузополучатели, номера) в публичное демо без авторизации.
+    // Демо теперь ВСЕГДА использует только синтетические данные ниже.
+    const demo = getDemoData();
+    setData({
+      incoming: demo.incoming,
+      shipments: demo.shipments,
+    });
+    setLoading(false);
   }, []);
 
   const getFilteredData = (): UnifiedDataItem[] => {
@@ -108,14 +82,24 @@ export default function DemoPage() {
   const totalIncoming = data.incoming.length;
   const totalShipments = data.shipments.length;
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const futureRequestsCount = demoFutureRequests.filter((req) => {
+    if (req.closed) return false;
+    if (!req.delivery_date) return false;
+    const deliveryDate = new Date(req.delivery_date);
+    deliveryDate.setHours(0, 0, 0, 0);
+    return deliveryDate >= today;
+  }).length;
+
   return (
     <div className="container" style={{ paddingTop: 16, paddingBottom: 40 }}>
       {/* ← УБИРАЕМ DemoBanner, СТАВИМ DemoLanding */}
       <DemoLanding />
 
       <div className="header">
-        <Header 
-          refreshing={false} 
+        <Header
+          refreshing={false}
           onRefresh={() => {
             setLoading(true);
             const demo = getDemoData();
@@ -129,40 +113,64 @@ export default function DemoPage() {
           hideLogout={true}
         />
 
-        <MainTabs 
-          activeTab={activeMainTab} 
+        <div className="sync-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span className="sync-label"><Tag size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Завод:</span>
+          <span className="sync-time" style={{ color: '#ffd93d', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <Factory size={13} strokeWidth={2.2} />АБЗ-ДЕМО («Северный» / «Южный»)
+          </span>
+          <span style={{ fontSize: '12px', color: '#aaa', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+            <BarChart3 size={12} strokeWidth={2.2} />{totalIncoming + totalShipments} записей
+          </span>
+        </div>
+
+        <MainTabs
+          activeTab={activeMainTab}
           onTabChange={(tab) => setActiveMainTab(tab as MainTab)}
-          futureRequestsCount={0}
+          futureRequestsCount={futureRequestsCount}
           newShipmentsCount={0}
           newConcreteCount={0}
           showConcreteTab={true}
         />
 
-        <div className="sync-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span className="sync-label">🏷️ Завод:</span>
-          <span className="sync-time" style={{ color: '#ffd93d' }}>🏭 АБЗ-ДЕМО («Северный» / «Южный»)</span>
-          <span style={{ fontSize: '12px', color: '#aaa' }}>
-            📊 {totalIncoming + totalShipments} записей
-          </span>
-        </div>
+        {activeMainTab !== 'summary' && (
+          <>
+            <FactoryFilter
+              factories={factories}
+              activeFactory={activeFactory}
+              onFactoryChange={setActiveFactory}
+            />
 
-        <FactoryFilter 
-          factories={factories} 
-          activeFactory={activeFactory} 
-          onFactoryChange={setActiveFactory} 
-        />
+            <ViewTabs
+              activeTab={activeViewTab}
+              onTabChange={(tab) => setActiveViewTab(tab as ViewTab)}
+            />
 
-        <ViewTabs 
-          activeTab={activeViewTab} 
-          onTabChange={(tab) => setActiveViewTab(tab as ViewTab)} 
-        />
-
-        <div className="stats">
-          Показано: <strong>{filteredData.length}</strong> записей
-          {activeFactory !== 'all' && ` (${getFactoryName(activeFactory)})`}
-        </div>
+            <div className="stats">
+              Показано: <strong>{filteredData.length}</strong> записей
+              {activeFactory !== 'all' && ` (${getFactoryName(activeFactory)})`}
+            </div>
+          </>
+        )}
       </div>
 
+      {activeMainTab === 'summary' ? (
+        <SummaryView
+          mode="iceberg"
+          demoRequests={demoFutureRequests.map((r) => ({
+            number: r.number,
+            date: r.date,
+            division: r.division,
+            customer: r.customer,
+            consignee: r.consignee || r.customer,
+            material: r.material,
+            quantity: r.quantity,
+            delivery_date: r.delivery_date || '',
+            clientRequestNumber: r.clientRequestNumber || '',
+            clientRequestDate: r.clientRequestDate || '',
+            closed: r.closed || false,
+          }))}
+        />
+      ) : (
       <motion.div
         key={`${activeViewTab}-${activeMainTab}`}
         initial={{ opacity: 0, y: 10 }}
@@ -171,7 +179,9 @@ export default function DemoPage() {
       >
         {filteredData.length === 0 ? (
           <div className="empty" style={{ padding: '40px 20px', textAlign: 'center' }}>
-            <p style={{ fontSize: '18px', color: '#888' }}>📭 Нет данных для отображения</p>
+            <p style={{ fontSize: '18px', color: '#888', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <Inbox size={18} strokeWidth={2.2} />Нет данных для отображения
+            </p>
             <p style={{ fontSize: '14px', color: '#aaa' }}>
               Попробуйте переключить вкладку
             </p>
@@ -179,10 +189,18 @@ export default function DemoPage() {
         ) : (
           <>
             {activeViewTab === 'compact' && (
-              <CompactView 
+              <CompactView
                 data={filteredData}
                 mainTab={activeMainTab}
-                outgoingRequests={[]}
+                outgoingRequests={demoRequests.map((r) => ({
+                  number: r.number,
+                  date: r.date,
+                  division: r.division,
+                  quantity: r.quantity,
+                  consignee: r.consignee || r.customer,
+                  material: r.material,
+                  closed: r.closed,
+                }))}
                 allShipments={data.shipments}
                 allShipmentsForChart={data.shipments}
                 selectedFactory={activeFactory}
@@ -192,7 +210,7 @@ export default function DemoPage() {
             )}
 
             {activeViewTab === 'list' && (
-              <ListView 
+              <ListView
                 data={filteredData}
                 mainTab={activeMainTab}
               />
@@ -214,6 +232,7 @@ export default function DemoPage() {
           </>
         )}
       </motion.div>
+      )}
 
       {/* ← УБИРАЕМ нижний баннер, так как DemoLanding уже есть сверху */}
     </div>

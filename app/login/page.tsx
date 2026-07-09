@@ -3,6 +3,7 @@
 
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
+import { Factory } from 'lucide-react';
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -12,7 +13,9 @@ function LoginForm() {
   return (
     <div className="login-container">
       <div className="login-card">
-        <h1>🏭 АБЗ Контроль</h1>
+        <h1 style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+          <Factory size={26} strokeWidth={2.2} />АБЗ Контроль
+        </h1>
         <p className="subtitle">Вход в систему контроля отгрузок</p>
 
         {/*

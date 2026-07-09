@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import LoadingSpinner from './LoadingSpinner';
 import { formatTime, getFactoryBadgeClass } from '@/lib/utils';
+import { Inbox, Clock as ClockIcon } from 'lucide-react';
 
 interface FutureRequest {
   number: string;
@@ -20,6 +21,9 @@ interface FutureRequest {
 
 interface SummaryViewProps {
   mode?: 'tas' | 'iceberg';
+  // Демо: готовый список заявок передаётся напрямую, без похода в /api/all-data
+  // (тот эндпоинт отдаёт боевые данные и требует авторизацию).
+  demoRequests?: FutureRequest[];
 }
 
 // Функция для определения завода (копия из page.tsx)
@@ -29,16 +33,39 @@ const getDivisionName = (division: string): string => {
     case 'ЛЮ': return 'ЛЮ';
     case 'СП': return 'СП';
     case 'Щ': return 'Щ';
+    case 'ДЕМО-СЕВ': return 'СЕВ';
+    case 'ДЕМО-ЮГ': return 'ЮГ';
     default: return '—';
   }
 };
 
 
-export default function SummaryView({ mode = 'tas' }: SummaryViewProps) {
+export default function SummaryView({ mode = 'tas', demoRequests }: SummaryViewProps) {
   const [futureRequests, setFutureRequests] = useState<FutureRequest[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchFutureRequests = useCallback(async () => {
+    // Демо: список уже готов и передан пропом — не ходим в /api/all-data
+    // (эндпоинт боевой и требует авторизацию, гостю демо он недоступен).
+    if (demoRequests) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const future = demoRequests.filter((req) => {
+        if (req.closed) return false;
+        if (!req.delivery_date) return false;
+        const deliveryDate = new Date(req.delivery_date);
+        deliveryDate.setHours(0, 0, 0, 0);
+        return deliveryDate >= today;
+      });
+
+      future.sort((a, b) => new Date(a.delivery_date).getTime() - new Date(b.delivery_date).getTime());
+
+      setFutureRequests(future);
+      setLoading(false);
+      return;
+    }
+
     try {
       // ⚠️ Раньше брали данные из /api/outgoing-requests и /api/shipments —
       // эти эндпоинты режут выдачу до 300 записей (ORDER BY date DESC LIMIT 300),
@@ -92,7 +119,7 @@ export default function SummaryView({ mode = 'tas' }: SummaryViewProps) {
     } finally {
       setLoading(false);
     }
-  }, [mode]);
+  }, [mode, demoRequests]);
 
   useEffect(() => {
     let isMounted = true;
@@ -139,7 +166,7 @@ export default function SummaryView({ mode = 'tas' }: SummaryViewProps) {
   if (futureRequests.length === 0) {
     return (
       <div className="empty">
-        <p>📭 Нет запланированных заявок на будущее</p>
+        <p><Inbox size={15} strokeWidth={2.2} style={{ marginRight: 5, verticalAlign: -3 }} />Нет запланированных заявок на будущее</p>
       </div>
     );
   }
@@ -155,7 +182,7 @@ export default function SummaryView({ mode = 'tas' }: SummaryViewProps) {
             <div key={req.number} className={`future-request-compact-item ${isToday ? 'today-item' : ''}`}>
               <div className="future-item-date">
                 <span className="future-item-day">{getDayLabel(req.delivery_date)}</span>
-                <span className="future-item-time">⏰ {formatTime(req.delivery_date)}</span>
+                <span className="future-item-time"><ClockIcon size={11} strokeWidth={2.2} style={{ marginRight: 2, verticalAlign: -1 }} />{formatTime(req.delivery_date)}</span>
               </div>
               <div className="future-item-info">
                 <div className="future-item-number">№{req.number}</div>

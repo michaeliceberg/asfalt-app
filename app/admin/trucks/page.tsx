@@ -4,6 +4,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { Ban, ArrowLeft, Truck as TruckIcon, RefreshCw, Pencil, PlusCircle, Search, CheckCircle2, PauseCircle, Trash2 } from 'lucide-react';
 
 interface Truck {
   id: number;
@@ -136,8 +137,8 @@ export default function AdminTrucksPage() {
   if (user && user.groupId !== 1) {
     return (
       <div style={{ padding: 24, textAlign: 'center' }}>
-        <h2>⛔ Доступ только для администратора</h2>
-        <button onClick={() => router.push('/')} style={backBtnStyle}>← На главную</button>
+        <h2 style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}><Ban size={20} strokeWidth={2.2} />Доступ только для администратора</h2>
+        <button onClick={() => router.push('/')} style={backBtnStyle}><ArrowLeft size={13} strokeWidth={2.2} style={{ marginRight: 4, verticalAlign: -2 }} />На главную</button>
       </div>
     );
   }
@@ -152,19 +153,19 @@ export default function AdminTrucksPage() {
     <div style={{ padding: 16, maxWidth: 900, margin: '0 auto' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
         <div>
-          <button onClick={() => router.push('/')} style={backBtnStyle}>← Назад</button>
-          <h1 style={{ margin: '8px 0 0', fontSize: 22 }}>🚛 Машины (GPS-отслеживание)</h1>
+          <button onClick={() => router.push('/')} style={backBtnStyle}><ArrowLeft size={13} strokeWidth={2.2} style={{ marginRight: 4, verticalAlign: -2 }} />Назад</button>
+          <h1 style={{ margin: '8px 0 0', fontSize: 22, display: 'flex', alignItems: 'center', gap: 8 }}><TruckIcon size={20} strokeWidth={2.2} />Машины (GPS-отслеживание)</h1>
           <p style={{ margin: '4px 0 0', fontSize: 13, color: '#666' }}>
             Добавляй/редактируй машины здесь — крон подхватит их на следующем цикле, без деплоя.
           </p>
         </div>
-        <button onClick={loadTrucks} style={refreshBtnStyle}>🔄 Обновить</button>
+        <button onClick={loadTrucks} style={refreshBtnStyle}><RefreshCw size={13} strokeWidth={2.2} style={{ marginRight: 5, verticalAlign: -2 }} />Обновить</button>
       </div>
 
       {/* Форма добавления/редактирования */}
       <form onSubmit={handleSubmit} style={formStyle}>
-        <h3 style={{ margin: '0 0 8px', fontSize: 15 }}>
-          {editingId ? '✏️ Редактировать машину' : '➕ Добавить машину'}
+        <h3 style={{ margin: '0 0 8px', fontSize: 15, display: 'flex', alignItems: 'center', gap: 6 }}>
+          {editingId ? <><Pencil size={14} strokeWidth={2.2} />Редактировать машину</> : <><PlusCircle size={14} strokeWidth={2.2} />Добавить машину</>}
         </h3>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <input
@@ -200,12 +201,15 @@ export default function AdminTrucksPage() {
         </div>
       </form>
 
-      <input
-        placeholder="🔍 Поиск по госномеру или uid..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-        style={{ ...inputStyle, width: '100%', marginBottom: 12, boxSizing: 'border-box' }}
-      />
+      <div style={{ position: 'relative', marginBottom: 12 }}>
+        <Search size={14} strokeWidth={2.2} style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+        <input
+          placeholder="Поиск по госномеру или uid..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          style={{ ...inputStyle, width: '100%', boxSizing: 'border-box', paddingLeft: 30 }}
+        />
+      </div>
 
       {error && <div style={{ color: '#dc2626', marginBottom: 12 }}>{error}</div>}
 
@@ -230,13 +234,13 @@ export default function AdminTrucksPage() {
                   <td style={tdStyle}>{truck.vehicleType || '—'}</td>
                   <td style={tdStyle}>{truck.uid}</td>
                   <td style={tdStyle}>
-                    <button onClick={() => toggleActive(truck)} style={toggleBtnStyle(truck.isActive)}>
-                      {truck.isActive ? '✅ Активна' : '⏸ Отключена'}
+                    <button onClick={() => toggleActive(truck)} style={{ ...toggleBtnStyle(truck.isActive), display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                      {truck.isActive ? <><CheckCircle2 size={12} strokeWidth={2.4} />Активна</> : <><PauseCircle size={12} strokeWidth={2.4} />Отключена</>}
                     </button>
                   </td>
                   <td style={tdStyle}>
-                    <button onClick={() => startEdit(truck)} style={smallBtnStyle}>✏️</button>
-                    <button onClick={() => handleDelete(truck)} style={{ ...smallBtnStyle, color: '#dc2626' }}>🗑</button>
+                    <button onClick={() => startEdit(truck)} style={smallBtnStyle}><Pencil size={14} strokeWidth={2.2} /></button>
+                    <button onClick={() => handleDelete(truck)} style={{ ...smallBtnStyle, color: '#dc2626' }}><Trash2 size={14} strokeWidth={2.2} /></button>
                   </td>
                 </tr>
               ))}

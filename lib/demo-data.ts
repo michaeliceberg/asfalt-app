@@ -131,17 +131,148 @@ function convertRequest(raw: RawRequestItem): OutgoingRequest {
 }
 
 // ============================================
+// БЕТОН И "НА БУДУЩЕЕ" — рукописные синтетические данные
+// ============================================
+// Исходный rawShipmentData содержит только асфальт, поэтому вкладка
+// "Отгрузка Бет" и "На будущее" в демо были пустыми. Даты считаем от
+// текущего дня, чтобы демо всегда выглядело свежим при любом визите.
+
+function fmtRuDateTime(d: Date): string {
+  const day = d.getDate().toString().padStart(2, '0');
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const year = d.getFullYear();
+  const hh = d.getHours().toString().padStart(2, '0');
+  const mm = d.getMinutes().toString().padStart(2, '0');
+  const ss = d.getSeconds().toString().padStart(2, '0');
+  return `${day}.${month}.${year} ${hh}:${mm}:${ss}`;
+}
+
+function daysAgo(n: number, hour: number, minute: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  d.setHours(hour, minute, 0, 0);
+  return d;
+}
+
+function daysAhead(n: number, hour: number, minute: number): Date {
+  const d = new Date();
+  d.setDate(d.getDate() + n);
+  d.setHours(hour, minute, 0, 0);
+  return d;
+}
+
+const CONCRETE_MATERIALS = [
+  'БСТ В22,5 П4 F150 W4',
+  'БСТ В25 П3 F200 W6',
+  'Бетон В30 П4 F300 W8',
+  'БСМ В15 П2 F100',
+];
+
+const CONCRETE_CONSIGNEES_SEV = ['ЖК «Северный Парк»', 'Мостоотряд-14', 'ДСУ «Магистраль»'];
+const CONCRETE_CONSIGNEES_YUG = ['ЖК «Южные Ворота»', 'СК «Фундамент»'];
+
+const DEMO_DRIVERS = ['Кузнецов А.А.', 'Смирнов В.В.', 'Попов Д.С.', 'Соколов Н.И.', 'Морозов Е.П.'];
+const DEMO_PLATES = ['У317МХ190', 'О552НК150', 'Т884АР750', 'Х119ВЕ190', 'М440КТ150', 'Е705СУ190'];
+
+export const demoConcreteShipments: ShipmentItem[] = (() => {
+  const items: ShipmentItem[] = [];
+  const plan: Array<{ division: string; consignees: string[]; count: number; dayOffsets: number[] }> = [
+    { division: 'ДЕМО-СЕВ', consignees: CONCRETE_CONSIGNEES_SEV, count: 9, dayOffsets: [0, 0, 0, 0, 1, 1, 1, 2, 2] },
+    { division: 'ДЕМО-ЮГ', consignees: CONCRETE_CONSIGNEES_YUG, count: 7, dayOffsets: [0, 0, 0, 1, 1, 2, 2] },
+  ];
+
+  let idx = 1;
+  plan.forEach(({ division, consignees, count, dayOffsets }) => {
+    for (let i = 0; i < count; i++) {
+      const dayOffset = dayOffsets[i] ?? 0;
+      const hour = 7 + (i * 2) % 12;
+      const minute = (i * 17) % 60;
+      const date = daysAgo(dayOffset, hour, minute);
+      const material = CONCRETE_MATERIALS[i % CONCRETE_MATERIALS.length];
+      const quantity = 8 + ((i * 3) % 12); // м³, 8–19
+      const requestNumber = `${division}-З${100 + idx}`;
+
+      items.push({
+        id: 0,
+        number: `${division}-Б${1000 + idx}`,
+        date: fmtRuDateTime(date),
+        division,
+        customer: 'ООО «СтройТех»',
+        consignee: consignees[i % consignees.length],
+        material,
+        gross: null,
+        tara: null,
+        quantity,
+        driver: DEMO_DRIVERS[idx % DEMO_DRIVERS.length],
+        licensePlate: DEMO_PLATES[idx % DEMO_PLATES.length],
+        clientRequestNumber: requestNumber,
+        clientRequestDate: fmtRuDateTime(date),
+        destinationPoint: null,
+        createdAt: Date.now(),
+      });
+      idx++;
+    }
+  });
+
+  return items;
+})();
+
+// ============================================
+// "НА БУДУЩЕЕ" — запланированные заявки
+// ============================================
+
+export const demoFutureRequests: OutgoingRequest[] = (() => {
+  const plan: Array<{ division: string; consignee: string; material: string; quantity: number; dayOffset: number; hour: number; minute: number }> = [
+    { division: 'ДЕМО-СЕВ', consignee: 'ДСУ-2 Зарайский', material: 'Асфальтобетон А16 тип Б', quantity: 420, dayOffset: 1, hour: 8, minute: 0 },
+    { division: 'ДЕМО-СЕВ', consignee: 'ДСУ-5 Луховицкий', material: 'ЩМА-20', quantity: 380, dayOffset: 2, hour: 9, minute: 30 },
+    { division: 'ДЕМО-СЕВ', consignee: 'Мостоотряд-14', material: 'БСТ В25 П3 F200 W6', quantity: 60, dayOffset: 3, hour: 10, minute: 0 },
+    { division: 'ДЕМО-ЮГ', consignee: 'ГУП «МосДор»', material: 'Асфальтобетон А16 тип А', quantity: 500, dayOffset: 1, hour: 7, minute: 45 },
+    { division: 'ДЕМО-ЮГ', consignee: 'СК «Фундамент»', material: 'Бетон В30 П4 F300 W8', quantity: 45, dayOffset: 4, hour: 11, minute: 15 },
+  ];
+
+  return plan.map((p, i) => {
+    const created = daysAgo(1, 12, 0);
+    const delivery = daysAhead(p.dayOffset, p.hour, p.minute);
+    const requestNumber = `${p.division}-З${200 + i}`;
+    return {
+      id: 0,
+      number: requestNumber,
+      date: fmtRuDateTime(created),
+      division: p.division,
+      customer: 'ООО «СтройТех»',
+      consignee: p.consignee,
+      material: p.material,
+      quantity: p.quantity,
+      unit: null,
+      clientRequestNumber: null,
+      clientRequestDate: null,
+      closed: false,
+      delivery_date: delivery.toISOString(),
+      destinationPoint: null,
+      createdAt: Date.now(),
+    };
+  });
+})();
+
+// ============================================
 // ЭКСПОРТ
 // ============================================
 
 export const demoIncoming: IncomingItem[] = rawIncomingData.map(convertIncoming);
-export const demoShipments: ShipmentItem[] = rawShipmentData.map(convertShipment);
-export const demoRequests: OutgoingRequest[] = rawRequestData.map(convertRequest);
+export const demoShipments: ShipmentItem[] = [
+  ...rawShipmentData.map(convertShipment),
+  ...demoConcreteShipments,
+];
+export const demoRequests: OutgoingRequest[] = [
+  ...rawRequestData.map(convertRequest),
+  ...demoFutureRequests,
+];
 
 export function getDemoData() {
   return {
     incoming: demoIncoming,
     shipments: demoShipments,
     requests: demoRequests,
+    futureRequests: demoFutureRequests,
   };
 }

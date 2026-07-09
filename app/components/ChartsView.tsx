@@ -6,6 +6,7 @@ import { useEffect, useState, useCallback } from 'react';
 import { ShipmentItem } from '@/app/page';
 import LoadingSpinner from './LoadingSpinner';
 import { isConcreteMaterial } from '@/lib/utils';
+import { BarChart3, Factory } from 'lucide-react';
 
 interface ChartsViewProps {
   data: ShipmentItem[];
@@ -247,8 +248,9 @@ export default function ChartsView({ data, mode = 'tas' }: ChartsViewProps) {
   return (
     <div className="charts-view">
       <div className="charts-header">
-        <div className="charts-title">
-          {mode === 'tas' ? '📊 Отгрузки асфальта за 10 дней (ЛХ/ЛЮ)' : '📊 Отгрузки асфальта за 10 дней (СП/Щ)'}
+        <div className="charts-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <BarChart3 size={16} strokeWidth={2.2} />
+          {mode === 'tas' ? 'Отгрузки асфальта за 10 дней (ЛХ/ЛЮ)' : 'Отгрузки асфальта за 10 дней (СП/Щ)'}
         </div>
         <div className="factory-filter">
           {availableFactories.map(factory => (
@@ -257,7 +259,11 @@ export default function ChartsView({ data, mode = 'tas' }: ChartsViewProps) {
               className={`factory-filter-btn ${selectedFactory === factory ? 'active' : ''}`}
               onClick={() => setSelectedFactory(factory)}
             >
-              {factory === 'all' ? 'Все заводы' : `🏭 ${getFactoryLabel(factory)}`}
+              {factory === 'all' ? 'Все заводы' : (
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  <Factory size={12} strokeWidth={2.2} />{getFactoryLabel(factory)}
+                </span>
+              )}
             </button>
           ))}
         </div>

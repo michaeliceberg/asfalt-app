@@ -7,6 +7,7 @@ import TruckMap from '@/app/components/TruckMap';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
 import { parseRussianDate } from '@/lib/utils';
 import { YandexMap } from '@/lib/yandex-maps-types';
+import { AlertTriangle, RefreshCw, ArrowLeft, Target, Truck as TruckIcon, Clock, Check } from 'lucide-react';
 
 interface Truck {
   uid: string;
@@ -330,7 +331,7 @@ useEffect(() => {
   if (error) {
     return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+        <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}><AlertTriangle size={44} strokeWidth={2} color="#f87171" /></div>
         <h2 style={{ color: '#f87171', marginBottom: 8 }}>Ошибка загрузки данных</h2>
         <p style={{ color: '#888', marginBottom: 16 }}>{error}</p>
         <button
@@ -345,7 +346,7 @@ useEffect(() => {
             fontWeight: 500,
           }}
         >
-          🔄 Попробовать снова
+          <RefreshCw size={14} strokeWidth={2.2} style={{ marginRight: 5, verticalAlign: -2 }} />Попробовать снова
         </button>
       </div>
     );
@@ -390,11 +391,11 @@ useEffect(() => {
             onMouseEnter={(e) => e.currentTarget.style.background = '#555'}
             onMouseLeave={(e) => e.currentTarget.style.background = '#333'}
           >
-            ← Назад
+            <ArrowLeft size={14} strokeWidth={2.2} style={{ marginRight: 4, verticalAlign: -2 }} />Назад
           </button>
           <div>
-            <h1 style={{ margin: 0, fontSize: 24 }}>
-              {selectedRoute ? `🎯 ${selectedRoute.destination}` : '🚛 GPS-мониторинг ТАС'}
+            <h1 style={{ margin: 0, fontSize: 24, display: 'flex', alignItems: 'center', gap: 8 }}>
+              {selectedRoute ? <><Target size={20} strokeWidth={2.2} />{selectedRoute.destination}</> : <><TruckIcon size={20} strokeWidth={2.2} />GPS-мониторинг ТАС</>}
             </h1>
             <div style={{ fontSize: 14, color: '#666' }}>
               {selectedRoute 
@@ -416,7 +417,7 @@ useEffect(() => {
             fontWeight: 500,
           }}
         >
-          🔄 Обновить
+          <RefreshCw size={14} strokeWidth={2.2} style={{ marginRight: 5, verticalAlign: -2 }} />Обновить
         </button>
       </div>
 
@@ -433,8 +434,8 @@ useEffect(() => {
           alignItems: 'center',
           border: '1px solid #e2e8f0',
         }}>
-          <span style={{ fontSize: 13, color: '#666', marginRight: 4, fontWeight: 600 }}>
-            🚛 Активные колонны (сегодня):
+          <span style={{ fontSize: 13, color: '#666', marginRight: 4, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <TruckIcon size={13} strokeWidth={2.2} />Активные колонны (сегодня):
           </span>
           {uniqueDestinations.map((dest) => {
             const route = displayedRoutes.find(r => r.destination === dest);
@@ -490,14 +491,17 @@ useEffect(() => {
                   background: factoryColor,
                 }}></span>
                 {dest.replace('ПК 25 ', '').replace('ПК 26 ', '').replace('АЙСБЕРГ ООО', 'АЙСБЕРГ')}
-                <span style={{ 
-                  background: isSelected ? 'rgba(255,255,255,0.3)' : '#f1f5f9', 
-                  padding: '0 6px', 
+                <span style={{
+                  background: isSelected ? 'rgba(255,255,255,0.3)' : '#f1f5f9',
+                  padding: '0 6px',
                   borderRadius: 10,
                   fontSize: 10,
                   fontWeight: 700,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 2,
                 }}>
-                  {route.count}🚛
+                  {route.count}<TruckIcon size={10} strokeWidth={2.4} />
                 </span>
                 {lastTime && (
                   <span style={{ 
@@ -508,7 +512,7 @@ useEffect(() => {
                     {lastTime}
                   </span>
                 )}
-                {isSelected && <span style={{ fontSize: 10 }}>✓</span>}
+                {isSelected && <Check size={11} strokeWidth={2.6} />}
               </button>
             );
           })}
@@ -528,8 +532,8 @@ useEffect(() => {
         {selectedRoute ? (
           <>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-              <span style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e' }}>
-                🚛 {selectedRoute.destination.replace('ПК 25 ', '').replace('ПК 26 ', '')}
+              <span style={{ fontSize: 13, fontWeight: 600, color: '#1a1a2e', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                <TruckIcon size={13} strokeWidth={2.2} />{selectedRoute.destination.replace('ПК 25 ', '').replace('ПК 26 ', '')}
               </span>
               <span style={{ fontSize: 12, color: '#666' }}>
                 {selectedRoute.count} машин · {Number(selectedRoute.totalQuantity).toFixed(1)} т
@@ -621,8 +625,8 @@ useEffect(() => {
                       }}></span>
                       <span style={{ color: '#1a1a2e', fontWeight: 500 }}>{plate}</span>
                     </div>
-                    <span style={{ color: '#888', fontSize: 11, fontVariantNumeric: 'tabular-nums' }}>
-                      🕐 {dateTime}
+                    <span style={{ color: '#888', fontSize: 11, fontVariantNumeric: 'tabular-nums', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                      <Clock size={11} strokeWidth={2.2} />{dateTime}
                     </span>
                   </div>
                 );
@@ -630,14 +634,14 @@ useEffect(() => {
             </div>
           </>
         ) : (
-          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', fontSize: 13 }}>
-            <span>🚛 Всего: <strong>{total}</strong></span>
-            <span>🟢 В пути: <strong style={{ color: '#4ade80' }}>{movingCount}</strong></span>
-            <span>🟡 Загружаются: <strong style={{ color: '#facc15' }}>{loadingCount}</strong></span>
-            <span>🔴 Стоят: <strong style={{ color: '#f87171' }}>{standingCount}</strong></span>
-            <span>⚪ Офлайн: <strong style={{ color: '#9ca3af' }}>{offlineCount}</strong></span>
-            <span style={{ color: '#22c55e', fontWeight: 600 }}>
-              🟢 Активных колонн: {uniqueDestinations.length}
+          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', fontSize: 13, alignItems: 'center' }}>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><TruckIcon size={13} strokeWidth={2.2} />Всего: <strong>{total}</strong></span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#4ade80', display: 'inline-block' }} />В пути: <strong style={{ color: '#4ade80' }}>{movingCount}</strong></span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#facc15', display: 'inline-block' }} />Загружаются: <strong style={{ color: '#facc15' }}>{loadingCount}</strong></span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#f87171', display: 'inline-block' }} />Стоят: <strong style={{ color: '#f87171' }}>{standingCount}</strong></span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}><span style={{ width: 8, height: 8, borderRadius: '50%', background: '#9ca3af', display: 'inline-block' }} />Офлайн: <strong style={{ color: '#9ca3af' }}>{offlineCount}</strong></span>
+            <span style={{ color: '#22c55e', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+              <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#22c55e', display: 'inline-block' }} />Активных колонн: {uniqueDestinations.length}
             </span>
           </div>
         )}
@@ -1062,7 +1066,7 @@ useEffect(() => {
 //   if (error) {
 //     return (
 //       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
-//         <div style={{ fontSize: 48, marginBottom: 16 }}>⚠️</div>
+//         <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}><AlertTriangle size={44} strokeWidth={2} color="#f87171" /></div>
 //         <h2 style={{ color: '#f87171', marginBottom: 8 }}>Ошибка загрузки данных</h2>
 //         <p style={{ color: '#888', marginBottom: 16 }}>{error}</p>
 //         <button
@@ -1077,7 +1081,7 @@ useEffect(() => {
 //             fontWeight: 500,
 //           }}
 //         >
-//           🔄 Попробовать снова
+//           <RefreshCw size={14} strokeWidth={2.2} style={{ marginRight: 5, verticalAlign: -2 }} />Попробовать снова
 //         </button>
 //       </div>
 //     );
