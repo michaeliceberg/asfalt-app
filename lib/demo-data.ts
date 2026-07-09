@@ -1,141 +1,18 @@
 // lib/demo-data.ts
 import { IncomingItem, ShipmentItem } from '@/app/page';
 import { OutgoingRequest } from '@/lib/db/schema'; // ← Правильный импорт
-import { RawIncomingItem, RawShipmentItem, RawRequestItem } from './demo-types';
-import { rawIncomingData, rawShipmentData, rawRequestData } from './demo-raw-data';
-
-// ============================================
-// МАППИНГИ ДЛЯ КОНВЕРТАЦИИ
-// ============================================
-
-const supplierMap: Record<string, string> = {
-  'ТТК ВЕКТОР ООО': 'ООО "ДорСнаб"',
-  'ЛУХОВИЦКИЙ ГОК ООО': 'ООО "Горная Компания"',
-  'АЙСБЕРГ ООО': 'ООО "СтройТех"',
-};
-
-const consigneeMap: Record<string, string> = {
-  'ПК 25 Шатурский': 'ДСУ-1 Шатурский',
-  'ПК 25 Зарайский': 'ДСУ-2 Зарайский',
-  'ПК 25 Каширский': 'ДСУ-3 Каширский',
-  'ПК 25 Воскресенский': 'ДСУ-4 Воскресенский',
-  'ПК 25 Луховицкий': 'ДСУ-5 Луховицкий',
-  'ПК 25 Коломенский': 'ДСУ-6 Коломенский',
-  'ПК 25 Серпуховский': 'ДСУ-7 Серпуховский',
-  'МОСКОВСКИЙ МЕТРОПОЛИТЕН ГУП': 'ГУП "МосДор"',
-  'АЙСБЕРГ ООО': 'ООО "СтройТех"',
-};
-
-const numberMap: Record<string, string> = {
-  'ЛХ': 'ДЕМО-СЕВ',
-  'ЛЮ': 'ДЕМО-ЮГ',
-};
-
-const divisionMap: Record<string, string> = {
-  'Луховицы': 'ДЕМО-СЕВ',
-  'Люберцы': 'ДЕМО-ЮГ',
-  'ЛХ': 'ДЕМО-СЕВ',
-  'ЛЮ': 'ДЕМО-ЮГ',
-};
+import { recentShipmentsRaw, recentRequestsRaw, recentIncomingRaw } from './demo-recent-data';
 
 // ============================================
 // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 // ============================================
-
-function replaceNumberPrefix(number: string): string {
-  for (const [prefix, replacement] of Object.entries(numberMap)) {
-    if (number.startsWith(prefix)) {
-      return number.replace(prefix, replacement);
-    }
-  }
-  return number;
-}
-
-function getDemoDivision(division: string): string {
-  return divisionMap[division] || 'ДЕМО-СЕВ';
-}
-
-function getDemoSupplier(supplier: string): string {
-  return supplierMap[supplier] || supplier;
-}
-
-function getDemoConsignee(consignee: string): string {
-  return consigneeMap[consignee] || consignee;
-}
-
-function getDemoCustomer(customer: string): string {
-  return supplierMap[customer] || customer;
-}
-
-// ============================================
-// ФУНКЦИИ КОНВЕРТАЦИИ
-// ============================================
-
-function convertIncoming(raw: RawIncomingItem): IncomingItem {
-  return {
-    id: 0,
-    number: replaceNumberPrefix(raw.Номер),
-    date: raw.Дата,
-    division: getDemoDivision(raw.Подразделение),
-    supplier: getDemoSupplier(raw.Поставщик),
-    material: raw.Номенклатура,
-    gross: raw.Брутто ?? null,
-    tara: raw.Тара ?? null,
-    quantity: raw.Количество,
-    driver: raw.Водитель ?? null,
-    licensePlate: raw.ГосНомер ?? null,
-    clientRequestNumber: null,
-    createdAt: Date.now(),
-  };
-}
-
-function convertShipment(raw: RawShipmentItem): ShipmentItem {
-  return {
-    id: 0,
-    number: replaceNumberPrefix(raw.Номер),
-    date: raw.Дата,
-    division: getDemoDivision(raw.Подразделение),
-    customer: getDemoCustomer(raw.Покупатель),
-    consignee: getDemoConsignee(raw.Грузополучатель),
-    material: raw.Номенклатура,
-    gross: raw.Брутто ?? null,
-    tara: raw.Тара ?? null,
-    quantity: raw.Количество,
-    driver: raw.Водитель ?? null,
-    licensePlate: raw.ГосНомер ?? null,
-    clientRequestNumber: raw.ЗаявкаНаОтгрузкуНомер ? replaceNumberPrefix(raw.ЗаявкаНаОтгрузкуНомер) : null,
-    clientRequestDate: raw.ЗаявкаНаОтгрузкуДата ?? null,
-    destinationPoint: null, // ✅ ДОБАВЛЯЕМ
-    createdAt: Date.now(),
-  };
-}
-
-function convertRequest(raw: RawRequestItem): OutgoingRequest {
-  return {
-    id: 0,
-    number: replaceNumberPrefix(raw.Номер),
-    date: raw.Дата,
-    division: getDemoDivision(raw.Подразделение),
-    customer: getDemoCustomer(raw.Покупатель),
-    consignee: getDemoConsignee(raw.Грузополучатель),
-    material: raw.Номенклатура,
-    quantity: raw.Количество,
-    unit: null, // ← OK, тип из схемы содержит это поле
-    clientRequestNumber: null,
-    clientRequestDate: null,
-    closed: raw.Закрыта ?? false,
-    delivery_date: raw.ДатаОтгрузки ?? null,
-    destinationPoint: null, // ✅ ДОБАВЛЯЕМ
-    createdAt: Date.now(),
-  };
-}
-
-// ============================================
-// БЕТОН И "НА БУДУЩЕЕ" — рукописные синтетические данные
-// ============================================
-// Исходный rawShipmentData содержит только асфальт, поэтому вкладка
-// "Отгрузка Бет" и "На будущее" в демо были пустыми. Даты считаем от
-// текущего дня, чтобы демо всегда выглядело свежим при любом визите.
+// Исходные исторические данные (demo-raw-data.ts) были рукописным экспортом
+// на фиксированную дату и со временем "протухали" (не двигались вместе с
+// "сегодня"), да ещё и не содержали привязки отгрузок к заявкам. Теперь
+// базовый массив демо-данных — реальный анонимизированный снимок последних
+// 3 дней из боевой БД (lib/demo-recent-data.ts, сгенерирован скриптом из
+// data/sqlite.db). Даты в нём хранятся как смещение в днях (dayOffset) и
+// пересчитываются здесь через daysAgo(), поэтому демо всегда "сегодняшнее".
 
 function fmtRuDateTime(d: Date): string {
   const day = d.getDate().toString().padStart(2, '0');
@@ -147,10 +24,10 @@ function fmtRuDateTime(d: Date): string {
   return `${day}.${month}.${year} ${hh}:${mm}:${ss}`;
 }
 
-function daysAgo(n: number, hour: number, minute: number): Date {
+function daysAgo(n: number, hour: number, minute: number, second: number = 0): Date {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  d.setHours(hour, minute, 0, 0);
+  d.setHours(hour, minute, second, 0);
   return d;
 }
 
@@ -220,10 +97,9 @@ export const demoConcreteShipments: ShipmentItem[] = (() => {
 // ============================================
 // КУРИРОВАННАЯ ГРУППА — САМАЯ СВЕЖАЯ ДАТА (сегодня)
 // ============================================
-// Исторические данные (rawShipmentData) не содержат привязки отгрузок к
-// заявкам (поле ЗаявкаНаОтгрузкуНомер в них попросту отсутствует), поэтому
-// колонка "Заяв" всегда показывала "—". Добавляем сегодняшнюю дату с 5
-// заявками, где отгрузки явно привязаны к заявке по номеру — это разом:
+// Реальные данные уже показывают связь Вып/Заяв корректно, но добавляем
+// ещё и рукописную "витрину" на сегодня — это гарантирует красивую
+// демонстрацию независимо от того, что реально отгружалось сегодня:
 // (1) показывает работающую колонку "Заяв", (2) даёт "самую верхнюю"
 // дату (т.к. остальные даты — исторические, из прошлого), (3) даёт
 // пример полностью выполненной заявки (зелёная строка) и одной активной
@@ -383,17 +259,83 @@ export const demoFutureRequests: OutgoingRequest[] = (() => {
 })();
 
 // ============================================
+// РЕАЛЬНЫЕ ДАННЫЕ ЗА ПОСЛЕДНИЕ 3 ДНЯ (анонимизированные)
+// ============================================
+
+const demoRecentShipments: ShipmentItem[] = recentShipmentsRaw.map((r) => {
+  const date = daysAgo(r.dayOffset, r.hour, r.minute, r.second);
+  return {
+    id: 0,
+    number: r.number,
+    date: fmtRuDateTime(date),
+    division: r.division,
+    customer: r.customer,
+    consignee: r.consignee,
+    material: r.material,
+    gross: null,
+    tara: null,
+    quantity: r.quantity,
+    driver: r.driver,
+    licensePlate: r.licensePlate,
+    clientRequestNumber: r.clientRequestNumber,
+    clientRequestDate: r.clientRequestNumber ? fmtRuDateTime(date) : null,
+    destinationPoint: null,
+    createdAt: Date.now(),
+  };
+});
+
+const demoRecentRequests: OutgoingRequest[] = recentRequestsRaw.map((r) => {
+  const date = daysAgo(r.dayOffset, r.hour, r.minute, r.second);
+  return {
+    id: 0,
+    number: r.number,
+    date: fmtRuDateTime(date),
+    division: r.division,
+    customer: r.customer,
+    consignee: r.consignee,
+    material: r.material,
+    quantity: r.quantity,
+    unit: null,
+    clientRequestNumber: null,
+    clientRequestDate: null,
+    closed: r.closed,
+    delivery_date: fmtRuDateTime(date),
+    destinationPoint: null,
+    createdAt: Date.now(),
+  };
+});
+
+const demoRecentIncoming: IncomingItem[] = recentIncomingRaw.map((r) => {
+  const date = daysAgo(r.dayOffset, r.hour, r.minute, r.second);
+  return {
+    id: 0,
+    number: r.number,
+    date: fmtRuDateTime(date),
+    division: r.division,
+    supplier: r.supplier,
+    material: r.material,
+    gross: r.gross,
+    tara: r.tara,
+    quantity: r.quantity,
+    driver: r.driver,
+    licensePlate: r.licensePlate,
+    clientRequestNumber: null,
+    createdAt: Date.now(),
+  };
+});
+
+// ============================================
 // ЭКСПОРТ
 // ============================================
 
-export const demoIncoming: IncomingItem[] = rawIncomingData.map(convertIncoming);
+export const demoIncoming: IncomingItem[] = demoRecentIncoming;
 export const demoShipments: ShipmentItem[] = [
-  ...rawShipmentData.map(convertShipment),
+  ...demoRecentShipments,
   ...demoConcreteShipments,
   ...demoTopDateShipments,
 ];
 export const demoRequests: OutgoingRequest[] = [
-  ...rawRequestData.map(convertRequest),
+  ...demoRecentRequests,
   ...demoTopDateRequests,
   ...demoFutureRequests,
 ];

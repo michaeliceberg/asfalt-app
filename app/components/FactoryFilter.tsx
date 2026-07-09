@@ -1,10 +1,25 @@
-import { getFactoryName } from "@/lib/utils";
 import { LayoutGrid } from "lucide-react";
 
 interface FactoryFilterProps {
   factories: string[];
   activeFactory: string;
   onFactoryChange: (factory: string) => void;
+}
+
+// Короткие подписи без emoji и без кавычек — специально для кнопок
+// переключателя заводов, чтобы текст помещался в кнопку. getFactoryName()
+// из lib/utils.ts здесь намеренно не используется — он возвращает
+// "🏭 АБЗ «Северный»", что не влезает в узкую кнопку.
+function getShortFactoryLabel(factory: string): string {
+  switch (factory) {
+    case 'ЛХ': return 'АБЗ Луховицкий';
+    case 'ЛЮ': return 'АБЗ Люберецкий';
+    case 'СП': return 'АБЗ Сергиев Посад';
+    case 'Щ': return 'АБЗ Щёлково';
+    case 'ДЕМО-СЕВ': return 'АБЗ Северный';
+    case 'ДЕМО-ЮГ': return 'АБЗ Южный';
+    default: return factory;
+  }
 }
 
 export default function FactoryFilter({ factories, activeFactory, onFactoryChange }: FactoryFilterProps) {
@@ -23,7 +38,7 @@ export default function FactoryFilter({ factories, activeFactory, onFactoryChang
           className={`factory-btn ${activeFactory === factory ? 'active' : ''}`}
           onClick={() => onFactoryChange(factory)}
         >
-          {getFactoryName(factory)}
+          {getShortFactoryLabel(factory)}
         </button>
       ))}
     </div>

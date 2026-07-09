@@ -1,6 +1,7 @@
 // app/components/PricingSection.tsx
 'use client';
 
+import type { CSSProperties } from 'react';
 import {
   Send,
   Phone,
@@ -15,6 +16,98 @@ import {
   RefreshCw,
   Headphones,
 } from 'lucide-react';
+
+type Feature =
+  | { kind: 'icon'; Icon: typeof Smartphone; text: string; premium?: boolean }
+  | { kind: 'sync' };
+
+const FEATURES: Feature[] = [
+  { kind: 'icon', Icon: Smartphone, text: 'Ваша 1С в телефоне' },
+  { kind: 'sync' },
+  { kind: 'icon', Icon: Satellite, text: 'GPS-навигация машин' },
+  { kind: 'icon', Icon: Bell, text: 'Push-уведомления', premium: true },
+  { kind: 'icon', Icon: Lock, text: 'Доступ по ролям' },
+  { kind: 'icon', Icon: FileSpreadsheet, text: 'Excel отчеты', premium: true },
+];
+
+function PremiumBadge() {
+  return (
+    <span
+      title="Премиум-опция — доступна в расширенном тарифе"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 2,
+        marginLeft: 2,
+        padding: '1px 5px',
+        borderRadius: 6,
+        background: 'linear-gradient(135deg, #ffd93d, #f6b93b)',
+        color: '#1a1a2e',
+        fontSize: 9,
+        fontWeight: 800,
+        letterSpacing: '0.2px',
+        flexShrink: 0,
+      }}
+    >
+      <Crown size={9} strokeWidth={2.6} />
+      PRO
+    </span>
+  );
+}
+
+function FeatureChips() {
+  return (
+    <div style={{
+      background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+      borderRadius: 14,
+      padding: '14px 16px',
+      marginBottom: 20,
+    }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+        gap: 8,
+      }}>
+        {FEATURES.map((feature, i) => {
+          const chipStyle: CSSProperties = {
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '6px 10px',
+            borderRadius: 8,
+            background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.08)',
+            color: '#c0c0d8',
+            fontSize: 11.5,
+            fontWeight: 500,
+            whiteSpace: 'nowrap',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+          };
+
+          if (feature.kind === 'sync') {
+            return (
+              <span key={i} style={chipStyle}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>24/7</span>
+                <RefreshCw size={12} strokeWidth={2.2} style={{ flexShrink: 0, color: '#ffd93d' }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>2 мин</span>
+              </span>
+            );
+          }
+
+          const { Icon, text, premium } = feature;
+          return (
+            <span key={i} style={chipStyle}>
+              <Icon size={13} strokeWidth={2.2} style={{ flexShrink: 0, color: '#ffd93d' }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{text}</span>
+              {premium && <PremiumBadge />}
+            </span>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 interface Tariff {
   name: string;
@@ -55,6 +148,8 @@ export default function PricingSection() {
         scrollMarginTop: 16,
       }}
     >
+      <FeatureChips />
+
       <div style={{ textAlign: 'center', marginBottom: 16 }}>
         <h2 style={{
           fontSize: 18,

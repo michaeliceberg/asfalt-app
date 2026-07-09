@@ -19,7 +19,7 @@ import SummaryView from '@/app/components/SummaryView';
 import { IncomingItem, ShipmentItem } from '@/app/page';
 import { getFactoryName, isConcreteMaterial, isSpecialMaterial } from '@/lib/utils';
 import { getDemoData, demoRequests, demoFutureRequests } from '@/lib/demo-data';
-import { Tag, Factory, BarChart3, Inbox } from 'lucide-react';
+import { Inbox } from 'lucide-react';
 
 type MainTab = 'incoming' | 'shipment' | 'shipmentConcrete' | 'summary';
 type ViewTab = 'compact' | 'list' | 'charts' | 'topCustomers';
@@ -80,8 +80,6 @@ export default function DemoPage() {
 
   const filteredData = getFilteredData();
   const factories = ['ДЕМО-СЕВ', 'ДЕМО-ЮГ'];
-  const totalIncoming = data.incoming.length;
-  const totalShipments = data.shipments.length;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -113,16 +111,6 @@ export default function DemoPage() {
           isDemoMode={true}
           hideLogout={true}
         />
-
-        <div className="sync-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <span className="sync-label"><Tag size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Завод:</span>
-          <span className="sync-time" style={{ color: '#ffd93d', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-            <Factory size={13} strokeWidth={2.2} />АБЗ-ДЕМО («Северный» / «Южный»)
-          </span>
-          <span style={{ fontSize: '12px', color: '#aaa', display: 'inline-flex', alignItems: 'center', gap: 3 }}>
-            <BarChart3 size={12} strokeWidth={2.2} />{totalIncoming + totalShipments} записей
-          </span>
-        </div>
 
         <MainTabs
           activeTab={activeMainTab}
