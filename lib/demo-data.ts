@@ -103,7 +103,7 @@ function convertShipment(raw: RawShipmentItem): ShipmentItem {
     quantity: raw.Количество,
     driver: raw.Водитель ?? null,
     licensePlate: raw.ГосНомер ?? null,
-    clientRequestNumber: raw.ЗаявкаНаОтгрузкуНомер ?? null,
+    clientRequestNumber: raw.ЗаявкаНаОтгрузкуНомер ? replaceNumberPrefix(raw.ЗаявкаНаОтгрузкуНомер) : null,
     clientRequestDate: raw.ЗаявкаНаОтгрузкуДата ?? null,
     destinationPoint: null, // ✅ ДОБАВЛЯЕМ
     createdAt: Date.now(),
@@ -218,6 +218,134 @@ export const demoConcreteShipments: ShipmentItem[] = (() => {
 })();
 
 // ============================================
+// КУРИРОВАННАЯ ГРУППА — САМАЯ СВЕЖАЯ ДАТА (сегодня)
+// ============================================
+// Исторические данные (rawShipmentData) не содержат привязки отгрузок к
+// заявкам (поле ЗаявкаНаОтгрузкуНомер в них попросту отсутствует), поэтому
+// колонка "Заяв" всегда показывала "—". Добавляем сегодняшнюю дату с 5
+// заявками, где отгрузки явно привязаны к заявке по номеру — это разом:
+// (1) показывает работающую колонку "Заяв", (2) даёт "самую верхнюю"
+// дату (т.к. остальные даты — исторические, из прошлого), (3) даёт
+// пример полностью выполненной заявки (зелёная строка) и одной активной
+// незавершённой (мигающая точка + верное число машин при раскрытии).
+
+interface TopDateRequestPlan {
+  division: string;
+  consignee: string;
+  material: string;
+  planQuantity: number;
+  truckLoads: number[];
+  closed: boolean;
+  startHour: number;
+}
+
+const TOP_DATE_PLAN: TopDateRequestPlan[] = [
+  {
+    division: 'ДЕМО-СЕВ',
+    consignee: 'ДСУ-2 Зарайский',
+    material: 'А-16 Вн МОСАВТОДОР',
+    planQuantity: 725,
+    truckLoads: [38.99, 35.31, 36.81, 36.5, 39.58, 39.22, 40.51, 35.68, 37.69, 35.34, 36.47, 38.19, 35.32, 36.35, 39.06, 38.43, 36.48, 38.69, 50.38],
+    closed: true,
+    startHour: 6,
+  },
+  {
+    division: 'ДЕМО-СЕВ',
+    consignee: 'ДСУ-5 Луховицкий',
+    material: 'ЩМА-20',
+    planQuantity: 815,
+    truckLoads: [39.26, 34.44, 39.23, 38.59, 36.44, 35.33, 40.14, 36.42, 34.96, 39.19],
+    closed: false, // ← активная, ещё не выполнена (374 из 815)
+    startHour: 8,
+  },
+  {
+    division: 'ДЕМО-ЮГ',
+    consignee: 'ГУП "МосДор"',
+    material: 'Асфальт МЗ тип Б м I',
+    planQuantity: 540,
+    truckLoads: [36.15, 40.66, 39.19, 40.41, 39.95, 38.79, 41.41, 37.84, 38.88, 40.55, 39.28, 40.74, 39.04, 27.11],
+    closed: true,
+    startHour: 6,
+  },
+  {
+    division: 'ДЕМО-СЕВ',
+    consignee: 'ДСУ-1 Шатурский',
+    material: 'А-16 Вн МОСАВТОДОР',
+    planQuantity: 320,
+    truckLoads: [41.23, 37.27, 38.37, 38.74, 37.48, 38.4, 37.61, 50.9],
+    closed: true,
+    startHour: 7,
+  },
+  {
+    division: 'ДЕМО-ЮГ',
+    consignee: 'ДСУ-6 Коломенский',
+    material: 'ЩМА-15',
+    planQuantity: 266,
+    truckLoads: [36.67, 38.81, 37.19, 37.22, 36.26, 36.6, 43.25],
+    closed: true,
+    startHour: 9,
+  },
+];
+
+export const demoTopDateShipments: ShipmentItem[] = (() => {
+  const items: ShipmentItem[] = [];
+  let globalIdx = 0;
+
+  TOP_DATE_PLAN.forEach((plan, reqIdx) => {
+    const requestNumber = `${plan.division}-З3${(reqIdx + 1).toString().padStart(2, '0')}`;
+
+    plan.truckLoads.forEach((qty, i) => {
+      const hour = plan.startHour + Math.floor((i * 25) / 60);
+      const minute = (i * 25) % 60;
+      const date = daysAgo(0, hour, minute);
+
+      items.push({
+        id: 0,
+        number: `${plan.division}-А30${(globalIdx + 1).toString().padStart(3, '0')}`,
+        date: fmtRuDateTime(date),
+        division: plan.division,
+        customer: 'ООО «СтройТех»',
+        consignee: plan.consignee,
+        material: plan.material,
+        gross: null,
+        tara: null,
+        quantity: Math.round(qty * 100) / 100,
+        driver: DEMO_DRIVERS[globalIdx % DEMO_DRIVERS.length],
+        licensePlate: DEMO_PLATES[globalIdx % DEMO_PLATES.length],
+        clientRequestNumber: requestNumber,
+        clientRequestDate: fmtRuDateTime(daysAgo(0, plan.startHour, 0)),
+        destinationPoint: null,
+        createdAt: Date.now(),
+      });
+      globalIdx++;
+    });
+  });
+
+  return items;
+})();
+
+export const demoTopDateRequests: OutgoingRequest[] = TOP_DATE_PLAN.map((plan, reqIdx) => {
+  const requestNumber = `${plan.division}-З3${(reqIdx + 1).toString().padStart(2, '0')}`;
+  return {
+    id: 0,
+    number: requestNumber,
+    date: fmtRuDateTime(daysAgo(0, plan.startHour, 0)),
+    division: plan.division,
+    customer: 'ООО «СтройТех»',
+    consignee: plan.consignee,
+    material: plan.material,
+    quantity: plan.planQuantity,
+    unit: null,
+    clientRequestNumber: null,
+    clientRequestDate: null,
+    closed: plan.closed,
+    delivery_date: fmtRuDateTime(daysAgo(0, plan.startHour, 0)),
+    destinationPoint: null,
+    createdAt: Date.now(),
+  };
+});
+
+// ============================================
 // "НА БУДУЩЕЕ" — запланированные заявки
 // ============================================
 
@@ -262,9 +390,11 @@ export const demoIncoming: IncomingItem[] = rawIncomingData.map(convertIncoming)
 export const demoShipments: ShipmentItem[] = [
   ...rawShipmentData.map(convertShipment),
   ...demoConcreteShipments,
+  ...demoTopDateShipments,
 ];
 export const demoRequests: OutgoingRequest[] = [
   ...rawRequestData.map(convertRequest),
+  ...demoTopDateRequests,
   ...demoFutureRequests,
 ];
 

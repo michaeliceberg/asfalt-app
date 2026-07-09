@@ -186,6 +186,8 @@ export const getFactoryBadgeClass = (factory: string): string => {
     case 'ЛЮ': return 'factory-badge-small ЛЮ';
     case 'СП': return 'factory-badge-small СП';
     case 'Щ': return 'factory-badge-small Щ';
+    case 'СЕВ': return 'factory-badge-small СЕВ';
+    case 'ЮГ': return 'factory-badge-small ЮГ';
     default: return 'factory-badge-small Другой';
   }
 };

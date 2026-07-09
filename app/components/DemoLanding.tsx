@@ -2,6 +2,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import type { CSSProperties } from 'react';
 import {
   Rocket,
   Send,
@@ -11,17 +12,52 @@ import {
   Satellite,
   Bell,
   Lock,
-  BarChart3,
+  FileSpreadsheet,
+  Coins,
+  Crown,
 } from 'lucide-react';
 
-const FEATURES = [
-  { Icon: Smartphone, text: 'Ваша 1С на телефоне' },
-  { Icon: RefreshCw, text: '24/7, обновление каждые 2 мин' },
-  { Icon: Satellite, text: 'GPS-навигация машин' },
-  { Icon: Bell, text: 'Push-уведомления' },
-  { Icon: Lock, text: 'Доступ по ролям' },
-  { Icon: BarChart3, text: 'Аналитика и графики' },
+type Feature =
+  | { kind: 'icon'; Icon: typeof Smartphone; text: string; premium?: boolean }
+  | { kind: 'sync' };
+
+const FEATURES: Feature[] = [
+  { kind: 'icon', Icon: Smartphone, text: 'Ваша 1С в телефоне' },
+  { kind: 'sync' },
+  { kind: 'icon', Icon: Satellite, text: 'GPS-навигация машин' },
+  { kind: 'icon', Icon: Bell, text: 'Push-уведомления', premium: true },
+  { kind: 'icon', Icon: Lock, text: 'Доступ по ролям' },
+  { kind: 'icon', Icon: FileSpreadsheet, text: 'Excel отчеты', premium: true },
 ];
+
+function PremiumBadge() {
+  return (
+    <span
+      title="Премиум-опция — доступна в расширенном тарифе"
+      style={{
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 2,
+        marginLeft: 2,
+        padding: '1px 5px',
+        borderRadius: 6,
+        background: 'linear-gradient(135deg, #ffd93d, #f6b93b)',
+        color: '#1a1a2e',
+        fontSize: 9,
+        fontWeight: 800,
+        letterSpacing: '0.2px',
+        flexShrink: 0,
+      }}
+    >
+      <Crown size={9} strokeWidth={2.6} />
+      PRO
+    </span>
+  );
+}
+
+function scrollToPricing() {
+  document.getElementById('pricing-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
 
 export default function DemoLanding() {
   return (
@@ -64,9 +100,9 @@ export default function DemoLanding() {
 
       <div style={{ position: 'relative', zIndex: 1 }}>
         {/* Заголовок */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 0 }}>
-          <Rocket size={26} color="#ffd93d" strokeWidth={2} style={{ flexShrink: 0 }} />
-          <div style={{ minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
+          <Rocket size={26} color="#ffd93d" strokeWidth={2} style={{ flexShrink: 0, marginTop: 1 }} />
+          <div style={{ minWidth: 0, flex: 1 }}>
             <h2 style={{
               color: '#fff',
               fontSize: 17,
@@ -85,6 +121,26 @@ export default function DemoLanding() {
               Контроль отгрузок и поступлений в реальном времени
             </p>
           </div>
+          <button
+            onClick={scrollToPricing}
+            title="Тарифы и цены"
+            aria-label="Тарифы и цены"
+            style={{
+              flexShrink: 0,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 34,
+              height: 34,
+              borderRadius: 10,
+              background: 'rgba(255, 217, 61, 0.12)',
+              border: '1px solid rgba(255, 217, 61, 0.3)',
+              cursor: 'pointer',
+              padding: 0,
+            }}
+          >
+            <Coins size={18} strokeWidth={2.2} color="#ffd93d" />
+          </button>
         </div>
 
         {/* CTA — растянуты на всю ширину */}
@@ -94,19 +150,22 @@ export default function DemoLanding() {
             target="_blank"
             rel="noopener noreferrer"
             style={{
-              flex: 1,
+              flex: '1 1 0',
+              minWidth: 0,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 8,
-              padding: '11px 18px',
+              gap: 6,
+              padding: '11px 10px',
               borderRadius: 10,
               background: 'linear-gradient(135deg, #ffd93d, #f6b93b)',
               color: '#1a1a2e',
               textDecoration: 'none',
               fontWeight: 600,
-              fontSize: 13.5,
+              fontSize: 13,
               whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
               transition: 'transform 0.2s, box-shadow 0.2s',
               boxShadow: '0 4px 16px rgba(255, 217, 61, 0.28)',
             }}
@@ -119,19 +178,20 @@ export default function DemoLanding() {
               e.currentTarget.style.boxShadow = '0 4px 16px rgba(255, 217, 61, 0.28)';
             }}
           >
-            <Send size={16} strokeWidth={2.2} />
-            Написать в Telegram
+            <Send size={16} strokeWidth={2.2} style={{ flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>Написать в Telegram</span>
           </a>
 
           <a
             href="tel:+79160991997"
             style={{
-              flex: 1,
+              flex: '1 1 0',
+              minWidth: 0,
               display: 'inline-flex',
               alignItems: 'center',
               justifyContent: 'center',
-              gap: 8,
-              padding: '11px 16px',
+              gap: 6,
+              padding: '11px 10px',
               borderRadius: 10,
               background: 'rgba(255,255,255,0.06)',
               backdropFilter: 'blur(10px)',
@@ -140,6 +200,8 @@ export default function DemoLanding() {
               fontWeight: 500,
               fontSize: 13,
               whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
               border: '1px solid rgba(255,255,255,0.12)',
               transition: 'background 0.2s',
             }}
@@ -150,8 +212,8 @@ export default function DemoLanding() {
               e.currentTarget.style.background = 'rgba(255,255,255,0.06)';
             }}
           >
-            <Phone size={15} strokeWidth={2.2} />
-            +7 (916) 099-19-97
+            <Phone size={15} strokeWidth={2.2} style={{ flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>+7 (916) 099-19-97</span>
           </a>
         </div>
 
@@ -164,29 +226,42 @@ export default function DemoLanding() {
           paddingTop: 12,
           borderTop: '1px solid rgba(255,255,255,0.06)',
         }}>
-          {FEATURES.map(({ Icon, text }, i) => (
-            <span
-              key={i}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 6,
-                padding: '6px 10px',
-                borderRadius: 8,
-                background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: '#c0c0d8',
-                fontSize: 11.5,
-                fontWeight: 500,
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              <Icon size={13} strokeWidth={2.2} style={{ flexShrink: 0, color: '#ffd93d' }} />
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{text}</span>
-            </span>
-          ))}
+          {FEATURES.map((feature, i) => {
+            const chipStyle: CSSProperties = {
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              padding: '6px 10px',
+              borderRadius: 8,
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: '#c0c0d8',
+              fontSize: 11.5,
+              fontWeight: 500,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            };
+
+            if (feature.kind === 'sync') {
+              return (
+                <span key={i} style={chipStyle}>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>24/7</span>
+                  <RefreshCw size={12} strokeWidth={2.2} style={{ flexShrink: 0, color: '#ffd93d' }} />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>2 мин</span>
+                </span>
+              );
+            }
+
+            const { Icon, text, premium } = feature;
+            return (
+              <span key={i} style={chipStyle}>
+                <Icon size={13} strokeWidth={2.2} style={{ flexShrink: 0, color: '#ffd93d' }} />
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{text}</span>
+                {premium && <PremiumBadge />}
+              </span>
+            );
+          })}
         </div>
       </div>
     </motion.div>

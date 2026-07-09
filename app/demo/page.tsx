@@ -14,6 +14,7 @@ import MainTabs from '@/app/components/MainTabs';
 import ViewTabs from '@/app/components/ViewTabs';
 import FactoryFilter from '@/app/components/FactoryFilter';
 import DemoLanding from '@/app/components/DemoLanding'; // ← Новый компонент
+import PricingSection from '@/app/components/PricingSection';
 import SummaryView from '@/app/components/SummaryView';
 import { IncomingItem, ShipmentItem } from '@/app/page';
 import { getFactoryName, isConcreteMaterial, isSpecialMaterial } from '@/lib/utils';
@@ -235,6 +236,8 @@ export default function DemoPage() {
       )}
 
       {/* ← УБИРАЕМ нижний баннер, так как DemoLanding уже есть сверху */}
+
+      <PricingSection />
     </div>
   );
 }
