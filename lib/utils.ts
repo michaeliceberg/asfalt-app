@@ -199,8 +199,8 @@ export const getFactoryName = (code: string): string => {
     // Демо-заводы (см. lib/demo-data.ts) — без этих case всё падало
     // в default и на /demo кнопки фильтра заводов показывали "Все заводы"
     // вместо реального названия завода.
-    case 'ДЕМО-СП': return '🏭 Демо-завод 1';
-    case 'ДЕМО-Щ': return '🏭 Демо-завод 2';
+    case 'ДЕМО-СЕВ': return '🏭 АБЗ «Северный»';
+    case 'ДЕМО-ЮГ': return '🏭 АБЗ «Южный»';
     default: return '📦 Все заводы';
   }
 };

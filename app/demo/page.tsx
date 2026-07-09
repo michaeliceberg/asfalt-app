@@ -104,7 +104,7 @@ export default function DemoPage() {
   }
 
   const filteredData = getFilteredData();
-  const factories = ['ДЕМО-СП', 'ДЕМО-Щ'];
+  const factories = ['ДЕМО-СЕВ', 'ДЕМО-ЮГ'];
   const totalIncoming = data.incoming.length;
   const totalShipments = data.shipments.length;
 
@@ -140,7 +140,7 @@ export default function DemoPage() {
 
         <div className="sync-info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <span className="sync-label">🏷️ Завод:</span>
-          <span className="sync-time" style={{ color: '#ffd93d' }}>🏭 АБЗ-ДЕМО (СП / Щ)</span>
+          <span className="sync-time" style={{ color: '#ffd93d' }}>🏭 АБЗ-ДЕМО («Северный» / «Южный»)</span>
           <span style={{ fontSize: '12px', color: '#aaa' }}>
             📊 {totalIncoming + totalShipments} записей
           </span>
@@ -187,6 +187,7 @@ export default function DemoPage() {
                 allShipmentsForChart={data.shipments}
                 selectedFactory={activeFactory}
                 mode="iceberg"
+                demoMode
               />
             )}
 

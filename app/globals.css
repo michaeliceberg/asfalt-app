@@ -6191,3 +6191,21 @@ body.iceberg-mode .compact-row.completed-row:hover {
     font-size: 22px;
   }
 }
+
+/* Подсказка "нажми на заявку" — только в демо, чтобы посетитель понял,
+   что строка кликабельна и раскрывается */
+.tap-hint {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 15px;
+  line-height: 1;
+  pointer-events: none;
+  animation: tap-hint-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes tap-hint-pulse {
+  0%, 100% { opacity: 0.35; transform: translateY(-50%) scale(1); }
+  50% { opacity: 1; transform: translateY(-50%) scale(1.25); }
+}

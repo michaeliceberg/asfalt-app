@@ -27,15 +27,15 @@ const consigneeMap: Record<string, string> = {
 };
 
 const numberMap: Record<string, string> = {
-  'ЛХ': 'ДЕМО-СП',
-  'ЛЮ': 'ДЕМО-Щ',
+  'ЛХ': 'ДЕМО-СЕВ',
+  'ЛЮ': 'ДЕМО-ЮГ',
 };
 
 const divisionMap: Record<string, string> = {
-  'Луховицы': 'ДЕМО-СП',
-  'Люберцы': 'ДЕМО-Щ',
-  'ЛХ': 'ДЕМО-СП',
-  'ЛЮ': 'ДЕМО-Щ',
+  'Луховицы': 'ДЕМО-СЕВ',
+  'Люберцы': 'ДЕМО-ЮГ',
+  'ЛХ': 'ДЕМО-СЕВ',
+  'ЛЮ': 'ДЕМО-ЮГ',
 };
 
 // ============================================
@@ -52,7 +52,7 @@ function replaceNumberPrefix(number: string): string {
 }
 
 function getDemoDivision(division: string): string {
-  return divisionMap[division] || 'ДЕМО-СП';
+  return divisionMap[division] || 'ДЕМО-СЕВ';
 }
 
 function getDemoSupplier(supplier: string): string {

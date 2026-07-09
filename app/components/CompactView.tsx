@@ -63,6 +63,10 @@ interface CompactViewProps {
   allShipmentsForChart?: ShipmentItem[];
   selectedFactory?: string;
   mode?: 'tas' | 'iceberg';
+  // Демо-режим: показываем ту же диаграмму "машина в пути / прибыла",
+  // что и в ТАС, но с синтетическими (не GPS) статусами — реальных
+  // координат у демо-машин нет, а /api/trucks-distances требует авторизацию.
+  demoMode?: boolean;
 }
 
 interface VehicleItem {
@@ -181,7 +185,8 @@ export default function CompactView({
   allShipments = [],
   allShipmentsForChart = [],
   selectedFactory = 'all',
-  mode = 'tas'
+  mode = 'tas',
+  demoMode = false
 }: CompactViewProps) {
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -252,10 +257,12 @@ export default function CompactView({
   //   return () => clearInterval(interval);
   // }, [mode]);
 
-// ✅ Загружаем расстояния машин из БД (только для ТАС)
+// ✅ Загружаем расстояния машин из БД (только для ТАС, и не в демо —
+// в демо своя синтетическая генерация статусов ниже, реальный GPS API
+// требует авторизацию и у демо-машин всё равно нет настоящих госномеров).
 useEffect(() => {
-  if (mode !== 'tas') return;
-  
+  if (mode !== 'tas' || demoMode) return;
+
   let retryCount = 0;
   const maxRetries = 3;
   
@@ -308,8 +315,38 @@ useEffect(() => {
   fetchDistances();
   const interval = setInterval(fetchDistances, 60000);
   return () => clearInterval(interval);
-}, [mode]);
+}, [mode, demoMode]);
 
+// ✅ Демо: синтетические статусы "в пути / прибыл" вместо реального GPS.
+// Статус стабильно вычисляется по номеру рейса (хэш), а не Math.random(),
+// чтобы при каждом ре-рендере/обновлении картинка не "прыгала".
+useEffect(() => {
+  if (!demoMode) return;
+
+  const source = allShipments.length > 0 ? allShipments : data;
+  const map = new Map<string, { distance: number | null; eta: number | null; arrived: boolean; arrived_at: string | null }>();
+
+  source.forEach((item) => {
+    const number = (item as { number?: string }).number;
+    if (!number) return;
+
+    let hash = 0;
+    for (let i = 0; i < number.length; i++) {
+      hash = (hash * 31 + number.charCodeAt(i)) >>> 0;
+    }
+
+    const arrived = hash % 2 === 0;
+    if (arrived) {
+      map.set(number, { distance: 0, eta: 0, arrived: true, arrived_at: null });
+    } else {
+      const distance = 3 + (hash % 25); // 3–27 км до объекта
+      const eta = 4 + (hash % 40); // 4–43 мин
+      map.set(number, { distance, eta, arrived: false, arrived_at: null });
+    }
+  });
+
+  setTruckDistances(map);
+}, [demoMode, allShipments, data]);
 
 
 
@@ -918,9 +955,9 @@ useEffect(() => {
                   
                   return (
                     <div key={idx}>
-                      <div 
+                      <div
                         className="compact-row compact-clickable"
-                        style={{ fontWeight: 'bold', cursor: 'pointer' }}
+                        style={{ fontWeight: 'bold', cursor: 'pointer', position: 'relative' }}
                         onClick={() => setExpandedId(isExpanded ? null : itemKey)}
                       >
                         <span className="col-time">{item.time}</span>
@@ -937,8 +974,9 @@ useEffect(() => {
                           </div>
                         </span>
                         <span className="col-trucks">{item.truckCount}</span>
+                        {demoMode && !isExpanded && <span className="tap-hint" aria-hidden="true">👆</span>}
                       </div>
-                      
+
                       <AnimatePresence>
                         {isExpanded && (
                           <motion.div
@@ -1066,9 +1104,9 @@ useEffect(() => {
                 if (isShipment) {
                   return (
                     <div key={idx}>
-                      <div 
+                      <div
                         className={`compact-row compact-clickable ${isCompleted ? 'completed-row' : ''}`}
-                        style={{ fontWeight: 'bold', cursor: 'pointer' }}
+                        style={{ fontWeight: 'bold', cursor: 'pointer', position: 'relative' }}
                         onClick={() => setExpandedId(isExpanded ? null : itemKey)}
                       >
                         <span className="col-time">{item.time}</span>
@@ -1101,6 +1139,7 @@ useEffect(() => {
                           </div>
                         </span>
                         <span className="col-trucks">{item.truckCount}</span>
+                        {demoMode && !isExpanded && <span className="tap-hint" aria-hidden="true">👆</span>}
                       </div>
 
 
@@ -1130,7 +1169,7 @@ useEffect(() => {
       </div>
       
       {/* ✅ Прогресс-бар для каждой машины */}
-      {item.vehicles.length > 0 && mode === 'tas' && (
+      {item.vehicles.length > 0 && (mode === 'tas' || demoMode) && (
         <div className="truck-progress-list">
           {[...item.vehicles]
             .sort((a, b) => {
@@ -1213,8 +1252,8 @@ useEffect(() => {
         </div>
       )}
       
-      {/* Для Айсберг — простой список без прогресс-бара */}
-      {item.vehicles.length > 0 && mode !== 'tas' && (
+      {/* Для Айсберг — простой список без прогресс-бара (кроме демо — там показываем диаграмму) */}
+      {item.vehicles.length > 0 && mode !== 'tas' && !demoMode && (
         <div className="vehicles-list">
           <div className="vehicles-title">🚛 Транспорт:</div>
           {[...item.vehicles]
