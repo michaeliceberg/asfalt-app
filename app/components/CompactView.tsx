@@ -469,7 +469,10 @@ useEffect(() => {
       
       if (isConcreteOnly && !isConcreteMaterial(shipment.material)) return acc;
       if (mainTab === 'shipment' && isConcreteMaterial(shipment.material)) return acc;
-      
+      // Инертные материалы (БНД, Стилобит, гранит, щебень и т.п.) пока
+      // нигде отдельно не отображаем — убираем и из Асфальта, и из Бетона.
+      if (mainTab === 'shipment' && isSpecialMaterial(shipment.material)) return acc;
+
       const requestNumber = shipment.clientRequestNumber || '';
       const requestDate = shipment.clientRequestDate || '';
       const division = shipment.division || '';

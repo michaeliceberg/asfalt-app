@@ -56,7 +56,11 @@ export const isConcreteMaterial = (material: string): boolean => {
   const lower = material.toLowerCase();
   
   // ❌ Исключения — то, что точно НЕ бетон
-  const excludeMarkers = ['асфальт', 'а/б', 'щма', 'пбв', 'гранит', 'щебень', 'песок', 'битум', 'эмульсия'];
+  // Важно: 'гранит', 'щебень', 'песок' сюда НЕ включаем — это типы
+  // заполнителя, которые нормально встречаются прямо внутри названия
+  // бетонной смеси (например "БСТ В25П4F150W6 на граните С/Д"), и раньше
+  // из-за этого такие бетонные заявки ошибочно попадали в Асфальт.
+  const excludeMarkers = ['асфальт', 'а/б', 'щма', 'пбв', 'битум', 'эмульсия'];
   for (const marker of excludeMarkers) {
     if (lower.includes(marker)) return false;
   }
@@ -131,7 +135,7 @@ export const isSpecialMaterial = (material: string): boolean => {
   }
   
   // Инертные материалы
-  const specialMarkers = ['пбв', 'гранит', 'пыль', 'песок', 'щебень', 'битум', 'эмульсия'];
+  const specialMarkers = ['пбв', 'гранит', 'пыль', 'песок', 'щебень', 'битум', 'эмульсия', 'бнд', 'стилобит'];
   
   for (const marker of specialMarkers) {
     if (lower.includes(marker)) return true;
