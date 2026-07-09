@@ -1,135 +1,61 @@
 // lib/trucks.ts
-// vehicleType: "С" — самосвал, "Т" — тонар (оба возят инертные материалы и асфальт),
-// "М" — миксер (возит бетон). Прочие значения — служебный/легковой транспорт.
-export const TRUCKS = [
-  { uid: "25611", name: "А546МК750", vehicleType: "Т" },
-  { uid: "23587", name: "О009УХ190", vehicleType: "С" },
-  { uid: "23543", name: "А534НН", vehicleType: "С" },
-  { uid: "24049", name: "Е602СТ", vehicleType: "Н" },
-  { uid: "25733", name: "С285ВН790", vehicleType: "С" },
-  { uid: "25620", name: "М473АУ790", vehicleType: "С" },
-  { uid: "25622", name: "М549АУ790", vehicleType: "М" },
-  { uid: "25736", name: "Е654РС790", vehicleType: "Газель" },
-  { uid: "25623", name: "М609АУ790", vehicleType: "С" },
-  { uid: "25737", name: "У003ВК790", vehicleType: "М" },
-  { uid: "25624", name: "М608АУ790", vehicleType: "С" },
-  { uid: "25738", name: "М521АУ790", vehicleType: "М" },
-  { uid: "25625", name: "М467АУ790", vehicleType: "С" },
-  { uid: "25735", name: "М561АУ790", vehicleType: "М" },
-  { uid: "25626", name: "М584АУ790", vehicleType: "С" },
-  { uid: "25627", name: "Т750ВМ790", vehicleType: "М" },
-  { uid: "28456", name: "Р284КЕ750", vehicleType: "М" },
-  { uid: "25628", name: "Т724ВМ790", vehicleType: "М" },
-  { uid: "25629", name: "М655АУ790", vehicleType: "М" },
-  { uid: "25929", name: "С278ВН790", vehicleType: "С" },
-  { uid: "25630", name: "М507АУ790", vehicleType: "С" },
-  { uid: "25631", name: "М612АУ790", vehicleType: "С" },
-  { uid: "25632", name: "М412АУ790", vehicleType: "М" },
-  { uid: "25932", name: "С301ВН790", vehicleType: "С" },
-  { uid: "25633", name: "М515АУ790", vehicleType: "М" },
-  { uid: "25933", name: "С264ВН790", vehicleType: "С" },
-  { uid: "25634", name: "М644АУ790", vehicleType: "М" },
-  { uid: "25934", name: "С306ВН790", vehicleType: "С" },
-  { uid: "25635", name: "М600АУ790", vehicleType: "С" },
-  { uid: "25935", name: "С308ВН790", vehicleType: "С" },
-  { uid: "25636", name: "М606АУ790", vehicleType: "С" },
-  { uid: "25937", name: "С296ВН790", vehicleType: "С" },
-  { uid: "25637", name: "М509АУ790", vehicleType: "С" },
-  { uid: "25638", name: "М538АУ790", vehicleType: "С" },
-  { uid: "25639", name: "М615АУ790", vehicleType: "С" },
-  { uid: "25640", name: "М592АУ790", vehicleType: "С" },
-  { uid: "25641", name: "М558АУ790", vehicleType: "С" },
-  { uid: "24474", name: "В896РА750", vehicleType: "М" },
-  { uid: "28678", name: "Е025ВК250", vehicleType: "Т" },
-  { uid: "28679", name: "Е131ВК250", vehicleType: "Т" },
-  { uid: "25759", name: "А544МК750", vehicleType: "Т" },
-  { uid: "28680", name: "Е105ВК250", vehicleType: "Т" },
-  { uid: "25715", name: "М591АУ790", vehicleType: "М" },
-  { uid: "23945", name: "У573КУ750", vehicleType: "М" },
-  { uid: "28681", name: "Е143ВК250", vehicleType: "Т" },
-  { uid: "27650", name: "А540МК750", vehicleType: "Т" },
-  { uid: "28682", name: "Е052ВК250", vehicleType: "Т" },
-  { uid: "23946", name: "К423ХМ190", vehicleType: "М" },
-  { uid: "23947", name: "А426АЕ750", vehicleType: "М" },
-  { uid: "25717", name: "Е687АС790", vehicleType: "М" },
-  { uid: "28683", name: "Е113ВК250", vehicleType: "Т" },
-  { uid: "25718", name: "М454АУ790", vehicleType: "С" },
-  { uid: "28685", name: "Е079ВК250", vehicleType: "Т" },
-  { uid: "22931", name: "К893УО190", vehicleType: "М" },
-  { uid: "25720", name: "Т782ВМ790", vehicleType: "М" },
-  { uid: "28686", name: "Е100ВК250", vehicleType: "Т" },
-  { uid: "25721", name: "Е438АС790", vehicleType: "М" },
-  { uid: "28687", name: "Е073ВК250", vehicleType: "Т" },
-  { uid: "25936", name: "С238ВН790", vehicleType: "С" },
-  { uid: "25931", name: "С204ВН790", vehicleType: "С" },
-  { uid: "26140", name: "А562МК750", vehicleType: "Т" },
-  { uid: "26141", name: "А545МК750", vehicleType: "Т" },
-  { uid: "28684", name: "Е054ВК250", vehicleType: "Т" },
-  { uid: "22944", name: "К889УО190", vehicleType: "М" },
-  { uid: "22951", name: "Р279КЕ750", vehicleType: "М" },
-  { uid: "22952", name: "Р280КЕ750", vehicleType: "М" },
-  { uid: "22953", name: "Р281КЕ750", vehicleType: "М" },
-  { uid: "22955", name: "С603ХК190", vehicleType: "М" },
-  { uid: "25388", name: "Х169ЕО190", vehicleType: "Т" },
-  { uid: "28100", name: "Р283КЕ750", vehicleType: "М" },
-  { uid: "28086", name: "Н026ХА790", vehicleType: "С" },
-  { uid: "28594", name: "М850ВТ550", vehicleType: "лада Ларгус" },
-  { uid: "26276", name: "А559МК750", vehicleType: "Т" },
-  { uid: "28081", name: "С172ХН790", vehicleType: "С" },
-  { uid: "28085", name: "Н445ХК790", vehicleType: "С" },
-  { uid: "28087", name: "Н419ХК790", vehicleType: "С" },
-  { uid: "28084", name: "Н439ХК790", vehicleType: "С" },
-  { uid: "28088", name: "Н456ХК790", vehicleType: "С" },
-  { uid: "28130", name: "В751ВС790", vehicleType: "С" },
-  { uid: "28131", name: "Х520АУ790", vehicleType: "С" },
-  { uid: "28132", name: "В864ВС790", vehicleType: "С" },
-  { uid: "28133", name: "М410ВТ790", vehicleType: "Т" },
-  { uid: "28134", name: "В736ВС790", vehicleType: "С" },
-  { uid: "28135", name: "Т002АХ790", vehicleType: "С" },
-  { uid: "28136", name: "В717ВС790", vehicleType: "С" },
-  { uid: "28137", name: "М411ВТ790", vehicleType: "Т" },
-  { uid: "28138", name: "Х580АУ790", vehicleType: "С" },
-  { uid: "28139", name: "Е353КТ790", vehicleType: "Т" },
-  { uid: "28140", name: "В793ВС790", vehicleType: "С" },
-  { uid: "28141", name: "М427ВТ790", vehicleType: "С" },
-  { uid: "28142", name: "В818ВС790", vehicleType: "С" },
-  { uid: "28143", name: "В747ВС790", vehicleType: "С" },
-  { uid: "28144", name: "М448ВТ790", vehicleType: "С" },
-  { uid: "28145", name: "Х500АУ790", vehicleType: "С" },
-  { uid: "28146", name: "М414ВТ790", vehicleType: "Т" },
-  { uid: "28147", name: "Х517АУ790", vehicleType: "С" },
-  { uid: "28148", name: "М335ВТ790", vehicleType: "Т" },
-  { uid: "28149", name: "В821ВС790", vehicleType: "С" },
-  { uid: "28150", name: "В865ВС790", vehicleType: "С" },
-  { uid: "28151", name: "В727ВС790", vehicleType: "С" },
-  { uid: "28153", name: "С054ХМ790", vehicleType: "С" },
-  { uid: "28154", name: "М419ВТ790", vehicleType: "Т" },
-  { uid: "28177", name: "Е274ХХ790", vehicleType: "Т" },
-  { uid: "28206", name: "К118РУ790", vehicleType: "С" },
-  { uid: "28207", name: "У273ТН790", vehicleType: "Т" },
-  { uid: "28208", name: "В160ТН790", vehicleType: "С" },
-  { uid: "28209", name: "Х831ВР790", vehicleType: "С" },
-  { uid: "28210", name: "М233ХК790", vehicleType: "С" },
-  { uid: "28211", name: "У267ТН790", vehicleType: "Т" },
-  { uid: "28212", name: "Х781ВР790", vehicleType: "С" },
-  { uid: "28213", name: "К104РУ790", vehicleType: "С" },
-  { uid: "28214", name: "Х804ВР790", vehicleType: "С" },
-  { uid: "28215", name: "К093РУ790", vehicleType: "С" },
-  { uid: "28216", name: "У233ТН790", vehicleType: "Т" },
-  { uid: "28217", name: "М253ХК790", vehicleType: "С" },
-  { uid: "28218", name: "А611ТН790", vehicleType: "С" },
-  { uid: "28219", name: "В168ТН790", vehicleType: "С" },
-  { uid: "28220", name: "А703ТО790", vehicleType: "Т" },
-  { uid: "28221", name: "М242ХК790", vehicleType: "С" },
-  { uid: "28222", name: "М230ХК790", vehicleType: "С" },
-  { uid: "28224", name: "Х806ВР790", vehicleType: "С" },
-
-  // Была на подхвате в другой заявке позиция без типа в свежей выгрузке — тип не указан.
-  { uid: "25930", name: "С253ВН790" },
-];
+//
+// Список отслеживаемых машин переехал из статичного массива в таблицу
+// trucks в БД (см. lib/db/schema.ts) — чтобы добавлять/редактировать
+// машины можно было через страницу /admin/trucks, а не правкой файла и
+// редеплоем. getTrucks() — единственная точка входа, которой пользуются
+// scripts/calc-distances.ts и app/api/trucks/route.ts.
+import { db } from './db';
+import { trucks as trucksTable } from './db/schema';
+import { eq } from 'drizzle-orm';
+import { normalizePlate } from './utils';
 
 export type VehicleType = 'С' | 'Т' | 'М';
 
+export interface TruckRecord {
+  uid: string;
+  name: string;
+  vehicleType?: string;
+}
+
 export function isConcreteVehicle(vehicleType?: string): boolean {
   return vehicleType === 'М';
+}
+
+/**
+ * Активные машины из БД, в том же формате { uid, name, vehicleType },
+ * которым раньше был статичный массив TRUCKS — так вызывающий код
+ * менять не пришлось, только сделать вызов асинхронным.
+ */
+export async function getTrucks(): Promise<TruckRecord[]> {
+  const rows = await db
+    .select()
+    .from(trucksTable)
+    .where(eq(trucksTable.isActive, true));
+
+  return rows.map((r) => ({
+    uid: r.uid,
+    name: r.licensePlate,
+    vehicleType: r.vehicleType || undefined,
+  }));
+}
+
+/**
+ * Экранированный поиск одной машины по нормализованному госномеру —
+ * пригодится, если понадобится точечный лукап без загрузки всего списка.
+ */
+export async function findTruckByPlate(plate: string): Promise<TruckRecord | null> {
+  const normalized = normalizePlate(plate);
+  if (!normalized) return null;
+
+  const rows = await db
+    .select()
+    .from(trucksTable)
+    .where(eq(trucksTable.licensePlate, normalized))
+    .limit(1);
+
+  const row = rows[0];
+  if (!row) return null;
+
+  return { uid: row.uid, name: row.licensePlate, vehicleType: row.vehicleType || undefined };
 }

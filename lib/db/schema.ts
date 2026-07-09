@@ -200,3 +200,19 @@ export const shipmentStartNotifications = sqliteTable('shipment_start_notificati
   sent_at: integer('sent_at').notNull(),
   factory: text('factory').notNull(),
 });
+
+// Машины, отслеживаемые по GPS (замена статичного lib/trucks.ts).
+// uid — id GPS-трекера на платформе geoinformer, license_plate — госномер
+// в нормализованном виде (см. normalizePlate в lib/utils.ts).
+export const trucks = sqliteTable('trucks', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  uid: text('uid').notNull().unique(),
+  licensePlate: text('license_plate').notNull().unique(),
+  vehicleType: text('vehicle_type'), // 'С' самосвал, 'Т' тонар, 'М' миксер, прочее — служебный транспорт
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at'),
+});
+
+export type Truck = typeof trucks.$inferSelect;
+export type NewTruck = typeof trucks.$inferInsert;

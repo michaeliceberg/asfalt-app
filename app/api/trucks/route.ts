@@ -1,6 +1,6 @@
 // app/api/trucks/route.ts
 import { NextResponse } from 'next/server';
-import { TRUCKS } from '@/lib/trucks';
+import { getTrucks } from '@/lib/trucks';
 import { db } from '@/lib/db';
 import { shipments, type Shipment } from '@/lib/db/schema';
 
@@ -53,11 +53,11 @@ interface ApiResponse {
 // ФУНКЦИЯ ДЛЯ ПОЛУЧЕНИЯ GPS-ПОЗИЦИЙ
 // ============================================
 
-async function fetchTruckPositions(): Promise<Record<string, TruckPosition>> {
+async function fetchTruckPositions(allTrucks: { uid: string }[]): Promise<Record<string, TruckPosition>> {
   const url = "https://xptr.geoinformer.com/service/monitoring";
-  
-  const uidList = TRUCKS.map(t => t.uid);
-  
+
+  const uidList = allTrucks.map(t => t.uid);
+
   try {
     const response = await fetch(url, {
       method: 'POST',
@@ -118,9 +118,12 @@ function findLastShipment(shipmentsList: Shipment[]): Shipment | null {
 export async function GET() {
   try {
     console.log('🔵 Fetching truck positions...');
-    
+
+    // Машины теперь в БД (таблица trucks, редактируется на /admin/trucks)
+    const allTrucks = await getTrucks();
+
     // 1. Получаем GPS-позиции
-    const positions = await fetchTruckPositions();
+    const positions = await fetchTruckPositions(allTrucks);
     // console.log('🔵 Got positions for', Object.keys(positions).length, 'trucks');
     
     // 2. Получаем маршруты из БД
@@ -239,7 +242,7 @@ const routesWithDates: RouteData[] = routes.map((route) => {
     // console.log('🔵 Routes with dates:', routesWithDates.length);
     
     // 4. Формируем результат
-    const result: TruckData[] = TRUCKS.map(truck => {
+    const result: TruckData[] = allTrucks.map(truck => {
       const pos = positions[truck.uid];
       
       // Нормализуем номер для поиска в truckDestinations

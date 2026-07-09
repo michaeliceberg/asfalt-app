@@ -2,13 +2,18 @@ import { db } from '../lib/db';
 import { shipments } from '../lib/db/schema';
 import { eq, and, gte } from 'drizzle-orm';
 import { calculateDistance, calculateETA, parseDestinationPoint, normalizePlate } from '../lib/utils';
-import { TRUCKS } from '../lib/trucks';
+import { getTrucks } from '../lib/trucks';
 
 const AUTH_TOKEN = 'XBNlAqRnZxU3Q%2BSLHe3qKZSIIYiSGWym3mN8%2BbXmbSZE74YqB3bYf4TLIWAzLPyg%2BR9qd2Mf9AxDn2K3f4j5lA%3D%3D';
 const ARRIVAL_THRESHOLD_KM = 2;
 
 async function getTruckPositions() {
   try {
+    // Список машин теперь живёт в БД (таблица trucks, редактируется на
+    // /admin/trucks) — читаем его на каждый запуск крона, а не из
+    // статичного файла, чтобы новые машины подхватывались без деплоя.
+    const allTrucks = await getTrucks();
+
     const response = await fetch('https://xptr.geoinformer.com/service/monitoring', {
       method: 'POST',
       headers: {
@@ -16,7 +21,7 @@ async function getTruckPositions() {
         'Accept': 'application/json',
       },
       body: JSON.stringify({
-        idList: TRUCKS.map(t => t.uid).map(String),
+        idList: allTrucks.map(t => t.uid).map(String),
         ud: AUTH_TOKEN
       }),
     });
@@ -28,9 +33,9 @@ async function getTruckPositions() {
 
     const data = await response.json();
     const positions = new Map();
-    
+
     if (data.positions) {
-      TRUCKS.forEach((truck) => {
+      allTrucks.forEach((truck) => {
         const pos = data.positions[truck.uid];
         if (pos) {
           // Ключ — нормализованный госномер (без пробелов, кириллица
