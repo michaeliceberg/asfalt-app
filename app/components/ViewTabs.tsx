@@ -2,6 +2,7 @@
 'use client';
 
 import { LayoutGrid, List, BarChart2, Trophy } from 'lucide-react';
+import { tapHaptic } from '@/lib/haptics';
 
 type ViewTab = 'compact' | 'grouped' | 'list' | 'charts' | 'topCustomers';
 
@@ -11,32 +12,37 @@ interface ViewTabsProps {
 }
 
 export default function ViewTabs({ activeTab, onTabChange }: ViewTabsProps) {
+  const handleChange = (tab: ViewTab) => {
+    tapHaptic();
+    onTabChange(tab);
+  };
+
   return (
     <div className="tabs">
       <button
         className={`tab ${activeTab === 'compact' ? 'active' : ''}`}
-        onClick={() => onTabChange('compact')}
+        onClick={() => handleChange('compact')}
       >
         <LayoutGrid size={15} strokeWidth={2.2} /> Компактно
       </button>
 
       <button
         className={`tab ${activeTab === 'list' ? 'active' : ''}`}
-        onClick={() => onTabChange('list')}
+        onClick={() => handleChange('list')}
       >
         <List size={15} strokeWidth={2.2} /> Список
       </button>
 
       <button
         className={`tab ${activeTab === 'charts' ? 'active' : ''}`}
-        onClick={() => onTabChange('charts')}
+        onClick={() => handleChange('charts')}
       >
         <BarChart2 size={15} strokeWidth={2.2} /> Графики
       </button>
 
       <button
         className={`tab ${activeTab === 'topCustomers' ? 'active' : ''}`}
-        onClick={() => onTabChange('topCustomers')}
+        onClick={() => handleChange('topCustomers')}
       >
         <Trophy size={15} strokeWidth={2.2} /> Топ-10
       </button>

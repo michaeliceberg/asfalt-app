@@ -1,6 +1,7 @@
 'use client';
 
 import { Ship, Truck, Package, ClipboardList } from 'lucide-react';
+import { tapHaptic } from '@/lib/haptics';
 
 interface MainTabsProps {
   activeTab: 'incoming' | 'shipment' | 'shipmentConcrete' | 'summary';
@@ -28,6 +29,7 @@ export default function MainTabs({
   const hasNewConcrete = newConcreteCount > 0;
   
   const handleShipmentClick = () => {
+    tapHaptic();
     onTabChange('shipment');
     if (hasNewShipments && onShipmentClick) {
       onShipmentClick();
@@ -35,6 +37,7 @@ export default function MainTabs({
   };
 
   const handleConcreteClick = () => {
+    tapHaptic();
     onTabChange('shipmentConcrete');
     if (hasNewConcrete && onConcreteClick) {
       onConcreteClick();
@@ -46,7 +49,7 @@ export default function MainTabs({
       {/* Поступление */}
       <button
         className={`main-tab ${activeTab === 'incoming' ? 'active' : ''}`}
-        onClick={() => onTabChange('incoming')}
+        onClick={() => { tapHaptic(); onTabChange('incoming'); }}
       >
         <span className="tab-icon"><Ship size={16} strokeWidth={2.2} /></span>
         <span className="tab-label">Поступление</span>
@@ -87,7 +90,7 @@ export default function MainTabs({
       {/* План на будущее */}
       <button
         className={`main-tab ${activeTab === 'summary' ? 'active' : ''} ${hasFutureRequests ? 'has-future' : ''}`}
-        onClick={() => onTabChange('summary')}
+        onClick={() => { tapHaptic(); onTabChange('summary'); }}
       >
         <span className="tab-icon"><ClipboardList size={16} strokeWidth={2.2} /></span>
         <span className="tab-label">На будущее</span>

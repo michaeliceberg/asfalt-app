@@ -22,6 +22,24 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: 'automatic',
   },
+  plugins: {
+    // В server.url-режиме экран приложения грузит удалённый сайт по сети —
+    // без сплэша при холодном старте (особенно на плохом интернете) был бы
+    // белый экран на секунду-две. ВАЖНО: launchAutoHide не умеет ждать
+    // окончания загрузки WebView сам по себе — он просто прячет сплэш через
+    // launchShowDuration миллисекунд после старта. Раньше здесь стояло 0 —
+    // это по факту выключало сплэш (прятался мгновенно). Ставим фиксированную
+    // паузу, которая с запасом перекрывает типичное время загрузки страницы.
+    SplashScreen: {
+      launchShowDuration: 2500,
+      launchAutoHide: true,
+      backgroundColor: '#fafaf8',
+      androidScaleType: 'CENTER_CROP',
+      showSpinner: false,
+      splashFullScreen: true,
+      splashImmersive: true,
+    },
+  },
 };
 
 export default config;

@@ -5072,11 +5072,13 @@ body.iceberg-mode .mode-option:not(.active) {
 }
 
 /* Кнопки фильтра заводов */
+/* backdrop-filter убран: фон и так на 80% непрозрачный, разница на глаз
+   незаметна, а blur() лишний раз грузит GPU-композитинг в WKWebView
+   (Capacitor iOS) при каждом переключении вкладки. */
 body.iceberg-mode .factory-switch .factory-btn {
   background: rgba(30, 30, 38, 0.8);
   color: #c0c0cc;
   border-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(4px);
 }
 
 body.iceberg-mode .factory-switch .factory-btn.active {
@@ -5091,7 +5093,6 @@ body.iceberg-mode .tabs .tab {
   background: rgba(30, 30, 38, 0.8);
   color: #c0c0cc;
   border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(4px);
 }
 
 body.iceberg-mode .tabs .tab.active {
@@ -5106,7 +5107,6 @@ body.iceberg-mode .main-tab {
   background: rgba(30, 30, 38, 0.8);
   color: #c0c0cc;
   border-color: rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(4px);
 }
 
 body.iceberg-mode .main-tab.active {

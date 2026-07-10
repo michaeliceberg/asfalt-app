@@ -3,6 +3,7 @@
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { Sun, Mountain, RefreshCw } from 'lucide-react';
+import { tapHaptic } from '@/lib/haptics';
 
 interface ModeSwitchProps {
   mode: 'tas' | 'iceberg';
@@ -95,6 +96,11 @@ export default function ModeSwitch({
   const tasSync = getSyncBadgeStyle(currentTasTime);
   const icebergSync = getSyncBadgeStyle(currentIcebergTime);
 
+  const handleToggle = () => {
+    tapHaptic('medium');
+    onToggle();
+  };
+
   // ✅ Если доступ только к Айсберг — показываем только Айсберг
   if (!hasTasAccess && hasIcebergAccess) {
     return (
@@ -152,7 +158,7 @@ export default function ModeSwitch({
         />
         <button
           className={`mode-option ${mode === 'tas' ? 'active' : ''}`}
-          onClick={onToggle}
+          onClick={handleToggle}
         >
           <div className="mode-option-top">
             <span className="mode-icon"><Sun size={20} strokeWidth={2.2} /></span>
@@ -168,7 +174,7 @@ export default function ModeSwitch({
         </button>
         <button
           className={`mode-option ${mode === 'iceberg' ? 'active' : ''}`}
-          onClick={onToggle}
+          onClick={handleToggle}
         >
           <div className="mode-option-top">
             <span className="mode-icon"><Mountain size={20} strokeWidth={2.2} /></span>

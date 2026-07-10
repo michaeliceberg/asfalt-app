@@ -141,9 +141,17 @@ if (materialType === 'asphalt') {
   const activeTons = activityData.filter(d => d.hasActivity).map(d => d.totalTons);
   const maxTons = activeTons.length > 0 ? Math.max(...activeTons) : 1;
 
+  // Максимальная высота столбика в px (как раньше). Сам DOM-элемент теперь
+  // ВСЕГДА такой высоты — "рост" столбика имитируется через scaleY
+  // (transform, GPU-композитинг), а не через анимацию height (layout-thrash
+  // на каждый кадр). В обычном браузере разницы не видно, а в WKWebView
+  // (Capacitor-обёртка на iOS) это заметно менее тормознутая анимация,
+  // особенно когда все 12 столбиков переанимируются разом при смене вкладки.
+  const MAX_BAR_HEIGHT = 24;
+
   const getHeight = (tons: number, hasActivity: boolean) => {
     if (!hasActivity) return 2;
-    return Math.max(6, (tons / maxTons) * 24);
+    return Math.max(6, (tons / maxTons) * MAX_BAR_HEIGHT);
   };
 
   const formatTons = (tons: number): string => {
@@ -171,8 +179,9 @@ if (materialType === 'asphalt') {
               )}
               <motion.div
                 className={`activity-chart-bar ${item.hasActivity ? 'active' : 'inactive'} ${item.isCurrent ? 'current-bar' : ''}`}
-                initial={{ height: 0 }}
-                animate={{ height }}
+                style={{ height: MAX_BAR_HEIGHT, transformOrigin: 'bottom' }}
+                initial={{ scaleY: 0 }}
+                animate={{ scaleY: height / MAX_BAR_HEIGHT }}
                 transition={{ type: 'spring', stiffness: 300, damping: 22 }}
                 title={`${item.period}: ${item.totalTons} т`}
               />

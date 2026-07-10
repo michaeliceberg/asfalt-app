@@ -22,6 +22,7 @@ import {
 } from '@/lib/utils';
 import TruckProgressBar from './TruckProgressBar';
 import { Factory, Truck, Package, User, Lock, MousePointerClick } from 'lucide-react';
+import { tapHaptic } from '@/lib/haptics';
 
 type UnifiedDataItem = IncomingItem | ShipmentItem;
 
@@ -730,7 +731,7 @@ useEffect(() => {
                       <div 
                         className={`compact-row compact-clickable ${isCompleted ? 'completed-row' : ''}`}
                         style={{ fontWeight: 'bold', cursor: 'pointer' }}
-                        onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+                        onClick={() => { tapHaptic(); setExpandedId(isExpanded ? null : itemKey); }}
                       >
                         <span className="col-time">{displayTime}</span>
                         <span className={`col-fact ${isWarning ? 'warning' : ''}`}>
@@ -974,7 +975,7 @@ useEffect(() => {
                       <div
                         className="compact-row compact-clickable"
                         style={{ fontWeight: 'bold', cursor: 'pointer', position: 'relative' }}
-                        onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+                        onClick={() => { tapHaptic(); setExpandedId(isExpanded ? null : itemKey); }}
                       >
                         <span className="col-time">{item.time}</span>
                         <span className="col-fact">{displayFact}</span>
@@ -1123,7 +1124,7 @@ useEffect(() => {
                       <div
                         className={`compact-row compact-clickable ${isCompleted ? 'completed-row' : ''}`}
                         style={{ fontWeight: 'bold', cursor: 'pointer', position: 'relative' }}
-                        onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+                        onClick={() => { tapHaptic(); setExpandedId(isExpanded ? null : itemKey); }}
                       >
                         <span className="col-time">{item.time}</span>
                         <span className={`col-fact ${isWarning ? 'warning' : ''}`}>
@@ -1324,7 +1325,7 @@ useEffect(() => {
                     <div 
                       className="compact-row compact-clickable"
                       style={{ fontWeight: 'bold', cursor: 'pointer' }}
-                      onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+                      onClick={() => { tapHaptic(); setExpandedId(isExpanded ? null : itemKey); }}
                     >
                       <span className="col-time">{item.time}</span>
                       <span className="col-fact">{displayFact}</span>
@@ -1997,7 +1998,7 @@ useEffect(() => {
 //                       <div 
 //                         className={`compact-row compact-clickable ${isCompleted ? 'completed-row' : ''}`}
 //                         style={{ fontWeight: 'bold', cursor: 'pointer' }}
-//                         onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+//                         onClick={() => { tapHaptic(); setExpandedId(isExpanded ? null : itemKey); }}
 //                       >
 //                         <span className="col-time">{displayTime}</span>
 //                         <span className={`col-fact ${isWarning ? 'warning' : ''}`}>
@@ -2241,7 +2242,7 @@ useEffect(() => {
 //                       <div 
 //                         className="compact-row compact-clickable"
 //                         style={{ fontWeight: 'bold', cursor: 'pointer' }}
-//                         onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+//                         onClick={() => { tapHaptic(); setExpandedId(isExpanded ? null : itemKey); }}
 //                       >
 //                         <span className="col-time">{item.time}</span>
 //                         <span className="col-fact">{displayFact}</span>
@@ -2389,7 +2390,7 @@ useEffect(() => {
 //                       <div 
 //                         className={`compact-row compact-clickable ${isCompleted ? 'completed-row' : ''}`}
 //                         style={{ fontWeight: 'bold', cursor: 'pointer' }}
-//                         onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+//                         onClick={() => { tapHaptic(); setExpandedId(isExpanded ? null : itemKey); }}
 //                       >
 //                         <span className="col-time">{item.time}</span>
 //                         <span className={`col-fact ${isWarning ? 'warning' : ''}`}>
@@ -2679,7 +2680,7 @@ useEffect(() => {
 //                     <div 
 //                       className="compact-row compact-clickable"
 //                       style={{ fontWeight: 'bold', cursor: 'pointer' }}
-//                       onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+//                       onClick={() => { tapHaptic(); setExpandedId(isExpanded ? null : itemKey); }}
 //                     >
 //                       <span className="col-time">{item.time}</span>
 //                       <span className="col-fact">{displayFact}</span>
@@ -3307,7 +3308,7 @@ useEffect(() => {
 //       <div 
 //         className={`compact-row compact-clickable ${isCompleted ? 'completed-row' : ''}`}
 //         style={{ fontWeight: 'bold', cursor: 'pointer' }}
-//         onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+//         onClick={() => { tapHaptic(); setExpandedId(isExpanded ? null : itemKey); }}
 //       >
 //         <span className="col-time">{displayTime}</span>
 //         <span className={`col-fact ${isWarning ? 'warning' : ''}`}>
@@ -3600,7 +3601,7 @@ useEffect(() => {
 //                       <div 
 //                         className="compact-row compact-clickable"
 //                         style={{ fontWeight: 'bold', cursor: 'pointer' }}
-//                         onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+//                         onClick={() => { tapHaptic(); setExpandedId(isExpanded ? null : itemKey); }}
 //                       >
 //                         <span className="col-time">{item.time}</span>
 //                         <span className="col-fact">{displayFact}</span>
@@ -3751,7 +3752,7 @@ useEffect(() => {
 //         <div 
 //           className={`compact-row compact-clickable ${isCompleted ? 'completed-row' : ''}`} // ✅ ДОБАВИТЬ КЛАСС
 //           style={{ fontWeight: 'bold', cursor: 'pointer' }}
-//           onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+//           onClick={() => { tapHaptic(); setExpandedId(isExpanded ? null : itemKey); }}
 //         >
 //           <span className="col-time">{item.time}</span>
 //           <span className={`col-fact ${isWarning ? 'warning' : ''}`}>
@@ -3922,7 +3923,7 @@ useEffect(() => {
 //                     <div 
 //                       className="compact-row compact-clickable"
 //                       style={{ fontWeight: 'bold', cursor: 'pointer' }}
-//                       onClick={() => setExpandedId(isExpanded ? null : itemKey)}
+//                       onClick={() => { tapHaptic(); setExpandedId(isExpanded ? null : itemKey); }}
 //                     >
 //                       <span className="col-time">{item.time}</span>
 //                       <span className="col-fact">{displayFact}</span>

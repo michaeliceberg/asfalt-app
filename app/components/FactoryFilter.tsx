@@ -1,4 +1,5 @@
 import { LayoutGrid } from "lucide-react";
+import { tapHaptic } from "@/lib/haptics";
 
 interface FactoryFilterProps {
   factories: string[];
@@ -27,7 +28,7 @@ export default function FactoryFilter({ factories, activeFactory, onFactoryChang
     <div className="factory-switch">
       <button
         className={`factory-btn ${activeFactory === 'all' ? 'active' : ''}`}
-        onClick={() => onFactoryChange('all')}
+        onClick={() => { tapHaptic(); onFactoryChange('all'); }}
       >
         <LayoutGrid size={14} strokeWidth={2.2} style={{ marginRight: 4, verticalAlign: -2 }} />
         Все заводы
@@ -36,7 +37,7 @@ export default function FactoryFilter({ factories, activeFactory, onFactoryChang
         <button
           key={factory}
           className={`factory-btn ${activeFactory === factory ? 'active' : ''}`}
-          onClick={() => onFactoryChange(factory)}
+          onClick={() => { tapHaptic(); onFactoryChange(factory); }}
         >
           {getShortFactoryLabel(factory)}
         </button>
