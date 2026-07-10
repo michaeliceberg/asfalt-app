@@ -190,6 +190,19 @@ export const pushSubscriptions = sqliteTable('push_subscriptions', {
   updated_at: integer('updated_at'),
 });
 
+// Нативные push-токены (APNs, iOS-приложение через Capacitor).
+// Отдельная таблица от pushSubscriptions — у Web Push (VAPID) и APNs
+// принципиально разный формат подписки (endpoint+ключи vs один device token),
+// пытаться впихнуть их в одну таблицу было бы менее читаемо.
+export const apnsTokens = sqliteTable('apns_tokens', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  user_id: integer('user_id').references(() => users.id),
+  device_token: text('device_token').notNull().unique(),
+  created_at: integer('created_at').notNull(),
+  updated_at: integer('updated_at'),
+});
+export type ApnsToken = typeof apnsTokens.$inferSelect;
+
 
 
 

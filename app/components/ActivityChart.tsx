@@ -35,9 +35,15 @@ export default function ActivityChart({
   useEffect(() => {
     isMounted.current = true;
     
-    // Определяем допустимые заводы для текущего режима
-    const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
-    
+    // Раньше тут был захардкоженный список заводов по режиму (['ЛХ','ЛЮ']
+    // для 'tas' / ['СП','Щ'] для 'iceberg') — из-за этого демо-дивизионы
+    // (ДЕМО-СЕВ/ДЕМО-ЮГ) никогда не проходили фильтр, и диаграмма
+    // активности в демо всегда оставалась пустой (та же природа бага, что
+    // была в ChartsView.tsx). shipments сюда и так приходят уже
+    // отфильтрованными по нужному режиму на уровне страницы — просто
+    // берём заводы, реально присутствующие в переданных данных.
+    const validFactories = Array.from(new Set(shipments.map(s => s.division).filter(Boolean)));
+
     const now = new Date();
     const currentHour = now.getHours();
     const currentBlockStart = Math.floor(currentHour / 2) * 2;

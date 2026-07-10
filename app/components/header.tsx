@@ -44,7 +44,7 @@ export default function Header({
   }, []);
 
   return (
-    <div style={{
+    <div className="app-header-row" style={{
       display: 'flex',
       justifyContent: 'space-between',
       alignItems: 'center',
@@ -61,7 +61,7 @@ export default function Header({
         flexShrink: 0,
         paddingLeft: 0,
       }}>
-        <div style={{
+        <div className="app-header-brand-pill" style={{
           display: 'flex',
           alignItems: 'center',
           gap: '4px',
@@ -82,12 +82,12 @@ export default function Header({
           }}>
             АБЗ
           </span>
-          <span style={{
+          <span className="app-header-brand-divider" style={{
             fontSize: '13px',
             color: '#94a3b8',
             fontWeight: 300,
           }}>⚡</span>
-          <span style={{
+          <span className="app-header-brand-name" style={{
             fontSize: '13px',
             fontWeight: 500,
             color: '#e2e8f0',
@@ -98,22 +98,18 @@ export default function Header({
         </div>
 
         {/* 👤 Пользователь */}
-        <div style={{
+        <div className="app-header-user-pill" style={{
           display: 'flex',
           alignItems: 'center',
           gap: '4px',
           padding: '2px 10px 2px 6px',
           borderRadius: '16px',
-          // background: 'rgba(255,255,255,0.06)',
-          // border: '1px dashed rgba(255,255,255,0.15)',
-          // background: 'rgba(255,255,255,0.06)',
-          // border: '1px rgba(255,255,255,0.15)',
           background: 'transparent',
-border: 'none',
+          border: 'none',
           transition: 'all 0.2s',
         }}>
           <User size={13} color="#ffffff" strokeWidth={2} />
-          <span style={{
+          <span className="app-header-user-pill-text" style={{
             fontSize: '12px',
             fontWeight: 600,
             color: '#ffffff',
@@ -132,10 +128,9 @@ border: 'none',
       </div>
 
       {/* Кнопки */}
-      <div style={{
+      <div className="app-header-buttons-group" style={{
         display: 'flex',
         alignItems: 'center',
-        gap: '4px',
         flexShrink: 0,
         paddingRight: 0,
       }}>
@@ -145,17 +140,11 @@ border: 'none',
             className={`header-btn ${isTrucksPage ? 'active' : ''}`}
             title="GPS-мониторинг"
             style={{
-              width: 32,
-              height: 32,
               borderRadius: 6,
               border: 'none',
               background: isTrucksPage ? '#ffd93d' : 'transparent',
               color: isTrucksPage ? '#1a1a2e' : '#fff',
               cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.2s',
             }}
           >
             <MapPin size={18} strokeWidth={2} />
@@ -168,17 +157,11 @@ border: 'none',
             disabled={refreshing}
             title="Выйти"
             style={{
-              width: 32,
-              height: 32,
               borderRadius: 6,
               border: 'none',
               background: 'transparent',
               color: '#fff',
               cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.2s',
               opacity: refreshing ? 0.5 : 1,
             }}
           >
@@ -191,17 +174,11 @@ border: 'none',
           disabled={refreshing}
           title="Обновить"
           style={{
-            width: 32,
-            height: 32,
             borderRadius: 6,
             border: 'none',
             background: 'transparent',
             color: '#fff',
             cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'all 0.2s',
             opacity: refreshing ? 0.5 : 1,
           }}
           whileTap={{ scale: 0.9 }}

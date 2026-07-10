@@ -5,6 +5,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { Bell, BellOff, Loader2 } from 'lucide-react';
+import { initNativePush } from '@/lib/native-push';
 
 export default function PushNotifications() {
   const { user } = useAuth();
@@ -12,6 +13,17 @@ export default function PushNotifications() {
   const [loading, setLoading] = useState(false);
   const isMounted = useRef(true);
   const checkDone = useRef(false);
+  const nativeInitDone = useRef(false);
+
+  // В нативном iOS-приложении (Capacitor) Web Push API недоступен —
+  // регистрируемся на APNs напрямую, как только известен пользователь.
+  // Кнопка-колокольчик ниже в этом случае не показывается (isSupported
+  // будет false в WKWebView), это отдельный, полностью автоматический путь.
+  useEffect(() => {
+    if (!user || nativeInitDone.current) return;
+    nativeInitDone.current = true;
+    void initNativePush();
+  }, [user]);
 
   // Проверка поддержки один раз при монтировании
   const isSupported = typeof window !== 'undefined' && 

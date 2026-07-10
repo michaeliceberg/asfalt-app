@@ -117,10 +117,13 @@ interface Tariff {
   description: string;
 }
 
+// Единый термин для "продвинутых" функций — везде PRO (и в чипах-фичах,
+// и в названии тарифа, и в таблице сравнения), чтобы не путать
+// "Премиум"/"PRO" как два разных слова для одного и того же.
 const TARIFFS: Tariff[] = [
   { name: 'Базовый', price: 'от 15 000 ₽', period: '/мес', description: 'Контроль отгрузок в реальном времени' },
   { name: 'Стандарт', price: 'от 25 000 ₽', period: '/мес', highlight: true, description: 'Всё для полноценной работы завода' },
-  { name: 'Премиум', price: 'от 40 000 ₽', period: '/мес', description: 'Максимум возможностей и приоритетная поддержка' },
+  { name: 'PRO', price: 'от 40 000 ₽', period: '/мес', description: 'Максимум возможностей и приоритетная поддержка' },
 ];
 
 interface FeatureRow {
@@ -134,7 +137,7 @@ const FEATURE_ROWS: FeatureRow[] = [
   { Icon: RefreshCw, label: 'Обновление каждые 2 мин', values: [true, true, true] },
   { Icon: Satellite, label: 'GPS-навигация машин', values: [true, true, true] },
   { Icon: Lock, label: 'Доступ по ролям', values: [false, true, true] },
-  { Icon: Bell, label: 'Push-уведомления', values: [false, true, true] },
+  { Icon: Bell, label: 'Push-уведомления', values: [false, false, true] },
   { Icon: FileSpreadsheet, label: 'Excel отчеты', values: [false, false, true] },
   { Icon: Headphones, label: 'Приоритетная поддержка 24/7', values: [false, false, true] },
 ];
@@ -168,19 +171,28 @@ export default function PricingSection() {
         </p>
       </div>
 
-      {/* Карточки тарифов */}
+      {/* Карточки тарифов.
+          Раньше тут стояло repeat(auto-fit, minmax(140px, 1fr)) — на узких
+          экранах карточки "вылезали" друг на друга, потому что у grid-items
+          по умолчанию min-width:auto (по содержимому), и нередоносимый
+          текст цены/бейджа "ПОПУЛЯРНЫЙ" не давал колонке сжаться до
+          честной 1/3 ширины, из-за чего соседние карточки перекрывались.
+          Фикс: всегда ровно 3 колонки (тарифов и не бывает больше/меньше)
+          + minWidth:0 на самих карточках, чтобы контент внутри переносился
+          по словам, а не раздвигал сетку. */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-        gap: 10,
+        gridTemplateColumns: 'repeat(3, 1fr)',
+        gap: 8,
         marginBottom: 18,
       }}>
         {TARIFFS.map((t) => (
           <div
             key={t.name}
             style={{
+              minWidth: 0,
               borderRadius: 14,
-              padding: '16px 12px',
+              padding: '16px 8px',
               textAlign: 'center',
               background: t.highlight
                 ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
@@ -251,7 +263,7 @@ export default function PricingSection() {
           <span>Возможность</span>
           <span style={{ textAlign: 'center' }}>Баз.</span>
           <span style={{ textAlign: 'center' }}>Станд.</span>
-          <span style={{ textAlign: 'center' }}>Прем.</span>
+          <span style={{ textAlign: 'center' }}>PRO</span>
         </div>
 
         {FEATURE_ROWS.map((row, i) => (
@@ -351,9 +363,7 @@ export default function PricingSection() {
         justifyContent: 'center',
         gap: 4,
       }}>
-        Push-уведомления и Excel-отчёты входят в тарифы «Стандарт»
-        <Crown size={10} strokeWidth={2.6} color="#f6b93b" />
-        и «Премиум»
+        Push-уведомления и Excel-отчёты входят в тариф «PRO»
         <Crown size={10} strokeWidth={2.6} color="#f6b93b" />
       </p>
     </div>

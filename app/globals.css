@@ -6270,6 +6270,45 @@ body.iceberg-mode .compact-row.completed-row:hover {
   }
 }
 
+/* Верхняя строка Header (логотип+пользователь слева, кнопки справа).
+   Раньше на узких экранах суммарная ширина всех элементов превышала
+   ширину экрана, и кнопка "Обновить" уезжала за правый край — ни одна
+   из групп не могла сжаться (flexShrink:0 везде). overflow-x — safety
+   net на случай, если и после ужатия что-то не влезет; сами по себе
+   .app-header-brand-pill/.app-header-user-pill ужимаются через
+   media-запрос ниже. */
+.app-header-row {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+}
+.app-header-row::-webkit-scrollbar {
+  display: none;
+}
+
+.app-header-buttons-group {
+  gap: 4px;
+}
+
+@media (max-width: 420px) {
+  .app-header-brand-pill {
+    padding: 4px 8px 4px 6px;
+  }
+  .app-header-brand-divider,
+  .app-header-brand-name {
+    display: none;
+  }
+  .app-header-user-pill-text {
+    display: none;
+  }
+  .app-header-user-pill {
+    padding: 2px 6px !important;
+  }
+  .app-header-buttons-group {
+    gap: 2px;
+  }
+}
+
 /* Подсказка "нажми на заявку" — только в демо, чтобы посетитель понял,
    что строка кликабельна и раскрывается */
 .tap-hint {

@@ -39,6 +39,14 @@ const config: CapacitorConfig = {
       splashFullScreen: true,
       splashImmersive: true,
     },
+    // Без этого push-уведомление, пришедшее пока приложение открыто
+    // на переднем плане, никак не показывалось бы пользователю — просто
+    // тихо долетало бы до JS-слушателя. С presentationOptions iOS покажет
+    // системный баннер/значок/звук так же, как если бы приложение было
+    // свёрнуто.
+    PushNotifications: {
+      presentationOptions: ['badge', 'sound', 'alert'],
+    },
   },
 };
 
