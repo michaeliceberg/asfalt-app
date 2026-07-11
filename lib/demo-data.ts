@@ -162,11 +162,15 @@ interface TopDateRequestPlan {
   startHour: number;
 }
 
+// Номенклатура и грузополучатели ниже — полностью вымышленные, без привязки
+// к реальным дорожным службам/районам (по просьбе тестировщика демо:
+// не хотим, чтобы кто-то узнавал реальную организацию в названии материала
+// или райцентр в названии контрагента).
 const TOP_DATE_PLAN: TopDateRequestPlan[] = [
   {
     division: 'ДЕМО-СЕВ',
-    consignee: 'ДСУ-2 Зарайский',
-    material: 'А-16 Вн МОСАВТОДОР',
+    consignee: 'ДСУ-2 Ольховский',
+    material: 'А-16 Вн',
     planQuantity: 725,
     truckLoads: [38.99, 35.31, 36.81, 36.5, 39.58, 39.22, 40.51, 35.68, 37.69, 35.34, 36.47, 38.19, 35.32, 36.35, 39.06, 38.43, 36.48, 38.69, 50.38],
     closed: true,
@@ -174,7 +178,7 @@ const TOP_DATE_PLAN: TopDateRequestPlan[] = [
   },
   {
     division: 'ДЕМО-СЕВ',
-    consignee: 'ДСУ-5 Луховицкий',
+    consignee: 'ДСУ-5 Сосновский',
     material: 'ЩМА-20',
     planQuantity: 815,
     truckLoads: [39.26, 34.44, 39.23, 38.59, 36.44, 35.33, 40.14, 36.42, 34.96, 39.19],
@@ -183,7 +187,7 @@ const TOP_DATE_PLAN: TopDateRequestPlan[] = [
   },
   {
     division: 'ДЕМО-ЮГ',
-    consignee: 'ГУП "МосДор"',
+    consignee: 'ГУП «РегионДорСлужба»',
     material: 'Асфальт МЗ тип Б м I',
     planQuantity: 540,
     truckLoads: [36.15, 40.66, 39.19, 40.41, 39.95, 38.79, 41.41, 37.84, 38.88, 40.55, 39.28, 40.74, 39.04, 27.11],
@@ -192,8 +196,8 @@ const TOP_DATE_PLAN: TopDateRequestPlan[] = [
   },
   {
     division: 'ДЕМО-СЕВ',
-    consignee: 'ДСУ-1 Шатурский',
-    material: 'А-16 Вн МОСАВТОДОР',
+    consignee: 'ДСУ-1 Рябиновский',
+    material: 'А-16 Вн',
     planQuantity: 320,
     truckLoads: [41.23, 37.27, 38.37, 38.74, 37.48, 38.4, 37.61, 50.9],
     closed: true,
@@ -201,7 +205,7 @@ const TOP_DATE_PLAN: TopDateRequestPlan[] = [
   },
   {
     division: 'ДЕМО-ЮГ',
-    consignee: 'ДСУ-6 Коломенский',
+    consignee: 'ДСУ-6 Тополиный',
     material: 'ЩМА-15',
     planQuantity: 266,
     truckLoads: [36.67, 38.81, 37.19, 37.22, 36.26, 36.6, 43.25],
@@ -274,10 +278,10 @@ export const demoTopDateRequests: OutgoingRequest[] = TOP_DATE_PLAN.map((plan, r
 
 export const demoFutureRequests: OutgoingRequest[] = (() => {
   const plan: Array<{ division: string; consignee: string; material: string; quantity: number; dayOffset: number; hour: number; minute: number }> = [
-    { division: 'ДЕМО-СЕВ', consignee: 'ДСУ-2 Зарайский', material: 'Асфальтобетон А16 тип Б', quantity: 420, dayOffset: 1, hour: 8, minute: 0 },
-    { division: 'ДЕМО-СЕВ', consignee: 'ДСУ-5 Луховицкий', material: 'ЩМА-20', quantity: 380, dayOffset: 2, hour: 9, minute: 30 },
+    { division: 'ДЕМО-СЕВ', consignee: 'ДСУ-2 Ольховский', material: 'Асфальтобетон А16 тип Б', quantity: 420, dayOffset: 1, hour: 8, minute: 0 },
+    { division: 'ДЕМО-СЕВ', consignee: 'ДСУ-5 Сосновский', material: 'ЩМА-20', quantity: 380, dayOffset: 2, hour: 9, minute: 30 },
     { division: 'ДЕМО-СЕВ', consignee: 'Мостоотряд-14', material: 'БСТ В25 П3 F200 W6', quantity: 60, dayOffset: 3, hour: 10, minute: 0 },
-    { division: 'ДЕМО-ЮГ', consignee: 'ГУП «МосДор»', material: 'Асфальтобетон А16 тип А', quantity: 500, dayOffset: 1, hour: 7, minute: 45 },
+    { division: 'ДЕМО-ЮГ', consignee: 'ГУП «РегионДорСлужба»', material: 'Асфальтобетон А16 тип А', quantity: 500, dayOffset: 1, hour: 7, minute: 45 },
     { division: 'ДЕМО-ЮГ', consignee: 'СК «Фундамент»', material: 'Бетон В30 П4 F300 W8', quantity: 45, dayOffset: 4, hour: 11, minute: 15 },
   ];
 

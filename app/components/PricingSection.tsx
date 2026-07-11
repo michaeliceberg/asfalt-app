@@ -1,7 +1,7 @@
 // app/components/PricingSection.tsx
 'use client';
 
-import type { CSSProperties } from 'react';
+import { useState, type CSSProperties } from 'react';
 import {
   Send,
   Phone,
@@ -24,7 +24,7 @@ type Feature =
 const FEATURES: Feature[] = [
   { kind: 'icon', Icon: Smartphone, text: 'Ваша 1С в телефоне' },
   { kind: 'sync' },
-  { kind: 'icon', Icon: Satellite, text: 'GPS-навигация машин' },
+  { kind: 'icon', Icon: Satellite, text: 'GPS-навигация машин', premium: true },
   { kind: 'icon', Icon: Bell, text: 'Push-уведомления', premium: true },
   { kind: 'icon', Icon: Lock, text: 'Доступ по ролям' },
   { kind: 'icon', Icon: FileSpreadsheet, text: 'Excel отчеты', premium: true },
@@ -121,9 +121,9 @@ interface Tariff {
 // и в названии тарифа, и в таблице сравнения), чтобы не путать
 // "Премиум"/"PRO" как два разных слова для одного и того же.
 const TARIFFS: Tariff[] = [
-  { name: 'Базовый', price: 'от 15 000 ₽', period: '/мес', description: 'Контроль отгрузок в реальном времени' },
-  { name: 'Стандарт', price: 'от 25 000 ₽', period: '/мес', highlight: true, description: 'Всё для полноценной работы завода' },
-  { name: 'PRO', price: 'от 40 000 ₽', period: '/мес', description: 'Максимум возможностей и приоритетная поддержка' },
+  { name: 'Базовый', price: 'от 15 000 ₽', period: '/мес', description: 'Простой просмотр: сколько отгружено' },
+  { name: 'Стандарт', price: 'от 25 000 ₽', period: '/мес', highlight: true, description: 'Расширенный доступ к данным завода' },
+  { name: 'PRO', price: 'от 40 000 ₽', period: '/мес', description: 'Всё включено: GPS-навигация и приоритетная поддержка' },
 ];
 
 interface FeatureRow {
@@ -132,17 +132,27 @@ interface FeatureRow {
   values: [boolean, boolean, boolean];
 }
 
+// GPS-навигация — по просьбе директора-тестировщика демо: это сложная
+// в поддержке фича, поэтому она больше не входит в Базовый и Стандарт —
+// только в PRO. Базовый теперь только "просмотр и всё" (сколько отгружено),
+// без навигации.
 const FEATURE_ROWS: FeatureRow[] = [
   { Icon: Smartphone, label: '1С на телефоне', values: [true, true, true] },
   { Icon: RefreshCw, label: 'Обновление каждые 2 мин', values: [true, true, true] },
-  { Icon: Satellite, label: 'GPS-навигация машин', values: [true, true, true] },
   { Icon: Lock, label: 'Доступ по ролям', values: [false, true, true] },
+  { Icon: Satellite, label: 'GPS-навигация машин', values: [false, false, true] },
   { Icon: Bell, label: 'Push-уведомления', values: [false, false, true] },
   { Icon: FileSpreadsheet, label: 'Excel отчеты', values: [false, false, true] },
   { Icon: Headphones, label: 'Приоритетная поддержка 24/7', values: [false, false, true] },
 ];
 
 export default function PricingSection() {
+  // Карточки тарифов кликабельны — выбор подсвечивает соответствующий
+  // столбец в таблице сравнения ниже, чтобы было видно, что именно входит
+  // в выбранный тариф. По умолчанию выбран популярный (Стандарт).
+  const defaultIndex = TARIFFS.findIndex((t) => t.highlight);
+  const [selected, setSelected] = useState<number>(defaultIndex >= 0 ? defaultIndex : 0);
+
   return (
     <div
       id="pricing-section"
@@ -186,61 +196,84 @@ export default function PricingSection() {
         gap: 8,
         marginBottom: 18,
       }}>
-        {TARIFFS.map((t) => (
-          <div
-            key={t.name}
-            style={{
-              minWidth: 0,
-              borderRadius: 14,
-              padding: '16px 8px',
-              textAlign: 'center',
-              background: t.highlight
-                ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
-                : '#fff',
-              border: t.highlight ? '1px solid rgba(255,217,61,0.4)' : '1px solid #e9ecef',
-              boxShadow: t.highlight ? '0 8px 24px rgba(15,52,96,0.25)' : '0 1px 4px rgba(0,0,0,0.04)',
-              position: 'relative',
-            }}
-          >
-            {t.highlight && (
-              <span style={{
-                position: 'absolute',
-                top: -9,
-                left: '50%',
-                transform: 'translateX(-50%)',
-                background: 'linear-gradient(135deg, #ffd93d, #f6b93b)',
-                color: '#1a1a2e',
-                fontSize: 9.5,
-                fontWeight: 800,
-                padding: '2px 8px',
-                borderRadius: 6,
-                letterSpacing: '0.3px',
+        {TARIFFS.map((t, idx) => {
+          const isSelected = selected === idx;
+          return (
+            <div
+              key={t.name}
+              onClick={() => setSelected(idx)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') setSelected(idx);
+              }}
+              style={{
+                minWidth: 0,
+                borderRadius: 14,
+                padding: '16px 8px',
+                textAlign: 'center',
+                cursor: 'pointer',
+                background: t.highlight
+                  ? 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)'
+                  : '#fff',
+                border: isSelected
+                  ? '2px solid #ffd93d'
+                  : (t.highlight ? '1px solid rgba(255,217,61,0.4)' : '1px solid #e9ecef'),
+                boxShadow: isSelected
+                  ? '0 10px 28px rgba(246,185,59,0.35)'
+                  : (t.highlight ? '0 8px 24px rgba(15,52,96,0.25)' : '0 1px 4px rgba(0,0,0,0.04)'),
+                position: 'relative',
+                transform: isSelected ? 'translateY(-2px)' : 'none',
+                transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease',
+              }}
+            >
+              {t.highlight && (
+                <span style={{
+                  position: 'absolute',
+                  top: -9,
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  background: 'linear-gradient(135deg, #ffd93d, #f6b93b)',
+                  color: '#1a1a2e',
+                  fontSize: 9.5,
+                  fontWeight: 800,
+                  padding: '2px 8px',
+                  borderRadius: 6,
+                  letterSpacing: '0.3px',
+                  whiteSpace: 'nowrap',
+                }}>
+                  ПОПУЛЯРНЫЙ
+                </span>
+              )}
+              <div style={{
+                fontSize: 13.5,
+                fontWeight: 700,
+                color: t.highlight ? '#ffd93d' : '#1a1a2e',
+                marginBottom: 6,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
               }}>
-                ПОПУЛЯРНЫЙ
-              </span>
-            )}
-            <div style={{
-              fontSize: 13.5,
-              fontWeight: 700,
-              color: t.highlight ? '#ffd93d' : '#1a1a2e',
-              marginBottom: 6,
-            }}>
-              {t.name}
+                {t.name}
+                {isSelected && (
+                  <Check size={13} strokeWidth={3} color={t.highlight ? '#ffd93d' : '#28a745'} />
+                )}
+              </div>
+              <div style={{ color: t.highlight ? '#fff' : '#1a1a2e' }}>
+                <span style={{ fontSize: 16, fontWeight: 800 }}>{t.price}</span>
+                <span style={{ fontSize: 11, color: t.highlight ? '#9090b0' : '#888' }}>{t.period}</span>
+              </div>
+              <div style={{
+                fontSize: 10.5,
+                color: t.highlight ? '#9090b0' : '#888',
+                marginTop: 6,
+                lineHeight: 1.4,
+              }}>
+                {t.description}
+              </div>
             </div>
-            <div style={{ color: t.highlight ? '#fff' : '#1a1a2e' }}>
-              <span style={{ fontSize: 16, fontWeight: 800 }}>{t.price}</span>
-              <span style={{ fontSize: 11, color: t.highlight ? '#9090b0' : '#888' }}>{t.period}</span>
-            </div>
-            <div style={{
-              fontSize: 10.5,
-              color: t.highlight ? '#9090b0' : '#888',
-              marginTop: 6,
-              lineHeight: 1.4,
-            }}>
-              {t.description}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Сетка сравнения функций */}
@@ -261,9 +294,21 @@ export default function PricingSection() {
           color: '#666',
         }}>
           <span>Возможность</span>
-          <span style={{ textAlign: 'center' }}>Баз.</span>
-          <span style={{ textAlign: 'center' }}>Станд.</span>
-          <span style={{ textAlign: 'center' }}>PRO</span>
+          {['Баз.', 'Станд.', 'PRO'].map((label, idx) => (
+            <span
+              key={label}
+              style={{
+                textAlign: 'center',
+                color: selected === idx ? '#1a1a2e' : '#666',
+                background: selected === idx ? 'rgba(255,217,61,0.35)' : 'transparent',
+                borderRadius: 5,
+                padding: '2px 0',
+                transition: 'background 0.18s ease, color 0.18s ease',
+              }}
+            >
+              {label}
+            </span>
+          ))}
         </div>
 
         {FEATURE_ROWS.map((row, i) => (
@@ -284,7 +329,18 @@ export default function PricingSection() {
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{row.label}</span>
             </span>
             {row.values.map((included, idx) => (
-              <span key={idx} style={{ display: 'flex', justifyContent: 'center' }}>
+              <span
+                key={idx}
+                style={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  alignSelf: 'stretch',
+                  background: selected === idx ? 'rgba(255,217,61,0.14)' : 'transparent',
+                  borderRadius: 5,
+                  transition: 'background 0.18s ease',
+                }}
+              >
                 {included ? (
                   <Check size={15} strokeWidth={2.6} color="#28a745" />
                 ) : (
@@ -363,7 +419,7 @@ export default function PricingSection() {
         justifyContent: 'center',
         gap: 4,
       }}>
-        Push-уведомления и Excel-отчёты входят в тариф «PRO»
+        GPS-навигация, push-уведомления и Excel-отчёты входят в тариф «PRO»
         <Crown size={10} strokeWidth={2.6} color="#f6b93b" />
       </p>
     </div>

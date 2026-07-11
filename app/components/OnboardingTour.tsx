@@ -1,9 +1,10 @@
 // app/components/OnboardingTour.tsx
 //
-// Короткая "экскурсия" для тех, кто впервые открыл /demo: 3 шага,
-// затемняем всё кроме нужного элемента (spotlight через огромный
-// box-shadow — без SVG-масок, надёжно работает везде) и показываем
-// подсказку рядом. Показывается один раз — состояние в localStorage.
+// Короткая "экскурсия" по /demo: 3 шага, затемняем всё кроме нужного
+// элемента (spotlight через огромный box-shadow — без SVG-масок,
+// надёжно работает везде) и показываем подсказку рядом. Показывается
+// при КАЖДОМ заходе на /demo (не запоминаем "уже видел" в localStorage) —
+// так и задумано: это витрина для тех, кому просто пересылают ссылку.
 //
 // Прожектор и подсказка — это ОДИН persistent motion.div на весь тур
 // (без key={stepIndex}), у которого просто меняется animate-цель
@@ -40,7 +41,6 @@ const STEPS: TourStep[] = [
   },
 ];
 
-const STORAGE_KEY = 'abz_demo_tour_seen_v2';
 const SPOTLIGHT_PADDING = 8;
 const TOOLTIP_WIDTH = 280;
 const TOOLTIP_HEIGHT_ESTIMATE = 150;
@@ -54,7 +54,6 @@ export default function OnboardingTour() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     setViewport({ w: window.innerWidth, h: window.innerHeight });
-    if (localStorage.getItem(STORAGE_KEY)) return;
     const timer = setTimeout(() => setStepIndex(0), 700);
     return () => clearTimeout(timer);
   }, []);
@@ -84,7 +83,6 @@ export default function OnboardingTour() {
   }, [measure]);
 
   const finish = () => {
-    localStorage.setItem(STORAGE_KEY, '1');
     setStepIndex(-1);
     setRect(null);
   };
