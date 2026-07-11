@@ -6320,12 +6320,12 @@ body.iceberg-mode .compact-row.completed-row:hover {
   transform: translateY(-50%);
   font-size: 15px;
   line-height: 1;
-  color: #f6b93b;
+  color: #1a1a2e;
   pointer-events: none;
-  animation: tap-hint-pulse 1.4s ease-in-out infinite;
+  animation: tap-hint-pulse 1.2s ease-in-out infinite;
 }
 
 @keyframes tap-hint-pulse {
-  0%, 100% { opacity: 0.35; transform: translateY(-50%) scale(1); }
-  50% { opacity: 1; transform: translateY(-50%) scale(1.25); }
+  0%, 100% { opacity: 0.6; transform: translateY(-50%) scale(1); }
+  50% { opacity: 1; transform: translateY(-50%) scale(1.7); }
 }

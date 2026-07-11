@@ -228,6 +228,29 @@ export default function DemoPage() {
 
       {/* ← УБИРАЕМ нижний баннер, так как DemoLanding уже есть сверху */}
 
+      {/* Визуальная граница "данные закончились, дальше реклама" — без неё
+          таблица отгрузок и блок с тарифами/фичами внизу сливались в один
+          сплошной поток и не было понятно, где кончается демо-контент. */}
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 12,
+        margin: '32px 0 20px',
+      }}>
+        <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, #e0e0e8)' }} />
+        <span style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: '#aaa',
+          textTransform: 'uppercase',
+          letterSpacing: '0.6px',
+          whiteSpace: 'nowrap',
+        }}>
+          Демо-данные закончились
+        </span>
+        <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, #e0e0e8, transparent)' }} />
+      </div>
+
       <PricingSection />
     </div>
   );

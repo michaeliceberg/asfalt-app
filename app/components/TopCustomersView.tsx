@@ -27,13 +27,13 @@ export default function TopCustomersView({ data, mode = 'tas' }: TopCustomersVie
   const [selectedFactory, setSelectedFactory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'total' | 'count'>('total');
 
-  // Доступные заводы в зависимости от режима
+  // Раньше тут был захардкоженный список заводов по режиму — та же
+  // проблема, что чинили в ActivityChart/ChartsView/CompactView: демо-дивизии
+  // (ДЕМО-СЕВ/ДЕМО-ЮГ) никогда не попадали ни в 'tas', ни в 'iceberg' список
+  // и вкладка "Топ-10" в демо всегда была пустой. Берём заводы из реально
+  // переданных данных.
   const getAvailableFactories = () => {
-    if (mode === 'tas') {
-      return ['all', 'ЛХ', 'ЛЮ'];
-    } else {
-      return ['all', 'СП', 'Щ'];
-    }
+    return ['all', ...Array.from(new Set(data.map(item => item.division).filter(Boolean)))];
   };
 
   // Названия заводов для отображения
@@ -43,16 +43,19 @@ export default function TopCustomersView({ data, mode = 'tas' }: TopCustomersVie
       case 'ЛЮ': return 'Люберцы';
       case 'СП': return 'Сергиев Посад';
       case 'Щ': return 'Щёлково';
+      case 'ДЕМО-СЕВ': return 'Северный';
+      case 'ДЕМО-ЮГ': return 'Южный';
       default: return 'Все заводы';
     }
   };
 
   const processData = useCallback(() => {
     setLoading(true);
-    
-    // Определяем допустимые заводы для текущего режима
-    const validFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
-    
+
+    // См. комментарий у getAvailableFactories выше — раньше тут отсеивались
+    // все заводы, кроме ЛХ/ЛЮ/СП/Щ.
+    const validFactories = Array.from(new Set(data.map(item => item.division).filter(Boolean)));
+
     // Фильтруем по заводам текущего режима
     let filteredData = data.filter(item => validFactories.includes(item.division));
     
