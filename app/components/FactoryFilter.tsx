@@ -25,7 +25,7 @@ function getShortFactoryLabel(factory: string): string {
 
 export default function FactoryFilter({ factories, activeFactory, onFactoryChange }: FactoryFilterProps) {
   return (
-    <div className="factory-switch">
+    <div id="onboarding-factory-filter" className="factory-switch">
       <button
         className={`factory-btn ${activeFactory === 'all' ? 'active' : ''}`}
         onClick={() => { tapHaptic(); onFactoryChange('all'); }}

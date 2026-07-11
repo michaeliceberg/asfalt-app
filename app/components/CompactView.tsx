@@ -21,7 +21,7 @@ import {
   isIncomingDateToday
 } from '@/lib/utils';
 import TruckProgressBar from './TruckProgressBar';
-import { Factory, Truck, Package, User, Lock, MousePointerClick } from 'lucide-react';
+import { Factory, Truck, Package, User, Lock, Pointer } from 'lucide-react';
 import { tapHaptic } from '@/lib/haptics';
 
 type UnifiedDataItem = IncomingItem | ShipmentItem;
@@ -162,7 +162,12 @@ const detectFactory = (item: IncomingItem | ShipmentItem, type: 'incoming' | 'sh
     if (shipment.division === 'СП') return 'СП';
     if (shipment.division === 'Щ') return 'Щ';
   }
-  return 'Другой';
+  // Раньше тут был просто return 'Другой' — любой незнакомый код (в том
+  // числе демо-дивизии ДЕМО-СЕВ/ДЕМО-ЮГ) схлопывался в общий "Другой" и
+  // ниже отсеивался жёсткими проверками на 'СП'/'Щ'. Возвращаем реальный
+  // division, если он есть — тогда демо-данные (и любые будущие коды)
+  // проходят через ту же логику, что и настоящие заводы.
+  return item.division || 'Другой';
 };
 
 const hasTodayShipments = (shipments: ShipmentItem[], requestNumber: string): boolean => {
@@ -455,7 +460,7 @@ useEffect(() => {
       else if (incoming.division === 'Щ') factory = 'Щ';
       // Демо (и любые прочие незнакомые коды) — показываем короткой
       // меткой, вместо того чтобы схлопывать в "—".
-      else if (incoming.division === 'ДЕМО-СЕВ') factory = 'СЕВ';
+      else if (incoming.division === 'ДЕМО-СЕВ') factory = 'СЕ';
       else if (incoming.division === 'ДЕМО-ЮГ') factory = 'ЮГ';
       else if (incoming.division) factory = incoming.division;
       
@@ -533,7 +538,7 @@ useEffect(() => {
       else if (shipment.division === 'СП') factory = 'СП';
       else if (shipment.division === 'Щ') factory = 'Щ';
       // Демо (и любые прочие незнакомые коды) — показываем короткой меткой.
-      else if (shipment.division === 'ДЕМО-СЕВ') factory = 'СЕВ';
+      else if (shipment.division === 'ДЕМО-СЕВ') factory = 'СЕ';
       else if (shipment.division === 'ДЕМО-ЮГ') factory = 'ЮГ';
       else if (shipment.division) factory = shipment.division;
 
@@ -826,8 +831,11 @@ useEffect(() => {
       const incoming = item as IncomingItem;
       const dateKey = getIncomingDateKey(incoming.date);
       const factory = detectFactory(incoming, 'incoming');
-      
-      if (factory !== 'СП' && factory !== 'Щ') return acc;
+
+      // Раньше тут отсеивалось всё, кроме 'СП'/'Щ' — демо-дивизии
+      // (ДЕМО-СЕВ/ДЕМО-ЮГ) никогда сюда не проходили, и вкладка
+      // "Поступление" в демо всегда была пустой.
+      if (factory !== 'СП' && factory !== 'Щ' && factory !== 'ДЕМО-СЕВ' && factory !== 'ДЕМО-ЮГ') return acc;
       
       const orderNumber = incoming.clientRequestNumber || incoming.number || 'unknown';
       const groupKey = `${dateKey}_${orderNumber}`;
@@ -991,7 +999,7 @@ useEffect(() => {
                           </div>
                         </span>
                         <span className="col-trucks">{item.truckCount}</span>
-                        {demoMode && !isExpanded && <span className="tap-hint" aria-hidden="true"><MousePointerClick size={14} strokeWidth={2.4} /></span>}
+                        {demoMode && !isExpanded && <span className="tap-hint" aria-hidden="true"><Pointer size={14} strokeWidth={2.4} /></span>}
                       </div>
 
                       <AnimatePresence>
@@ -1156,7 +1164,7 @@ useEffect(() => {
                           </div>
                         </span>
                         <span className="col-trucks">{item.truckCount}</span>
-                        {demoMode && !isExpanded && <span className="tap-hint" aria-hidden="true"><MousePointerClick size={14} strokeWidth={2.4} /></span>}
+                        {demoMode && !isExpanded && <span className="tap-hint" aria-hidden="true"><Pointer size={14} strokeWidth={2.4} /></span>}
                       </div>
 
 

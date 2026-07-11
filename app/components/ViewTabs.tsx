@@ -18,7 +18,7 @@ export default function ViewTabs({ activeTab, onTabChange }: ViewTabsProps) {
   };
 
   return (
-    <div className="tabs">
+    <div id="onboarding-view-tabs" className="tabs">
       <button
         className={`tab ${activeTab === 'compact' ? 'active' : ''}`}
         onClick={() => handleChange('compact')}

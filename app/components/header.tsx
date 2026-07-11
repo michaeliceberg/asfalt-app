@@ -98,7 +98,7 @@ export default function Header({
         </div>
 
         {/* 👤 Пользователь */}
-        <div className="app-header-user-pill" style={{
+        <div id="onboarding-guest-badge" className="app-header-user-pill" style={{
           display: 'flex',
           alignItems: 'center',
           gap: '4px',

@@ -33,7 +33,7 @@ const getDivisionName = (division: string): string => {
     case 'ЛЮ': return 'ЛЮ';
     case 'СП': return 'СП';
     case 'Щ': return 'Щ';
-    case 'ДЕМО-СЕВ': return 'СЕВ';
+    case 'ДЕМО-СЕВ': return 'СЕ';
     case 'ДЕМО-ЮГ': return 'ЮГ';
     default: return '—';
   }

@@ -16,6 +16,7 @@ import FactoryFilter from '@/app/components/FactoryFilter';
 import DemoLanding from '@/app/components/DemoLanding'; // ← Новый компонент
 import PricingSection from '@/app/components/PricingSection';
 import SummaryView from '@/app/components/SummaryView';
+import OnboardingTour from '@/app/components/OnboardingTour';
 import { IncomingItem, ShipmentItem } from '@/app/page';
 import { getFactoryName, isConcreteMaterial, isSpecialMaterial } from '@/lib/utils';
 import { getDemoData, demoRequests, demoFutureRequests } from '@/lib/demo-data';
@@ -93,6 +94,8 @@ export default function DemoPage() {
 
   return (
     <div className="container" style={{ paddingTop: 16, paddingBottom: 40 }}>
+      <OnboardingTour />
+
       {/* ← УБИРАЕМ DemoBanner, СТАВИМ DemoLanding */}
       <DemoLanding />
 

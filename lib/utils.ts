@@ -186,7 +186,7 @@ export const getFactoryBadgeClass = (factory: string): string => {
     case 'ЛЮ': return 'factory-badge-small ЛЮ';
     case 'СП': return 'factory-badge-small СП';
     case 'Щ': return 'factory-badge-small Щ';
-    case 'СЕВ': return 'factory-badge-small СЕВ';
+    case 'СЕ': return 'factory-badge-small СЕ';
     case 'ЮГ': return 'factory-badge-small ЮГ';
     default: return 'factory-badge-small Другой';
   }
@@ -216,7 +216,7 @@ export const detectFactory = (
     if (item.division === 'ЛЮ') return 'ЛЮ';
     if (item.division === 'СП') return 'СП';
     if (item.division === 'Щ') return 'Щ';
-    if (item.division === 'ДЕМО-СЕВ') return 'СЕВ';
+    if (item.division === 'ДЕМО-СЕВ') return 'СЕ';
     if (item.division === 'ДЕМО-ЮГ') return 'ЮГ';
     if (item.number?.startsWith('ЛХ')) return 'ЛХ';
     if (item.number?.startsWith('ЛЮ')) return 'ЛЮ';
@@ -227,7 +227,7 @@ export const detectFactory = (
     if (item.division === 'ЛЮ') return 'ЛЮ';
     if (item.division === 'СП') return 'СП';
     if (item.division === 'Щ') return 'Щ';
-    if (item.division === 'ДЕМО-СЕВ') return 'СЕВ';
+    if (item.division === 'ДЕМО-СЕВ') return 'СЕ';
     if (item.division === 'ДЕМО-ЮГ') return 'ЮГ';
   }
   return 'Другой';

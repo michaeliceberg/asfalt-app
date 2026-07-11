@@ -664,15 +664,17 @@ body {
   color: white;
 }
 
-/* Демо-заводы: Северный (холодный синий) / Южный (тёплый оранжевый) —
-   намеренно разные цвета, чтобы бейджи различались в таблице. */
-.factory-badge-small.СЕВ {
-  background: #4361ee;
+/* Демо-заводы: Северный (глубокий индиго) / Южный (изумрудный) —
+   намеренно разные цвета, чтобы бейджи различались в таблице. Раньше у
+   Южного был ярко-оранжевый (#f77f00) — смотрелся слишком "кричаще" для
+   премиального приложения, заменили на более благородный изумрудный. */
+.factory-badge-small.СЕ {
+  background: #3a56d4;
   color: white;
 }
 
 .factory-badge-small.ЮГ {
-  background: #f77f00;
+  background: #0d9488;
   color: white;
 }
 
@@ -6318,6 +6320,7 @@ body.iceberg-mode .compact-row.completed-row:hover {
   transform: translateY(-50%);
   font-size: 15px;
   line-height: 1;
+  color: #f6b93b;
   pointer-events: none;
   animation: tap-hint-pulse 1.4s ease-in-out infinite;
 }
