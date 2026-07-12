@@ -167,22 +167,11 @@ export default function Header({
           demoEnabled={demoPushEnabled}
           onToggleDemo={onToggleDemoPush}
         />
-        {onGpsClick ? (
-          <button
-            className="header-btn"
-            title="GPS-мониторинг"
-            onClick={onGpsClick}
-            style={{
-              borderRadius: 6,
-              border: 'none',
-              background: 'transparent',
-              color: '#fff',
-              cursor: 'pointer',
-            }}
-          >
-            <Satellite size={18} strokeWidth={2} />
-          </button>
-        ) : (
+        {/* В демо кнопка-спутник дублировала вкладку GPS в ViewTabs —
+            убрали её здесь, GPS открывается только через вкладку.
+            В боевом приложении это по-прежнему единственный путь
+            на отдельную страницу /trucks — оставляем. */}
+        {!onGpsClick && (
           <Link href="/trucks">
             <button
               className={`header-btn ${isTrucksPage ? 'active' : ''}`}

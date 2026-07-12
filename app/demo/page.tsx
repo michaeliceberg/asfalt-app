@@ -130,7 +130,16 @@ export default function DemoPage() {
 
         <MainTabs
           activeTab={activeMainTab}
-          onTabChange={(tab) => setActiveMainTab(tab as MainTab)}
+          onTabChange={(tab) => {
+            const nextTab = tab as MainTab;
+            setActiveMainTab(nextTab);
+            // "Графики"/"Топ-10"/"GPS" скрыты для "Поступления" — если
+            // была активна одна из них, возвращаемся на "Компактно",
+            // иначе останется выбрана вкладка, которой не видно кнопки.
+            if (nextTab === 'incoming' && (activeViewTab === 'charts' || activeViewTab === 'topCustomers' || activeViewTab === 'gps')) {
+              setActiveViewTab('compact');
+            }
+          }}
           futureRequestsCount={futureRequestsCount}
           newShipmentsCount={0}
           newConcreteCount={0}
@@ -149,6 +158,7 @@ export default function DemoPage() {
               activeTab={activeViewTab}
               onTabChange={(tab) => setActiveViewTab(tab as ViewTab)}
               showGps
+              hideAnalytics={activeMainTab === 'incoming'}
             />
 
             <div className="stats">

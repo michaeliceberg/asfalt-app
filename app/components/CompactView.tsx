@@ -21,7 +21,7 @@ import {
   isIncomingDateToday
 } from '@/lib/utils';
 import TruckProgressBar from './TruckProgressBar';
-import { Factory, Truck, Package, User, Lock, Pointer, Building2 } from 'lucide-react';
+import { Factory, Truck, Package, User, Lock, Pointer, Building2, ChevronDown, ChevronRight } from 'lucide-react';
 import { tapHaptic } from '@/lib/haptics';
 import { DEMO_DRIVER_PHONES } from '@/lib/demo-data';
 
@@ -207,6 +207,22 @@ export default function CompactView({
   const [combinedData, setCombinedData] = useState<CombinedRequest[]>([]);
   const [combinedLoading, setCombinedLoading] = useState(false);
   const isMountedRef = useRef(true);
+
+  // Сворачивание по дням: верхние 2 дня развёрнуты по умолчанию, остальные
+  // свёрнуты — иначе список на длинном периоде становится очень длинным.
+  // toggledDates хранит только ОТКЛОНЕНИЯ от дефолта (XOR-логика в
+  // isDayExpanded ниже), поэтому и верхние дни можно свернуть кликом,
+  // и нижние — развернуть кнопкой "Развернуть".
+  const [toggledDates, setToggledDates] = useState<Set<string>>(new Set());
+  const toggleDate = (date: string) => {
+    setToggledDates(prev => {
+      const next = new Set(prev);
+      if (next.has(date)) next.delete(date);
+      else next.add(date);
+      return next;
+    });
+  };
+  const isDayExpanded = (dateIdx: number, date: string) => (dateIdx < 2) !== toggledDates.has(date);
   
 
 
@@ -675,7 +691,7 @@ useEffect(() => {
           />
         )}
         
-        {combinedSortedDates.map(date => {
+        {combinedSortedDates.map((date, dateIdx) => {
           const items = groupedByDate[date];
           const sortedItems = [...items].sort((a, b) => {
             const timeA = a.lastShipmentTime || '00:00';
@@ -688,24 +704,40 @@ useEffect(() => {
             };
             return getMinutes(timeB) - getMinutes(timeA);
           });
-          
+
           const dayTotal = sortedItems.reduce((sum, item) => sum + item.factQuantity, 0);
           const dayLabel = formatDateLabel(date);
           const isToday = isDateToday(date);
-          
+          const isExpandedDay = isDayExpanded(dateIdx, date);
+
           const firstItem = sortedItems[0];
           const unitLabel = firstItem?.unit === 'м³' ? '(м³)' : '(т)';
-          
+
           return (
             <div key={date} className="compact-date-group">
               <div className="compact-date-header">
-                <div className="date-wrapper">
+                <div
+                  className="date-wrapper"
+                  onClick={() => toggleDate(date)}
+                  style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+                >
+                  {isExpandedDay ? <ChevronDown size={14} strokeWidth={2.4} /> : <ChevronRight size={14} strokeWidth={2.4} />}
                   <span className="date-text" style={{ fontWeight: 'bold' }}>{dayLabel}</span>
                   {isToday && <span className="today-badge">СЕГОДНЯ</span>}
                 </div>
-                <span className="date-total" style={{ fontWeight: 'bold' }}>{dayTotal.toFixed(0)} т</span>
+                {isExpandedDay ? (
+                  <span className="date-total" style={{ fontWeight: 'bold' }}>{dayTotal.toFixed(0)} т</span>
+                ) : (
+                  <button
+                    onClick={() => toggleDate(date)}
+                    style={{ background: 'transparent', border: 'none', color: '#3a56d4', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: '2px 6px' }}
+                  >
+                    Развернуть ({sortedItems.length})
+                  </button>
+                )}
               </div>
-              
+
+              {isExpandedDay && (
               <div className="compact-table">
                 <div className="compact-header" style={{ fontWeight: 'bold' }}>
                   <span className="col-time">Время</span>
@@ -824,27 +856,30 @@ useEffect(() => {
                   );
                 })}
               </div>
+              )}
             </div>
           );
         })}
       </div>
     );
   }
-  
+
   // ============================================
   // РЕНДЕР ДЛЯ АЙСБЕРГ (СП, Щ) - ПОСТУПЛЕНИЯ
   // ============================================
-  
+
   if (mode === 'iceberg' && mainTab === 'incoming') {
     const groupedIncoming = data.reduce((acc, item) => {
       const incoming = item as IncomingItem;
       const dateKey = getIncomingDateKey(incoming.date);
       const factory = detectFactory(incoming, 'incoming');
 
-      // Раньше тут отсеивалось всё, кроме 'СП'/'Щ' — демо-дивизии
-      // (ДЕМО-СЕВ/ДЕМО-ЮГ) никогда сюда не проходили, и вкладка
-      // "Поступление" в демо всегда была пустой.
-      if (factory !== 'СП' && factory !== 'Щ' && factory !== 'ДЕМО-СЕВ' && factory !== 'ДЕМО-ЮГ') return acc;
+      // detectFactory() возвращает КОРОТКИЙ код (СЕ/ЮГ для демо-дивизий,
+      // а не сырой division 'ДЕМО-СЕВ'/'ДЕМО-ЮГ') — раньше тут сверяли
+      // с сырыми строками, которые из detectFactory никогда не приходят,
+      // поэтому ВСЕ демо-поступления отсеивались и "Поступление" →
+      // "Компактно" в демо была пустой.
+      if (factory !== 'СП' && factory !== 'Щ' && factory !== 'СЕ' && factory !== 'ЮГ') return acc;
       
       const orderNumber = incoming.clientRequestNumber || incoming.number || 'unknown';
       const groupKey = `${dateKey}_${orderNumber}`;
@@ -942,7 +977,7 @@ useEffect(() => {
     
     return (
       <div className="compact-view">
-        {incomingSortedDates.map(dateKey => {
+        {incomingSortedDates.map((dateKey, dateIdx) => {
           const items = Array.from(groupedIncoming[dateKey].values());
           const sortedItems = [...items].sort((a, b) => {
             const dateTimeA = a.lastFullDateTime || (a.vehicles[0]?.fullDateTime) || a.time;
@@ -950,16 +985,31 @@ useEffect(() => {
             return dateTimeB.localeCompare(dateTimeA);
           });
           const isToday = isIncomingDateToday(dateKey);
-          
+          const isExpandedDay = isDayExpanded(dateIdx, dateKey);
+
           return (
             <div key={dateKey} className="compact-date-group">
               <div className="compact-date-header">
-                <div className="date-wrapper">
+                <div
+                  className="date-wrapper"
+                  onClick={() => toggleDate(dateKey)}
+                  style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+                >
+                  {isExpandedDay ? <ChevronDown size={14} strokeWidth={2.4} /> : <ChevronRight size={14} strokeWidth={2.4} />}
                   <span className="date-text" style={{ fontWeight: 'bold' }}>{formatIncomingDateLabel(dateKey)}</span>
                   {isToday && <span className="today-badge">СЕГОДНЯ</span>}
                 </div>
+                {!isExpandedDay && (
+                  <button
+                    onClick={() => toggleDate(dateKey)}
+                    style={{ background: 'transparent', border: 'none', color: '#3a56d4', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: '2px 6px' }}
+                  >
+                    Развернуть ({sortedItems.length})
+                  </button>
+                )}
               </div>
-              
+
+              {isExpandedDay && (
               <div className="compact-table">
                 <div className="compact-header" style={{ fontWeight: 'bold' }}>
                   <span className="col-time">Время</span>
@@ -1054,13 +1104,14 @@ useEffect(() => {
                   );
                 })}
               </div>
+              )}
             </div>
           );
         })}
       </div>
     );
   }
-  
+
   // ============================================
   // РЕНДЕР ДЛЯ ТАС (ЛХ, ЛЮ) - ПОСТУПЛЕНИЯ И ОТГРУЗКИ
   // ============================================
@@ -1076,21 +1127,37 @@ useEffect(() => {
         />
       )}
       
-      {sortedDates.map(date => {
+      {sortedDates.map((date, dateIdx) => {
         const items = Array.from(groupedByDateAndRequest[date].values());
         const dayTotal = items.reduce((sum, item) => sum + item.factQuantity, 0);
         const isToday = isDateToday(date);
-        
+        const isExpandedDay = isDayExpanded(dateIdx, date);
+
         return (
           <div key={date} className="compact-date-group">
             <div className="compact-date-header">
-              <div className="date-wrapper">
+              <div
+                className="date-wrapper"
+                onClick={() => toggleDate(date)}
+                style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+              >
+                {isExpandedDay ? <ChevronDown size={14} strokeWidth={2.4} /> : <ChevronRight size={14} strokeWidth={2.4} />}
                 <span className="date-text" style={{ fontWeight: 'bold' }}>{formatDateLabel(date)}</span>
                 {isToday && <span className="today-badge">СЕГОДНЯ</span>}
               </div>
-              {isShipment && <span className="date-total" style={{ fontWeight: 'bold' }}>{Math.round(dayTotal)} т</span>}
+              {isExpandedDay ? (
+                isShipment && <span className="date-total" style={{ fontWeight: 'bold' }}>{Math.round(dayTotal)} т</span>
+              ) : (
+                <button
+                  onClick={() => toggleDate(date)}
+                  style={{ background: 'transparent', border: 'none', color: '#3a56d4', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: '2px 6px' }}
+                >
+                  Развернуть ({items.length})
+                </button>
+              )}
             </div>
-            
+
+            {isExpandedDay && (
             <div className="compact-table">
               {isShipment && (
                 <div className="compact-header" style={{ fontWeight: 'bold' }}>
@@ -1413,6 +1480,7 @@ useEffect(() => {
                 );
               })}
             </div>
+            )}
           </div>
         );
       })}

@@ -143,6 +143,18 @@ export default function TopCustomersView({ data, mode = 'tas' }: TopCustomersVie
 
   const availableFactories = getAvailableFactories();
 
+  // Заголовок раньше был захардкожен по mode ('ЛХ/ЛЮ' для tas, 'СП/Щ' для
+  // iceberg) — в демо (division='ДЕМО-СЕВ'/'ДЕМО-ЮГ') это всегда давало
+  // неверную подпись "СП/Щ". Строим подпись из реальных дивизионов данных.
+  const divisionShortCode = (division: string) => {
+    if (division === 'ДЕМО-СЕВ') return 'СЕ';
+    if (division === 'ДЕМО-ЮГ') return 'ЮГ';
+    return division;
+  };
+  const factoriesLabel = Array.from(
+    new Set(data.map(item => item.division).filter(Boolean).map(divisionShortCode))
+  ).sort().join('/');
+
   if (loading && customers.length === 0) {
     return <LoadingSpinner message="Загрузка рейтинга..." size="medium" />;
   }
@@ -160,8 +172,7 @@ export default function TopCustomersView({ data, mode = 'tas' }: TopCustomersVie
       <div className="top-customers-header">
         <div className="top-customers-title" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Trophy size={16} strokeWidth={2.2} />
-          Топ-10 грузополучателей (а
-          {mode === 'tas' ? 'сфальт, ЛХ/ЛЮ' : 'сфальт, СП/Щ'}
+          Топ-10 грузополучателей (асфальт{factoriesLabel ? `, ${factoriesLabel}` : ''})
         </div>
         <div className="top-customers-controls">
           <div className="factory-filter">

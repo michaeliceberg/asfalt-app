@@ -25,6 +25,11 @@ interface Truck {
   lastUpdate: string | null;
   destination?: string | null;
   factory?: string;
+  // Водитель/тоннаж/телефон — сейчас заполняются только в демо
+  // (см. DemoTruckColonna.tsx), в боевом GPS-фиде таких полей нет.
+  driver?: string;
+  driverPhone?: string;
+  quantity?: number;
 }
 
 interface Route {
@@ -613,6 +618,13 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
         </div>
       ` : '';
 
+      const driverInfo = truck.driver ? `
+        <div style="font-size: 12px; color: #888; border-top: 1px solid #eee; padding-top: 4px; margin-top: 4px;">
+          👤 ${truck.driver}${truck.quantity ? ` · ${truck.quantity} т` : ''}
+        </div>
+        ${truck.driverPhone ? `<div style="font-size: 12px; color: #3b82f6;">📞 <a href="tel:${truck.driverPhone.replace(/[^\d+]/g, '')}" style="color:#3b82f6;text-decoration:none;">${truck.driverPhone}</a></div>` : ''}
+      ` : '';
+
       const placemark = new ymaps.Placemark(
         [truck.position.lat, truck.position.lng],
         {
@@ -630,6 +642,7 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
                   🏷️ ${getTruckTypeLabel(truckType)}
                 </div>
                 ${destinationInfo}
+                ${driverInfo}
               </div>
             </div>
           `,
@@ -833,6 +846,21 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
             <div style={{ fontSize: 14, color: '#ffd93d', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
               <Target size={13} strokeWidth={2.2} />{selectedTruck.destination}
             </div>
+          )}
+          {(selectedTruck.driver || selectedTruck.quantity) && (
+            <div style={{ fontSize: 13, color: '#e5e7eb', marginTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
+              {selectedTruck.driver && <span>{selectedTruck.driver}</span>}
+              {selectedTruck.quantity ? <span>· {selectedTruck.quantity} т</span> : null}
+            </div>
+          )}
+          {selectedTruck.driverPhone && (
+            <a
+              href={`tel:${selectedTruck.driverPhone.replace(/[^\d+]/g, '')}`}
+              onClick={(e) => e.stopPropagation()}
+              style={{ fontSize: 13, color: '#4ade80', marginTop: 4, display: 'inline-block', textDecoration: 'none' }}
+            >
+              {selectedTruck.driverPhone}
+            </a>
           )}
           <div style={{ fontSize: 12, color: '#888', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
             <MapPin size={11} strokeWidth={2.2} />{selectedTruck.position.lat.toFixed(6)}, {selectedTruck.position.lng.toFixed(6)}

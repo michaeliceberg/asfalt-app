@@ -14,9 +14,13 @@ interface ViewTabsProps {
   // приложении GPS живёт на отдельной странице /trucks, вкладку сюда
   // не добавляем, чтобы не менять привычный UI без явного запроса.
   showGps?: boolean;
+  // "Графики"/"Топ-10"/"GPS" не имеют смысла для вкладки "Поступление" —
+  // это аналитика по отгрузкам грузополучателям, к приходу сырья от
+  // поставщиков отношения не имеет.
+  hideAnalytics?: boolean;
 }
 
-export default function ViewTabs({ activeTab, onTabChange, showGps = false }: ViewTabsProps) {
+export default function ViewTabs({ activeTab, onTabChange, showGps = false, hideAnalytics = false }: ViewTabsProps) {
   const handleChange = (tab: ViewTab) => {
     tapHaptic();
     onTabChange(tab);
@@ -38,21 +42,25 @@ export default function ViewTabs({ activeTab, onTabChange, showGps = false }: Vi
         <List size={15} strokeWidth={2.2} /> Список
       </button>
 
-      <button
-        className={`tab ${activeTab === 'charts' ? 'active' : ''}`}
-        onClick={() => handleChange('charts')}
-      >
-        <BarChart2 size={15} strokeWidth={2.2} /> Графики
-      </button>
+      {!hideAnalytics && (
+        <button
+          className={`tab ${activeTab === 'charts' ? 'active' : ''}`}
+          onClick={() => handleChange('charts')}
+        >
+          <BarChart2 size={15} strokeWidth={2.2} /> Графики
+        </button>
+      )}
 
-      <button
-        className={`tab ${activeTab === 'topCustomers' ? 'active' : ''}`}
-        onClick={() => handleChange('topCustomers')}
-      >
-        <Trophy size={15} strokeWidth={2.2} /> Топ-10
-      </button>
+      {!hideAnalytics && (
+        <button
+          className={`tab ${activeTab === 'topCustomers' ? 'active' : ''}`}
+          onClick={() => handleChange('topCustomers')}
+        >
+          <Trophy size={15} strokeWidth={2.2} /> Топ-10
+        </button>
+      )}
 
-      {showGps && (
+      {showGps && !hideAnalytics && (
         <button
           className={`tab ${activeTab === 'gps' ? 'active' : ''}`}
           onClick={() => handleChange('gps')}

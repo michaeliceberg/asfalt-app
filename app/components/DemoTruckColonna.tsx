@@ -12,6 +12,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import TruckMap from '@/app/components/TruckMap';
 import { Satellite, Truck as TruckIcon } from 'lucide-react';
+import { DEMO_DRIVERS, DEMO_DRIVER_PHONES } from '@/lib/demo-data';
 
 // Те же завод/заявка, что фигурируют в демо push-уведомлении "Новая заявка"
 // (ДЕМО-СЕВ · ДСУ-5 Сосновский · ЩМА-20 · 380 т) — единая история в демо.
@@ -71,9 +72,11 @@ export default function DemoTruckColonna() {
   const trucks = useMemo(() => {
     const nowIso = new Date().toISOString();
     const nowSec = Math.floor(Date.now() / 1000);
+    const perTruckQty = Math.round(TOTAL_QTY / PLATES.length);
     return truckStates.map((ts, i) => {
       const pos = getPathPoint(ts.t);
       const arrived = ts.t > 0.94;
+      const driver = DEMO_DRIVERS[i % DEMO_DRIVERS.length];
       return {
         uid: `demo-colonna-${i}`,
         name: ts.plate,
@@ -81,6 +84,9 @@ export default function DemoTruckColonna() {
         lastUpdate: nowIso,
         destination: DEST.name,
         factory: 'ДЕМО-СЕВ',
+        driver,
+        driverPhone: DEMO_DRIVER_PHONES[driver],
+        quantity: perTruckQty,
       };
     });
   }, [truckStates]);

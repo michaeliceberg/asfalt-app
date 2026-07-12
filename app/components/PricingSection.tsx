@@ -310,7 +310,9 @@ export default function PricingSection({ incoming = [], shipments = [] }: Pricin
                   ? '0 10px 28px rgba(246,185,59,0.35)'
                   : (t.highlight ? '0 8px 24px rgba(15,52,96,0.25)' : '0 1px 4px rgba(0,0,0,0.04)'),
                 position: 'relative',
-                transform: isSelected ? 'translateY(-2px)' : 'none',
+                zIndex: isSelected ? 2 : 1,
+                transformOrigin: 'center bottom',
+                transform: isSelected ? 'translateY(-4px) scale(1.07)' : 'none',
                 transition: 'transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease',
               }}
             >

@@ -3,6 +3,8 @@
 'use client';
 
 import { IncomingItem, ShipmentItem } from '@/app/page';
+import { useState } from 'react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { formatTime, getDateKey, getFactoryBadgeClass, isConcreteMaterial, isSpecialMaterial, parseRussianDate } from '@/lib/utils';
 
 type UnifiedDataItem = IncomingItem | ShipmentItem;
@@ -96,6 +98,20 @@ const getLicensePlate = (item: UnifiedDataItem): string => {
 export default function ListView({ data, mainTab }: ListViewProps) {
   const isShipment = mainTab === 'shipment' || mainTab === 'shipmentConcrete';
   const isConcreteOnly = mainTab === 'shipmentConcrete';
+
+  // Сворачивание по дням: верхние 2 дня развёрнуты по умолчанию, остальные
+  // свёрнуты — иначе на большом периоде список получается очень длинным.
+  // toggledDates хранит только ОТКЛОНЕНИЯ от дефолта (XOR-логика ниже),
+  // поэтому и верхние дни можно свернуть кликом, и нижние — развернуть.
+  const [toggledDates, setToggledDates] = useState<Set<string>>(new Set());
+  const toggleDate = (date: string) => {
+    setToggledDates(prev => {
+      const next = new Set(prev);
+      if (next.has(date)) next.delete(date);
+      else next.add(date);
+      return next;
+    });
+  };
   
   // Фильтруем данные по типу материала
   const filteredData = data.filter(item => {
@@ -131,10 +147,12 @@ export default function ListView({ data, mainTab }: ListViewProps) {
   
   return (
     <div className="compact-view">
-      {sortedDates.map(date => {
+      {sortedDates.map((date, dateIdx) => {
         const items = groupedByDate[date];
         const isDateToday = date === getDateKey(new Date().toISOString());
-        
+        const isDefaultExpanded = dateIdx < 2;
+        const isExpanded = isDefaultExpanded !== toggledDates.has(date);
+
         return (
           <div key={date} className="compact-date-group">
 
@@ -142,11 +160,33 @@ export default function ListView({ data, mainTab }: ListViewProps) {
 
 
 <div className={`compact-date-header ${isDateToday ? 'today-separator' : ''}`}>
-  <div className="date-wrapper">
+  <div
+    className="date-wrapper"
+    onClick={() => toggleDate(date)}
+    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+  >
+    {isExpanded ? <ChevronDown size={14} strokeWidth={2.4} /> : <ChevronRight size={14} strokeWidth={2.4} />}
     <span className="date-text">{getDayLabel(date)}</span>
     {getDayLabel(date) === 'СЕГОДНЯ' && <span className="today-badge">СЕГОДНЯ</span>}
   </div>
+  {!isExpanded && (
+    <button
+      onClick={() => toggleDate(date)}
+      style={{
+        background: 'transparent',
+        border: 'none',
+        color: '#3a56d4',
+        fontSize: 12.5,
+        fontWeight: 600,
+        cursor: 'pointer',
+        padding: '2px 6px',
+      }}
+    >
+      Развернуть ({items.length})
+    </button>
+  )}
 </div>
+{isExpanded && (
 <div className="list-table">
   <div className="list-header">
     <span className="list-time">Время</span>
@@ -198,7 +238,7 @@ export default function ListView({ data, mainTab }: ListViewProps) {
     })}
   </div>
 </div>
-
+)}
 
 
 
