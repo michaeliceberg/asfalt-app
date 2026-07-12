@@ -15,6 +15,10 @@ interface HeaderProps {
   onRefresh: () => void;
   isDemoMode?: boolean;
   hideLogout?: boolean;
+  // В демо кнопка GPS раньше вела на /trucks — боевую страницу за
+  // авторизацией, гостя демо просто перекидывало на /login. В демо
+  // вместо перехода переключаем вкладку GPS прямо на /demo.
+  onGpsClick?: () => void;
 }
 
 export default function Header({
@@ -22,6 +26,7 @@ export default function Header({
   onRefresh,
   isDemoMode = false,
   hideLogout = false,
+  onGpsClick,
 }: HeaderProps) {
   const [currentTime, setCurrentTime] = useState('');
   const { user, logout } = useAuth();
@@ -135,21 +140,38 @@ export default function Header({
         paddingRight: 0,
       }}>
         <PushNotifications />
-        <Link href="/trucks">
+        {onGpsClick ? (
           <button
-            className={`header-btn ${isTrucksPage ? 'active' : ''}`}
+            className="header-btn"
             title="GPS-мониторинг"
+            onClick={onGpsClick}
             style={{
               borderRadius: 6,
               border: 'none',
-              background: isTrucksPage ? '#ffd93d' : 'transparent',
-              color: isTrucksPage ? '#1a1a2e' : '#fff',
+              background: 'transparent',
+              color: '#fff',
               cursor: 'pointer',
             }}
           >
             <MapPin size={18} strokeWidth={2} />
           </button>
-        </Link>
+        ) : (
+          <Link href="/trucks">
+            <button
+              className={`header-btn ${isTrucksPage ? 'active' : ''}`}
+              title="GPS-мониторинг"
+              style={{
+                borderRadius: 6,
+                border: 'none',
+                background: isTrucksPage ? '#ffd93d' : 'transparent',
+                color: isTrucksPage ? '#1a1a2e' : '#fff',
+                cursor: 'pointer',
+              }}
+            >
+              <MapPin size={18} strokeWidth={2} />
+            </button>
+          </Link>
+        )}
         {!isDemoMode && !hideLogout && (
           <button
             className="header-btn"

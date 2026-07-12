@@ -151,6 +151,11 @@ const detectFactory = (item: IncomingItem | ShipmentItem, type: 'incoming' | 'sh
     if (incoming.division === 'ЛЮ') return 'ЛЮ';
     if (incoming.division === 'СП') return 'СП';
     if (incoming.division === 'Щ') return 'Щ';
+    // Демо-дивизии — короткий код бейджа (СЕ/ЮГ), а не сырой division
+    // ("ДЕМО-СЕВ"/"ДЕМО-ЮГ"), иначе бейдж в "Поступлении" показывал
+    // длинную "первоначальную" строку вместо короткого СЕ/ЮГ, как везде.
+    if (incoming.division === 'ДЕМО-СЕВ') return 'СЕ';
+    if (incoming.division === 'ДЕМО-ЮГ') return 'ЮГ';
     if (incoming.number?.startsWith('ЛХ')) return 'ЛХ';
     if (incoming.number?.startsWith('ЛЮ')) return 'ЛЮ';
     if (incoming.number?.startsWith('СП')) return 'СП';
@@ -161,12 +166,11 @@ const detectFactory = (item: IncomingItem | ShipmentItem, type: 'incoming' | 'sh
     if (shipment.division === 'ЛЮ') return 'ЛЮ';
     if (shipment.division === 'СП') return 'СП';
     if (shipment.division === 'Щ') return 'Щ';
+    if (shipment.division === 'ДЕМО-СЕВ') return 'СЕ';
+    if (shipment.division === 'ДЕМО-ЮГ') return 'ЮГ';
   }
-  // Раньше тут был просто return 'Другой' — любой незнакомый код (в том
-  // числе демо-дивизии ДЕМО-СЕВ/ДЕМО-ЮГ) схлопывался в общий "Другой" и
-  // ниже отсеивался жёсткими проверками на 'СП'/'Щ'. Возвращаем реальный
-  // division, если он есть — тогда демо-данные (и любые будущие коды)
-  // проходят через ту же логику, что и настоящие заводы.
+  // Любой другой незнакомый код — возвращаем реальный division как
+  // крайний fallback, а не схлопываем его в общий "Другой".
   return item.division || 'Другой';
 };
 

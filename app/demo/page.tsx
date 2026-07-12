@@ -117,6 +117,10 @@ export default function DemoPage() {
           }}
           isDemoMode={true}
           hideLogout={true}
+          onGpsClick={() => {
+            setActiveMainTab('shipment');
+            setActiveViewTab('gps');
+          }}
         />
 
         <MainTabs
