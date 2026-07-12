@@ -71,8 +71,24 @@ export interface YandexMaps {
   // Фабрика полностью кастомных HTML-макетов меток (без стандартного
   // синего "пина" — в отличие от iconLayout: 'default#imageWithContent',
   // который ВСЕГДА рисует дефолтную форму позади вашего контента).
+  // Второй (опциональный) аргумент createClass — переопределения методов
+  // базового ymaps.Layout, в частности getShape() — без него область
+  // клика по кастомному макету нулевая (см. комментарий в TruckMap.tsx
+  // у buildTruckBadgeHtml/getShape).
   templateLayoutFactory: {
-    createClass: (template: string) => unknown;
+    createClass: (template: string, options?: Record<string, unknown>) => unknown;
+  };
+  // Используются в getShape(), чтобы явно задать кликабельную область
+  // кастомной HTML-метки (см. templateLayoutFactory выше).
+  shape: {
+    Circle: new (geometry: unknown) => unknown;
+    Rectangle: new (geometry: unknown) => unknown;
+  };
+  geometry: {
+    pixel: {
+      Circle: new (center: [number, number], radius: number) => unknown;
+      Rectangle: new (bounds: [[number, number], [number, number]]) => unknown;
+    };
   };
   ready: (callback: () => void) => void;
 }

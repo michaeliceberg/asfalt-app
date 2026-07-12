@@ -653,7 +653,22 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
           `,
         },
         {
-          iconLayout: ymaps.templateLayoutFactory.createClass(buildTruckBadgeHtml(statusColor, isSelected)),
+          // getShape ниже — это и есть исправление "нельзя нажать на машинку".
+          // У кастомного HTML-макета (templateLayoutFactory) без явного
+          // getShape область клика по умолчанию нулевая (0×0) — сам HTML
+          // рисуется поверх через CSS transform:translate(-50%,-50%), но
+          // Яндекс про этот transform ничего не знает и по-прежнему считает
+          // область клика от НЕтрансформированного бокса макета. Поэтому
+          // клик визуально "по машинке" на самом деле проваливался в слой
+          // карты под меткой. Явно задаём круглую область клика того же
+          // радиуса, что и сам бейдж, с центром в точке маркера (0,0) —
+          // ровно туда, куда CSS-transform визуально ставит кружок.
+          iconLayout: ymaps.templateLayoutFactory.createClass(buildTruckBadgeHtml(statusColor, isSelected), {
+            getShape: function () {
+              const r = (isSelected ? 40 : 30) / 2;
+              return new ymaps.shape.Circle(new ymaps.geometry.pixel.Circle([0, 0], r));
+            },
+          }),
         }
       );
 

@@ -120,10 +120,6 @@ export default function DemoPage() {
           }}
           isDemoMode={true}
           hideLogout={true}
-          onGpsClick={() => {
-            setActiveMainTab('shipment');
-            setActiveViewTab('gps');
-          }}
           demoPushEnabled={pushEnabled}
           onToggleDemoPush={() => setPushEnabled((v) => !v)}
         />

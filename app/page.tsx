@@ -12,6 +12,7 @@ import SummaryView from './components/SummaryView';
 import ListView from './components/ListView';
 import GroupedView from './components/GroupedView';
 import CompactView from './components/CompactView';
+import TruckMap from './components/TruckMap';
 import Header from './components/header';
 import ChartsView from './components/ChartsView';
 import TopCustomersView from './components/TopCustomersView';
@@ -135,11 +136,29 @@ interface ApiRequest {
 }
 
 type MainTab = 'incoming' | 'shipment' | 'shipmentConcrete' | 'summary';
-// 'gps' — вкладка есть только в компоненте ViewTabs при showGps (сейчас
-// только /demo); тут держим её в union для совместимости типов пропа
-// onTabChange, реально она в боевом приложении никогда не рендерится.
 type ViewTab = 'compact' | 'grouped' | 'list' | 'charts' | 'topCustomers' | 'gps';
 type UnifiedDataItem = IncomingItem | ShipmentItem;
+
+// Форма данных, которую отдаёт /api/trucks — те же интерфейсы, что и в
+// app/trucks/page.tsx (структурно совместимы с Truck/Route внутри
+// TruckMap.tsx, там они не экспортированы).
+interface GpsTruck {
+  uid: string;
+  name: string;
+  position: { lat: number; lng: number; vel: number; time: number } | null;
+  lastUpdate: string | null;
+}
+
+interface GpsRoute {
+  destination: string;
+  factory: string;
+  count: number;
+  requestNumber: string;
+  totalQuantity: number;
+  licensePlates: string[];
+  destCoords: { lat: number; lng: number; name: string } | null;
+  factoryCoords: { lat: number; lng: number; name: string } | null;
+}
 
 // ============================================
 // ФУНКЦИИ ДЛЯ РАБОТЫ С ДАТАМИ
@@ -212,6 +231,15 @@ export default function Home() {
   const [newConcreteCount, setNewConcreteCount] = useState<number>(0);
   const [contentKey, setContentKey] = useState(0);
   const [lastImportInfo, setLastImportInfo] = useState<{ lastImport: string | null; totalRecords: number }>({ lastImport: null, totalRecords: 0 });
+
+  // Данные для вкладки GPS (ViewTabs) — та же /api/trucks, что и на
+  // отдельной странице /trucks. Раньше GPS был доступен только отдельной
+  // кнопкой-спутником в шапке, ведущей на /trucks; теперь — вкладка внутри
+  // текущего экрана (как в /demo), кнопка в шапке убрана как дублирующая.
+  const [gpsTrucks, setGpsTrucks] = useState<GpsTruck[]>([]);
+  const [gpsRoutes, setGpsRoutes] = useState<GpsRoute[]>([]);
+  const [gpsLoading, setGpsLoading] = useState(false);
+  const [gpsError, setGpsError] = useState<string | null>(null);
 
   const { accessibleFactories } = useAuth();
 
@@ -317,6 +345,47 @@ export default function Home() {
       document.body.classList.remove('iceberg-mode');
     }
   }, [mode]);
+
+  // ============================================
+  // GPS — данные для вкладки (грузим только пока она открыта, опрос раз
+  // в 2 минуты — как раньше было на отдельной странице /trucks).
+  // ============================================
+
+  useEffect(() => {
+    if (activeViewTab !== 'gps') return;
+
+    let cancelled = false;
+
+    const loadGpsData = async () => {
+      setGpsLoading(true);
+      try {
+        const response = await fetch('/api/trucks');
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const data = await response.json();
+        if (cancelled) return;
+        if (data?.success === false) throw new Error(data.error || 'Unknown error');
+        setGpsTrucks(Array.isArray(data.trucks) ? data.trucks : []);
+        setGpsRoutes(Array.isArray(data.routes) ? data.routes : []);
+        setGpsError(null);
+      } catch (err) {
+        if (cancelled) return;
+        console.error('Error fetching GPS trucks:', err);
+        setGpsError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        if (!cancelled) setGpsLoading(false);
+      }
+    };
+
+    loadGpsData();
+    const interval = setInterval(() => {
+      if (document.visibilityState === 'visible') loadGpsData();
+    }, 120000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [activeViewTab]);
 
   // ============================================
   // ЗАГРУЗКА ДАННЫХ
@@ -1138,6 +1207,7 @@ useEffect(() => {
                 activeTab={activeViewTab}
                 onTabChange={handleViewTabChange}
                 hideAnalytics={activeMainTab === 'incoming'}
+                showGps
               />
               
               <div className="stats">
@@ -1181,10 +1251,29 @@ useEffect(() => {
           )}
 
           {activeMainTab !== 'summary' && activeViewTab === 'topCustomers' && (
-            <TopCustomersView 
-              data={shipmentData} 
-              mode={mode} 
+            <TopCustomersView
+              data={shipmentData}
+              mode={mode}
             />
+          )}
+
+          {activeMainTab !== 'summary' && activeViewTab === 'gps' && (
+            <div style={{ height: 520, borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
+              {gpsError && (
+                <div style={{
+                  position: 'absolute', top: 12, left: 12, right: 12, zIndex: 10,
+                  background: 'rgba(220,38,38,0.95)', color: '#fff', padding: '8px 14px',
+                  borderRadius: 10, fontSize: 13, textAlign: 'center',
+                }}>
+                  {gpsError}
+                </div>
+              )}
+              {gpsLoading && gpsTrucks.length === 0 ? (
+                <LoadingSpinner message="Загрузка данных GPS..." size="large" />
+              ) : (
+                <TruckMap trucks={gpsTrucks} routes={gpsRoutes} filterPlate={null} />
+              )}
+            </div>
           )}
         </motion.div>
       </div>

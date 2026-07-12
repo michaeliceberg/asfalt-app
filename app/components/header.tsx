@@ -5,9 +5,7 @@
 import { motion } from 'framer-motion';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { Satellite, LogOut, RefreshCw, User, Sparkles } from 'lucide-react';
+import { LogOut, RefreshCw, User, Sparkles } from 'lucide-react';
 import PushNotifications from './PushNotifications';
 
 interface HeaderProps {
@@ -15,10 +13,6 @@ interface HeaderProps {
   onRefresh: () => void;
   isDemoMode?: boolean;
   hideLogout?: boolean;
-  // В демо кнопка GPS раньше вела на /trucks — боевую страницу за
-  // авторизацией, гостя демо просто перекидывало на /login. В демо
-  // вместо перехода переключаем вкладку GPS прямо на /demo.
-  onGpsClick?: () => void;
   // Колокольчик демо push-уведомлений (см. PushNotifications.tsx).
   demoPushEnabled?: boolean;
   onToggleDemoPush?: () => void;
@@ -29,14 +23,11 @@ export default function Header({
   onRefresh,
   isDemoMode = false,
   hideLogout = false,
-  onGpsClick,
   demoPushEnabled,
   onToggleDemoPush,
 }: HeaderProps) {
   const [currentTime, setCurrentTime] = useState('');
   const { user, logout } = useAuth();
-  const pathname = usePathname();
-  const isTrucksPage = pathname === '/trucks';
 
   useEffect(() => {
     const updateTime = () => {
@@ -167,27 +158,10 @@ export default function Header({
           demoEnabled={demoPushEnabled}
           onToggleDemo={onToggleDemoPush}
         />
-        {/* В демо кнопка-спутник дублировала вкладку GPS в ViewTabs —
-            убрали её здесь, GPS открывается только через вкладку.
-            В боевом приложении это по-прежнему единственный путь
-            на отдельную страницу /trucks — оставляем. */}
-        {!onGpsClick && (
-          <Link href="/trucks">
-            <button
-              className={`header-btn ${isTrucksPage ? 'active' : ''}`}
-              title="GPS-мониторинг"
-              style={{
-                borderRadius: 6,
-                border: 'none',
-                background: isTrucksPage ? '#ffd93d' : 'transparent',
-                color: isTrucksPage ? '#1a1a2e' : '#fff',
-                cursor: 'pointer',
-              }}
-            >
-              <Satellite size={18} strokeWidth={2} />
-            </button>
-          </Link>
-        )}
+        {/* Кнопка-спутник раньше дублировала вкладку GPS (в demo) или вела
+            отдельным переходом на /trucks (в боевом) — теперь и там, и там
+            GPS открывается через вкладку ViewTabs, отдельная кнопка в
+            шапке больше не нужна нигде. */}
         {!isDemoMode && !hideLogout && (
           <button
             className="header-btn"
