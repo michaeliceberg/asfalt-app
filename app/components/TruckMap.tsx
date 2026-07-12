@@ -319,6 +319,11 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
   const isScriptLoadingRef = useRef(false);
   const initMapCalledRef = useRef(false);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  // "Подпись" набора маршрутов, для которого карта уже сама подобрала
+  // масштаб (см. авто-масштаб ниже) — чтобы не пересчитывать bounds и не
+  // дёргать карту под пальцем у пользователя на каждое обновление позиций
+  // машин (в демо — каждые 3.5с, на боевом /trucks — каждые 2 мин опроса).
+  const autoFitSignatureRef = useRef<string | null>(null);
 
   // ============================================
   // РАСЧЁТ ВРЕМЕНИ МАРШРУТА (формула на сервере — без изменений)
@@ -682,9 +687,22 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
   // нужно было вручную скроллить/зумить, чтобы увидеть и завод, и точку
   // назначения. Теперь считаем bounding box по всем точкам, которые сейчас
   // реально показаны на карте, и просим карту сама подобрать масштаб.
+  //
+  // ВАЖНО: раньше этот эффект зависел напрямую от [trucks], а массив trucks
+  // пересоздаётся при КАЖДОМ обновлении позиций машин (в демо — каждые
+  // 3.5 сек). Из-за этого карта постоянно animated-recenter'илась под
+  // пользователем — не только раздражало, но и срывало тапы по машинкам
+  // (клик по метке "терялся", потому что в момент тапа карта сама уезжала
+  // в сторону). Теперь считаем bounds только один раз на каждый набор
+  // маршрутов (по "подписи" — конкатенации destination), а последующие
+  // обновления одних только позиций машин карту не трогают.
 
   useEffect(() => {
     if (!isMapReady || !mapRef.current || !routes || routes.length === 0) return;
+
+    const signature = routes.map(r => r.destination).join('|');
+    if (autoFitSignatureRef.current === signature) return;
+    autoFitSignatureRef.current = signature;
 
     const points: [number, number][] = [];
 

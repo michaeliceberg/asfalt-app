@@ -292,6 +292,11 @@ export default function Home() {
   // а не каждая строка по отдельности — лёгкая нагрузка на телефон.
   const handleMainTabChange = (tab: MainTab) => {
     setActiveMainTab(tab);
+    // "Графики"/"Топ-10" скрыты для "Поступления" — если была активна
+    // одна из них, возвращаемся на "Компактно" (см. hideAnalytics в ViewTabs).
+    if (tab === 'incoming' && (activeViewTab === 'charts' || activeViewTab === 'topCustomers' || activeViewTab === 'gps')) {
+      setActiveViewTab('compact');
+    }
     setContentKey(prev => prev + 1);
   };
 
@@ -1129,7 +1134,11 @@ useEffect(() => {
                 onFactoryChange={handleFactoryChange}
               />
 
-              <ViewTabs activeTab={activeViewTab} onTabChange={handleViewTabChange} />
+              <ViewTabs
+                activeTab={activeViewTab}
+                onTabChange={handleViewTabChange}
+                hideAnalytics={activeMainTab === 'incoming'}
+              />
               
               <div className="stats">
                 Всего записей: <strong>{filteredData.length}</strong>
