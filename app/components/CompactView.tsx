@@ -21,8 +21,9 @@ import {
   isIncomingDateToday
 } from '@/lib/utils';
 import TruckProgressBar from './TruckProgressBar';
-import { Factory, Truck, Package, User, Lock, Pointer } from 'lucide-react';
+import { Factory, Truck, Package, User, Lock, Pointer, Building2 } from 'lucide-react';
 import { tapHaptic } from '@/lib/haptics';
+import { DEMO_DRIVER_PHONES } from '@/lib/demo-data';
 
 type UnifiedDataItem = IncomingItem | ShipmentItem;
 
@@ -78,6 +79,8 @@ interface VehicleItem {
   time: string;
   fullDateTime?: string;
   driver?: string;
+  // Только для демо — в боевых данных такого поля нет (см. lib/demo-data.ts).
+  driverPhone?: string;
   material?: string;
   supplier?: string;
   // Уникальный номер конкретной отгрузки (рейса) — для сопоставления
@@ -583,6 +586,7 @@ useEffect(() => {
             quantity: shipment.quantity,
             time: itemTime,
             driver: shipment.driver || '—',
+            driverPhone: demoMode && shipment.driver ? DEMO_DRIVER_PHONES[shipment.driver] : undefined,
             shipmentNumber: shipment.number,
           }],
         });
@@ -602,6 +606,7 @@ useEffect(() => {
           quantity: shipment.quantity,
           time: itemTime,
           driver: shipment.driver || '—',
+          driverPhone: demoMode && shipment.driver ? DEMO_DRIVER_PHONES[shipment.driver] : undefined,
           shipmentNumber: shipment.number,
         });
         if (itemTime > existing.time) {
@@ -1189,6 +1194,14 @@ useEffect(() => {
       exit={{ opacity: 0, height: 0 }}
       transition={{ duration: 0.2 }}
     >
+      {/* Полное имя контрагента — в свёрнутой строке колонка узкая и имя
+          обрезается многоточием (text-overflow: ellipsis), а тут места
+          достаточно, показываем целиком без обрезки. */}
+      <div className="detail-row">
+          <span className="detail-label"><Building2 size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Грузополучатель:</span>
+          <span className="detail-value">{item.consignee}</span>
+      </div>
+
       {/* Материал, без дублей */}
       <div className="detail-row">
           <span className="detail-label"><Package size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Материал:</span>
@@ -1258,6 +1271,7 @@ useEffect(() => {
   key={i}
   licensePlate={vehicle.licensePlate}
   driver={vehicle.driver || '—'}
+  driverPhone={vehicle.driverPhone}
   quantity={vehicle.quantity}
   time={vehicle.fullDateTime || vehicle.time}
   distance={distance}

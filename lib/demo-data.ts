@@ -45,101 +45,126 @@ const CONCRETE_MATERIALS = [
   'БСМ В15 П2 F100',
 ];
 
-const CONCRETE_CONSIGNEES_SEV = ['ЖК «Северный Парк»', 'Мостоотряд-14', 'ДСУ «Магистраль»'];
-const CONCRETE_CONSIGNEES_YUG = ['ЖК «Южные Ворота»', 'СК «Фундамент»'];
-
 const DEMO_DRIVERS = ['Кузнецов А.А.', 'Смирнов В.В.', 'Попов Д.С.', 'Соколов Н.И.', 'Морозов Е.П.'];
 const DEMO_PLATES = ['У317МХ190', 'О552НК150', 'Т884АР750', 'Х119ВЕ190', 'М440КТ150', 'Е705СУ190'];
+
+// Телефоны водителей — только для демо-показа (в боевой БД такого поля
+// сейчас нет вообще, номер оттуда неоткуда взять). Ключ — ФИО из
+// DEMO_DRIVERS выше.
+export const DEMO_DRIVER_PHONES: Record<string, string> = {
+  'Кузнецов А.А.': '+7 916 201-14-32',
+  'Смирнов В.В.': '+7 925 447-08-19',
+  'Попов Д.С.': '+7 903 552-91-06',
+  'Соколов Н.И.': '+7 916 738-20-55',
+  'Морозов Е.П.': '+7 926 314-77-02',
+};
 
 // Заявки (Заяв) для бетонных отгрузок — раньше их не было вообще, поэтому
 // в компактном виде колонка "Заяв" у бетона всегда пустовала: у отгрузок
 // был clientRequestNumber, но ни одной OutgoingRequest с таким номером не
 // существовало. Строим оба массива вместе из одного и того же плана, чтобы
 // связь Вып/Заяв была гарантированно консистентной.
-interface ConcreteRequestAccum {
-  requestNumber: string;
+//
+// РАНЬШЕ: каждый рейс получал СВОЙ уникальный номер заявки (idx рос на
+// каждой итерации) — то есть у каждой "заявки" был ровно один рейс, а
+// значит Вып === Заяв ВСЕГДА, для 100% заявок сразу. Отсюда и баг с
+// вёрстки: "Отгрузка Бет" вся сплошь зелёная (=выполнено), в отличие от
+// асфальта, где часть заявок специально оставлена "в работе". Теперь
+// заявка — это несколько рейсов (как в жизни), и одна заявка на дивизион
+// намеренно оставлена недовыполненной (closed: false), чтобы бетон вёл
+// себя так же, как асфальт: часть заявок зелёная (готово), часть — ещё
+// в процессе (с "живой" точкой вместо галочки).
+interface ConcreteRequestPlan {
   division: string;
   consignee: string;
   material: string;
-  planQuantity: number;
-  earliestDate: Date;
+  truckLoads: number[]; // м³, по одному значению на рейс
+  dayOffset: number;
+  closed: boolean; // false = заявка ещё не довыполнена (демо "в работе")
+  startHour: number;
 }
 
-const demoConcreteRequestsMap = new Map<string, ConcreteRequestAccum>();
+const CONCRETE_PLAN: ConcreteRequestPlan[] = [
+  // ДЕМО-СЕВ
+  { division: 'ДЕМО-СЕВ', consignee: 'ЖК «Северный Парк»', material: CONCRETE_MATERIALS[0], truckLoads: [9, 11, 8], dayOffset: 2, closed: true, startHour: 7 },
+  { division: 'ДЕМО-СЕВ', consignee: 'Мостоотряд-14', material: CONCRETE_MATERIALS[1], truckLoads: [10, 12], dayOffset: 1, closed: true, startHour: 8 },
+  { division: 'ДЕМО-СЕВ', consignee: 'ДСУ «Магистраль»', material: CONCRETE_MATERIALS[2], truckLoads: [9, 13, 10], dayOffset: 1, closed: true, startHour: 13 },
+  { division: 'ДЕМО-СЕВ', consignee: 'ЖК «Северный Парк»', material: CONCRETE_MATERIALS[3], truckLoads: [9, 10], dayOffset: 0, closed: false, startHour: 8 },
+  // ДЕМО-ЮГ
+  { division: 'ДЕМО-ЮГ', consignee: 'ЖК «Южные Ворота»', material: CONCRETE_MATERIALS[0], truckLoads: [9, 12, 11], dayOffset: 2, closed: true, startHour: 7 },
+  { division: 'ДЕМО-ЮГ', consignee: 'СК «Фундамент»', material: CONCRETE_MATERIALS[1], truckLoads: [10, 14], dayOffset: 1, closed: true, startHour: 9 },
+  { division: 'ДЕМО-ЮГ', consignee: 'ЖК «Южные Ворота»', material: CONCRETE_MATERIALS[2], truckLoads: [9, 10, 8], dayOffset: 0, closed: true, startHour: 7 },
+  { division: 'ДЕМО-ЮГ', consignee: 'СК «Фундамент»', material: CONCRETE_MATERIALS[3], truckLoads: [11], dayOffset: 0, closed: false, startHour: 12 },
+];
 
-export const demoConcreteShipments: ShipmentItem[] = (() => {
-  const items: ShipmentItem[] = [];
-  const plan: Array<{ division: string; consignees: string[]; count: number; dayOffsets: number[] }> = [
-    { division: 'ДЕМО-СЕВ', consignees: CONCRETE_CONSIGNEES_SEV, count: 9, dayOffsets: [0, 0, 0, 0, 1, 1, 1, 2, 2] },
-    { division: 'ДЕМО-ЮГ', consignees: CONCRETE_CONSIGNEES_YUG, count: 7, dayOffsets: [0, 0, 0, 1, 1, 2, 2] },
-  ];
+function buildConcreteDemoData(): { shipments: ShipmentItem[]; requests: OutgoingRequest[] } {
+  const shipments: ShipmentItem[] = [];
+  const requests: OutgoingRequest[] = [];
+  let truckIdx = 1;
+  let reqIdx = 1;
 
-  let idx = 1;
-  plan.forEach(({ division, consignees, count, dayOffsets }) => {
-    for (let i = 0; i < count; i++) {
-      const dayOffset = dayOffsets[i] ?? 0;
-      const hour = 7 + (i * 2) % 12;
-      const minute = (i * 17) % 60;
-      const date = daysAgo(dayOffset, hour, minute);
-      const material = CONCRETE_MATERIALS[i % CONCRETE_MATERIALS.length];
-      const quantity = 8 + ((i * 3) % 12); // м³, 8–19
-      const consignee = consignees[i % consignees.length];
-      const requestNumber = `${division}-З${100 + idx}`;
+  CONCRETE_PLAN.forEach((plan) => {
+    const requestNumber = `${plan.division}-З${200 + reqIdx}`;
+    const deliveredSum = plan.truckLoads.reduce((sum, q) => sum + q, 0);
+    // Для "в работе" заявок план чуть больше того, что уже отгружено —
+    // имитируем, что колонна ещё в пути (как ДСУ-5 Сосновский у асфальта).
+    const planQuantity = plan.closed ? deliveredSum : Math.round(deliveredSum * 1.6);
+    const earliestDate = daysAgo(plan.dayOffset, plan.startHour, 0);
 
-      items.push({
+    plan.truckLoads.forEach((quantity, i) => {
+      const hour = plan.startHour + Math.floor((i * 90) / 60);
+      const minute = (plan.startHour * 7 + i * 23) % 60;
+      const date = daysAgo(plan.dayOffset, hour, minute);
+
+      shipments.push({
         id: 0,
-        number: `${division}-Б${1000 + idx}`,
+        number: `${plan.division}-Б${2000 + truckIdx}`,
         date: fmtRuDateTime(date),
-        division,
+        division: plan.division,
         customer: 'СтройТех',
-        consignee,
-        material,
+        consignee: plan.consignee,
+        material: plan.material,
         gross: null,
         tara: null,
         quantity,
-        driver: DEMO_DRIVERS[idx % DEMO_DRIVERS.length],
-        licensePlate: DEMO_PLATES[idx % DEMO_PLATES.length],
+        driver: DEMO_DRIVERS[truckIdx % DEMO_DRIVERS.length],
+        licensePlate: DEMO_PLATES[truckIdx % DEMO_PLATES.length],
         clientRequestNumber: requestNumber,
         clientRequestDate: fmtRuDateTime(date),
         destinationPoint: null,
         createdAt: Date.now(),
       });
 
-      const existing = demoConcreteRequestsMap.get(requestNumber);
-      if (existing) {
-        existing.planQuantity += quantity;
-        if (date < existing.earliestDate) existing.earliestDate = date;
-      } else {
-        demoConcreteRequestsMap.set(requestNumber, {
-          requestNumber, division, consignee, material,
-          planQuantity: quantity, earliestDate: date,
-        });
-      }
+      truckIdx++;
+    });
 
-      idx++;
-    }
+    requests.push({
+      id: 0,
+      number: requestNumber,
+      date: fmtRuDateTime(earliestDate),
+      division: plan.division,
+      customer: 'СтройТех',
+      consignee: plan.consignee,
+      material: plan.material,
+      quantity: planQuantity,
+      unit: null,
+      clientRequestNumber: null,
+      clientRequestDate: null,
+      closed: plan.closed,
+      delivery_date: fmtRuDateTime(earliestDate),
+      destinationPoint: null,
+      createdAt: Date.now(),
+    });
+
+    reqIdx++;
   });
 
-  return items;
-})();
+  return { shipments, requests };
+}
 
-export const demoConcreteRequests: OutgoingRequest[] = Array.from(demoConcreteRequestsMap.values()).map((r) => ({
-  id: 0,
-  number: r.requestNumber,
-  date: fmtRuDateTime(r.earliestDate),
-  division: r.division,
-  customer: 'СтройТех',
-  consignee: r.consignee,
-  material: r.material,
-  quantity: r.planQuantity,
-  unit: null,
-  clientRequestNumber: null,
-  clientRequestDate: null,
-  closed: true, // все бетонные отгрузки в демо — уже в прошлом (dayOffset 0-2)
-  delivery_date: fmtRuDateTime(r.earliestDate),
-  destinationPoint: null,
-  createdAt: Date.now(),
-}));
+const { shipments: demoConcreteShipmentsBuilt, requests: demoConcreteRequestsBuilt } = buildConcreteDemoData();
+export const demoConcreteShipments: ShipmentItem[] = demoConcreteShipmentsBuilt;
+export const demoConcreteRequests: OutgoingRequest[] = demoConcreteRequestsBuilt;
 
 // ============================================
 // КУРИРОВАННАЯ ГРУППА — САМАЯ СВЕЖАЯ ДАТА (сегодня)

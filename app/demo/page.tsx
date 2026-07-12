@@ -35,6 +35,9 @@ export default function DemoPage() {
   const [activeViewTab, setActiveViewTab] = useState<ViewTab>('compact');
   const [activeFactory, setActiveFactory] = useState<string>('all');
   const [pushHighlight, setPushHighlight] = useState(false);
+  // Колокольчик в шапке — вкл/выкл демо push-уведомлений (фидбек дизайнера:
+  // если пушей будет "овер до фига", хочется иметь возможность их выключить).
+  const [pushEnabled, setPushEnabled] = useState(true);
   const [data, setData] = useState<{ incoming: IncomingItem[]; shipments: ShipmentItem[] }>({
     incoming: [],
     shipments: [],
@@ -98,7 +101,7 @@ export default function DemoPage() {
   return (
     <div className="container" style={{ paddingTop: 16, paddingBottom: 40 }}>
       <OnboardingTour highlightPushTrigger={pushHighlight} />
-      <DemoPushSimulator onFirstShown={() => setPushHighlight(true)} />
+      <DemoPushSimulator onFirstShown={() => setPushHighlight(true)} enabled={pushEnabled} />
 
       {/* ← УБИРАЕМ DemoBanner, СТАВИМ DemoLanding */}
       <DemoLanding />
@@ -121,6 +124,8 @@ export default function DemoPage() {
             setActiveMainTab('shipment');
             setActiveViewTab('gps');
           }}
+          demoPushEnabled={pushEnabled}
+          onToggleDemoPush={() => setPushEnabled((v) => !v)}
         />
 
         <MainTabs
@@ -239,28 +244,12 @@ export default function DemoPage() {
 
       {/* ← УБИРАЕМ нижний баннер, так как DemoLanding уже есть сверху */}
 
-      {/* Визуальная граница "данные закончились, дальше реклама" — без неё
-          таблица отгрузок и блок с тарифами/фичами внизу сливались в один
-          сплошной поток и не было понятно, где кончается демо-контент. */}
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        margin: '32px 0 20px',
-      }}>
-        <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, transparent, #e0e0e8)' }} />
-        <span style={{
-          fontSize: 11,
-          fontWeight: 700,
-          color: '#aaa',
-          textTransform: 'uppercase',
-          letterSpacing: '0.6px',
-          whiteSpace: 'nowrap',
-        }}>
-          Демо-данные закончились
-        </span>
-        <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, #e0e0e8, transparent)' }} />
-      </div>
+      {/* Раньше тут была разделительная плашка "Демо-данные закончились" —
+          но прямо под ней лежит кнопка "скачать Excel-отчёт" по этим же
+          демо-данным, и получалось противоречиво: "данные закончились" →
+          "скачайте отчёт по данным". Просто убрали плашку — у самого
+          PricingSection достаточно собственного отступа и заголовка
+          "Тарифы", чтобы граница секции читалась и без неё. */}
 
       <PricingSection incoming={data.incoming} shipments={data.shipments} />
     </div>

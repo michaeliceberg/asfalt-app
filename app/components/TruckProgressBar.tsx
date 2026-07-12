@@ -2,11 +2,13 @@
 
 'use client';
 
-import { Truck, CheckCircle2, Clock } from 'lucide-react';
+import { Truck, CheckCircle2, Clock, Phone } from 'lucide-react';
 
 interface TruckProgressBarProps {
   licensePlate: string;
   driver: string;
+  // Только в демо — в боевых данных телефона водителя сейчас нет.
+  driverPhone?: string;
   quantity: number;
   time: string;
   distance: number | null;
@@ -27,6 +29,7 @@ const FACTORY_COLORS: Record<string, { line: string; bg: string }> = {
 export default function TruckProgressBar({
   licensePlate,
   driver,
+  driverPhone,
   quantity,
   time,
   distance,
@@ -63,27 +66,42 @@ export default function TruckProgressBar({
   
   return (
     <div className="truck-card" style={{ background: colors.bg }}>
-      {/* Верхняя строка */}
-      <div className="truck-row">
-        <div className="truck-left">
-          {/* Время в прямоугольничке */}
-          <span className="truck-time-badge">{time}</span>
-          <span className="truck-plate">{licensePlate}</span>
-          <span className="truck-quantity">{quantity.toFixed(1)} {unit}</span>
-          <span className="truck-driver">{driverLastName}</span>
-        </div>
-        <div className="truck-right">
-          <span className={`truck-info ${isArrived ? 'arrived' : ''}`}>
-            {isArrived ? (
-              <CheckCircle2 size={11} strokeWidth={2.4} style={{ marginRight: 3, verticalAlign: -1 }} />
-            ) : distance !== null ? (
-              <Clock size={11} strokeWidth={2.4} style={{ marginRight: 3, verticalAlign: -1 }} />
-            ) : null}
-            {infoText}
-          </span>
-        </div>
+      {/* Строка 1: время + статус/ETA — короткая пара, всегда помещается
+          в одну линию сама по себе. */}
+      <div className="truck-row-top">
+        <span className="truck-time-badge">{time}</span>
+        <span className={`truck-info ${isArrived ? 'arrived' : ''}`}>
+          {isArrived ? (
+            <CheckCircle2 size={11} strokeWidth={2.4} style={{ marginRight: 3, verticalAlign: -1 }} />
+          ) : distance !== null ? (
+            <Clock size={11} strokeWidth={2.4} style={{ marginRight: 3, verticalAlign: -1 }} />
+          ) : null}
+          {infoText}
+        </span>
       </div>
-      
+
+      {/* Строка 2: номер, тоннаж, водитель (+ телефон) — отдельная строка.
+          Раньше всё это (плюс время) было в одном флекс-ряду с ETA справа:
+          на узких экранах номер/ФИО переносились на вторую строку внутри
+          того же ряда, а ETA-текст справа центрировался по всей высоте
+          ряда и наезжал прямо на перенесённую строку. Теперь у времени/
+          статуса и у номера/водителя — гарантированно разные строки. */}
+      <div className="truck-row-bottom">
+        <span className="truck-plate">{licensePlate}</span>
+        <span className="truck-quantity">{quantity.toFixed(1)} {unit}</span>
+        <span className="truck-driver">{driverLastName}</span>
+        {driverPhone && (
+          <a
+            className="truck-phone"
+            href={`tel:${driverPhone.replace(/[^\d+]/g, '')}`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Phone size={10} strokeWidth={2.4} />
+            {driverPhone}
+          </a>
+        )}
+      </div>
+
       {/* Прогресс-бар */}
       <div className="progress-track">
         <div className="progress-bg" />
@@ -128,22 +146,22 @@ export default function TruckProgressBar({
           border: 1px solid rgba(0,0,0,0.04);
         }
         
-        .truck-row {
+        .truck-row-top {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          flex-wrap: wrap;
-          gap: 2px 4px;
-          margin-bottom: 3px;
+          gap: 6px;
+          margin-bottom: 4px;
         }
-        
-        .truck-left {
+
+        .truck-row-bottom {
           display: flex;
           align-items: center;
           gap: 6px;
           flex-wrap: wrap;
+          margin-bottom: 4px;
         }
-        
+
         .truck-time-badge {
           font-size: 10px;
           font-weight: 600;
@@ -187,14 +205,27 @@ export default function TruckProgressBar({
           color: #64748b;
           white-space: nowrap;
         }
-        
-        .truck-right {
-          display: flex;
+
+        .truck-phone {
+          display: inline-flex;
           align-items: center;
-          gap: 6px;
-          flex-wrap: wrap;
+          gap: 3px;
+          font-size: 10px;
+          font-weight: 600;
+          color: #2563eb;
+          text-decoration: none;
+          white-space: nowrap;
+          background: #ffffff;
+          padding: 0 6px;
+          border-radius: 3px;
+          border: 1px solid rgba(37,99,235,0.18);
+          line-height: 18px;
         }
-        
+
+        .truck-phone:hover {
+          background: #eff6ff;
+        }
+
         .truck-info {
           font-size: 10px;
           font-weight: 600;

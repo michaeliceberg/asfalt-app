@@ -3404,7 +3404,12 @@ body {
 }
 
 .future-item-date {
-  min-width: 85px;
+  /* Раньше min-width — плавающая ширина в зависимости от текста
+     ("СЕГОДНЯ"/"ЗАВТРА"/"12.07") заставляла остальные колонки в строке
+     съезжать относительно соседних строк списка. Фиксируем ширину, чтобы
+     все карточки списка выстраивались в ровные колонки. */
+  width: 85px;
+  flex-shrink: 0;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -3478,7 +3483,8 @@ body {
   background: #e9ecef;
   padding: 4px 8px;
   border-radius: 20px;
-  min-width: 55px;
+  width: 55px;
+  flex-shrink: 0;
   text-align: center;
 }
 
@@ -5952,9 +5958,15 @@ body.iceberg-mode .pull-to-refresh-indicator {
   font-size: 13px;
 }
 
-/* Уменьшенный размер колонки завода */
+/* Колонка завода — раньше была зауженной (35px), из-за чего сине-зелёные
+   бейджи заводов (СЕ/ЮГ и т.п.) обрезались/налезали друг на друга при
+   группах с несколькими заводами. Эта декларация идёт последней в файле
+   среди одинаковых по специфичности .col-factory-правил и поэтому
+   побеждает в каскаде — расширяем именно её. */
 .col-factory {
-  width: 35px;
+  width: auto;
+  min-width: 52px;
+  max-width: 72px;
   text-align: center;
   flex-shrink: 0;
 }
@@ -6312,7 +6324,9 @@ body.iceberg-mode .compact-row.completed-row:hover {
 }
 
 /* Подсказка "нажми на заявку" — только в демо, чтобы посетитель понял,
-   что строка кликабельна и раскрывается */
+   что строка кликабельна и раскрывается. Раньше пульсировала (scale
+   1→1.7 в цикле) — по фидбеку дизайнера это было лишним, оставили
+   статичной иконкой с чуть приглушённой прозрачностью. */
 .tap-hint {
   position: absolute;
   right: 6px;
@@ -6321,13 +6335,8 @@ body.iceberg-mode .compact-row.completed-row:hover {
   font-size: 15px;
   line-height: 1;
   color: #1a1a2e;
+  opacity: 0.7;
   pointer-events: none;
-  animation: tap-hint-pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes tap-hint-pulse {
-  0%, 100% { opacity: 0.6; transform: translateY(-50%) scale(1); }
-  50% { opacity: 1; transform: translateY(-50%) scale(1.7); }
 }
 
 /* Кольцо вокруг выбранной машины на карте /trucks (TruckMap.tsx) — чтобы

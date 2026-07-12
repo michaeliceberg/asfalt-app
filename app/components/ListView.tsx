@@ -51,12 +51,20 @@ const getFactory = (item: UnifiedDataItem): string => {
     if (incoming.division === 'ЛЮ') return 'ЛЮ';
     if (incoming.division === 'СП') return 'СП';
     if (incoming.division === 'Щ') return 'Щ';
+    // Демо-дивизионы — та же повторяющаяся проблема, что уже чинилась в
+    // lib/utils.ts / lib/constants.ts / CompactView.tsx: локальная функция
+    // не знала про ДЕМО-СЕВ/ДЕМО-ЮГ и всегда падала в '—' → фиолетовый
+    // бейдж "неизвестный завод" на каждой строке демо-списка.
+    if (incoming.division === 'ДЕМО-СЕВ') return 'СЕ';
+    if (incoming.division === 'ДЕМО-ЮГ') return 'ЮГ';
   } else if ('division' in item) {
     const shipment = item as ShipmentItem;
     if (shipment.division === 'ЛХ') return 'ЛХ';
     if (shipment.division === 'ЛЮ') return 'ЛЮ';
     if (shipment.division === 'СП') return 'СП';
     if (shipment.division === 'Щ') return 'Щ';
+    if (shipment.division === 'ДЕМО-СЕВ') return 'СЕ';
+    if (shipment.division === 'ДЕМО-ЮГ') return 'ЮГ';
   }
   return '—';
 };
@@ -182,7 +190,7 @@ export default function ListView({ data, mainTab }: ListViewProps) {
             {badge}
           </span>
           <span className="list-factory">
-            <span className={getFactoryBadgeClass(factory)}>{factory}</span>
+            <span className={getFactoryBadgeClass(factory)} title={factory === '—' ? 'Завод не определён' : `Завод: ${factory}`}>{factory}</span>
           </span>
           <span className="list-license" title={item.licensePlate || '—'}>{getLicensePlate(item)}</span>
         </div>

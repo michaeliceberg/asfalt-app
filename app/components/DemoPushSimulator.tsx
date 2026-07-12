@@ -32,12 +32,16 @@ const PUSH_2: Omit<DemoPushItem, 'id'> = {
 
 interface DemoPushSimulatorProps {
   onFirstShown?: () => void;
+  // Колокольчик в шапке — по фидбеку дизайнера, если пушей "будет овер
+  // до фига", должна быть возможность их выключить. По умолчанию включены.
+  enabled?: boolean;
 }
 
-export default function DemoPushSimulator({ onFirstShown }: DemoPushSimulatorProps) {
+export default function DemoPushSimulator({ onFirstShown, enabled = true }: DemoPushSimulatorProps) {
   const [items, setItems] = useState<DemoPushItem[]>([]);
 
   useEffect(() => {
+    if (!enabled) return;
     const t1 = setTimeout(() => {
       setItems((prev) => [...prev, { id: 1, ...PUSH_1 }]);
       onFirstShown?.();
@@ -50,7 +54,13 @@ export default function DemoPushSimulator({ onFirstShown }: DemoPushSimulatorPro
       clearTimeout(t2);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [enabled]);
+
+  // Выключили колокольчиком — сразу прячем то, что уже показано, а не
+  // только блокируем будущие уведомления.
+  useEffect(() => {
+    if (!enabled) setItems([]);
+  }, [enabled]);
 
   const close = (id: number) => setItems((prev) => prev.filter((it) => it.id !== id));
 

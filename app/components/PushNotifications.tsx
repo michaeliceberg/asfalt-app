@@ -7,7 +7,17 @@ import { useAuth } from '@/hooks/useAuth';
 import { Bell, BellOff, Loader2 } from 'lucide-react';
 import { initNativePush } from '@/lib/native-push';
 
-export default function PushNotifications() {
+interface PushNotificationsProps {
+  // В демо у гостя нет аккаунта — настоящая подписка (subscribe/unsubscribe
+  // ниже) для него бессмысленна и раньше просто показывала алерт "Войдите
+  // в систему". В демо этот же колокольчик вместо реальной подписки
+  // включает/выключает синтетические push-уведомления (DemoPushSimulator).
+  demoMode?: boolean;
+  demoEnabled?: boolean;
+  onToggleDemo?: () => void;
+}
+
+export default function PushNotifications({ demoMode = false, demoEnabled = true, onToggleDemo }: PushNotificationsProps) {
   const { user } = useAuth();
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -140,6 +150,34 @@ export default function PushNotifications() {
       setLoading(false);
     }
   };
+
+  if (demoMode) {
+    return (
+      <button
+        onClick={onToggleDemo}
+        title={demoEnabled ? 'Демо-уведомления включены — нажмите, чтобы выключить' : 'Демо-уведомления выключены — нажмите, чтобы включить'}
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 6,
+          border: 'none',
+          background: demoEnabled ? 'rgba(74, 222, 128, 0.15)' : 'transparent',
+          color: demoEnabled ? '#4ade80' : '#94a3b8',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          transition: 'all 0.2s',
+        }}
+      >
+        {demoEnabled ? (
+          <Bell size={16} strokeWidth={2.2} />
+        ) : (
+          <BellOff size={16} strokeWidth={2.2} style={{ opacity: 0.5 }} />
+        )}
+      </button>
+    );
+  }
 
   if (!isSupported) {
     return null;

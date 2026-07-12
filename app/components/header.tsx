@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { MapPin, LogOut, RefreshCw, User, Sparkles } from 'lucide-react';
+import { Satellite, LogOut, RefreshCw, User, Sparkles } from 'lucide-react';
 import PushNotifications from './PushNotifications';
 
 interface HeaderProps {
@@ -19,6 +19,9 @@ interface HeaderProps {
   // авторизацией, гостя демо просто перекидывало на /login. В демо
   // вместо перехода переключаем вкладку GPS прямо на /demo.
   onGpsClick?: () => void;
+  // Колокольчик демо push-уведомлений (см. PushNotifications.tsx).
+  demoPushEnabled?: boolean;
+  onToggleDemoPush?: () => void;
 }
 
 export default function Header({
@@ -27,6 +30,8 @@ export default function Header({
   isDemoMode = false,
   hideLogout = false,
   onGpsClick,
+  demoPushEnabled,
+  onToggleDemoPush,
 }: HeaderProps) {
   const [currentTime, setCurrentTime] = useState('');
   const { user, logout } = useAuth();
@@ -59,11 +64,21 @@ export default function Header({
       gap: '8px',
     }}>
       {/* Логотип */}
+      {/* Раньше весь этот блок был flexShrink:0 наравне с кнопками справа —
+          при недостатке ширины (длинное имя пользователя + бейдж ДЕМО +
+          несколько иконок) строка целиком не помещалась в экран, и
+          единственным спасением был горизontal-scroll на .app-header-row,
+          который не все замечают. Теперь блок сам может сжиматься
+          (minWidth:0), а внутри — не бренд-пилюля (важно, не трогаем), а
+          именно пилюля пользователя первой уступает место через обрезку
+          текста многоточием, оставляя кнопки справа всегда полностью
+          видимыми. */}
       <div style={{
         display: 'flex',
         alignItems: 'center',
         gap: '6px',
-        flexShrink: 0,
+        flex: '1 1 auto',
+        minWidth: 0,
         paddingLeft: 0,
       }}>
         <div className="app-header-brand-pill" style={{
@@ -74,6 +89,7 @@ export default function Header({
           padding: '4px 12px 4px 8px',
           borderRadius: '20px',
           border: '1px solid rgba(255,255,255,0.08)',
+          flexShrink: 0,
         }}>
           <span style={{
             background: 'linear-gradient(135deg, #ffd93d, #f6b93b)',
@@ -102,7 +118,8 @@ export default function Header({
           </span>
         </div>
 
-        {/* 👤 Пользователь */}
+        {/* 👤 Пользователь — сжимается и обрезает текст первым, если не
+            хватает места (см. комментарий выше про overflow шапки). */}
         <div id="onboarding-guest-badge" className="app-header-user-pill" style={{
           display: 'flex',
           alignItems: 'center',
@@ -112,20 +129,26 @@ export default function Header({
           background: 'transparent',
           border: 'none',
           transition: 'all 0.2s',
+          minWidth: 0,
+          overflow: 'hidden',
         }}>
-          <User size={13} color="#ffffff" strokeWidth={2} />
+          <User size={13} color="#ffffff" strokeWidth={2} style={{ flexShrink: 0 }} />
           <span className="app-header-user-pill-text" style={{
             fontSize: '12px',
             fontWeight: 600,
             color: '#ffffff',
             letterSpacing: '0.3px',
+            overflow: 'hidden',
+            textOverflow: 'ellipsis',
+            whiteSpace: 'nowrap',
+            minWidth: 0,
           }}>
             {user?.username || 'Гость'}
           </span>
         </div>
 
         {isDemoMode && (
-          <span className="demo-badge" style={{ marginLeft: '2px' }}>
+          <span className="demo-badge" style={{ marginLeft: '2px', flexShrink: 0 }}>
             <Sparkles size={11} strokeWidth={2.4} />
             ДЕМО
           </span>
@@ -139,7 +162,11 @@ export default function Header({
         flexShrink: 0,
         paddingRight: 0,
       }}>
-        <PushNotifications />
+        <PushNotifications
+          demoMode={isDemoMode}
+          demoEnabled={demoPushEnabled}
+          onToggleDemo={onToggleDemoPush}
+        />
         {onGpsClick ? (
           <button
             className="header-btn"
@@ -153,7 +180,7 @@ export default function Header({
               cursor: 'pointer',
             }}
           >
-            <MapPin size={18} strokeWidth={2} />
+            <Satellite size={18} strokeWidth={2} />
           </button>
         ) : (
           <Link href="/trucks">
@@ -168,7 +195,7 @@ export default function Header({
                 cursor: 'pointer',
               }}
             >
-              <MapPin size={18} strokeWidth={2} />
+              <Satellite size={18} strokeWidth={2} />
             </button>
           </Link>
         )}
@@ -360,7 +387,7 @@ export default function Header({
 //               transition: 'all 0.2s',
 //             }}
 //           >
-//             <MapPin size={18} strokeWidth={2} />
+//             <Satellite size={18} strokeWidth={2} />
 //           </button>
 //         </Link>
 //         {!isDemoMode && !hideLogout && (

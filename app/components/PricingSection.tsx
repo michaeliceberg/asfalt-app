@@ -496,19 +496,9 @@ export default function PricingSection({ incoming = [], shipments = [] }: Pricin
         </a>
       </div>
 
-      <p style={{
-        fontSize: 10.5,
-        color: '#aaa',
-        textAlign: 'center',
-        marginTop: 10,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: 4,
-      }}>
-        GPS-навигация, push-уведомления и Excel-отчёты входят в тариф «PRO»
-        <Crown size={10} strokeWidth={2.6} color="#f6b93b" />
-      </p>
+      {/* Убрали строку "GPS-навигация, push-уведомления и Excel-отчёты
+          входят в тариф «PRO»" — это уже видно из таблицы сравнения выше,
+          дублирующий текст внизу был лишним. */}
     </div>
   );
 }

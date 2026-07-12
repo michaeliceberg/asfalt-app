@@ -106,13 +106,16 @@ export default function ChartsView({ data, mode = 'tas' }: ChartsViewProps) {
   const processData = useCallback(() => {
     setLoading(true);
 
-    // Фильтруем по выбранному заводу
-    let filteredData = selectedFactory !== 'all'
-      ? data.filter(item => item.division === selectedFactory)
-      : data;
-
-    // Фильтруем по типу материала (только асфальт)
-    filteredData = filteredData.filter(item => !isConcreteMaterial(item.material));
+    // Фильтруем по типу материала (только асфальт) — фильтр по заводу
+    // сюда НЕ применяем: раньше данные обрезались по выбранному заводу
+    // ДО группировки по дням, из-за чего total/count по бару и колонка
+    // "Машин" совпадали, а вот колонки-разбивка по остальным заводам в
+    // таблице внизу всегда превращались в нули — они физически не могли
+    // получить данные, ведь те записи были уже отфильтрованы. Теперь
+    // фильтр применяем ТОЛЬКО к total/count (бар и верхние колонки), а
+    // разбивку по заводам считаем всегда по полному набору — так таблицу
+    // можно использовать для сравнения заводов, даже когда выбран один.
+    const materialFiltered = data.filter(item => !isConcreteMaterial(item.material));
 
     // Вычисляем дату 10 дней назад
     const today = new Date();
@@ -122,7 +125,7 @@ export default function ChartsView({ data, mode = 'tas' }: ChartsViewProps) {
     tenDaysAgo.setHours(0, 0, 0, 0);
 
     // Фильтруем по дате (последние 10 дней) - используем getDateKey для сравнения
-    const recentShipments = filteredData.filter(item => {
+    const recentShipments = materialFiltered.filter(item => {
       const itemDate = parseUniversalDate(item.date);
       itemDate.setHours(0, 0, 0, 0);
       return itemDate >= tenDaysAgo;
@@ -130,8 +133,8 @@ export default function ChartsView({ data, mode = 'tas' }: ChartsViewProps) {
 
     // Если нет данных за последние 10 дней, показываем последние 10 записей
     let shipmentsToShow = recentShipments;
-    if (recentShipments.length === 0 && filteredData.length > 0) {
-      shipmentsToShow = filteredData.slice(-10);
+    if (recentShipments.length === 0 && materialFiltered.length > 0) {
+      shipmentsToShow = materialFiltered.slice(-10);
     }
 
     // Группируем по дням
@@ -142,6 +145,7 @@ export default function ChartsView({ data, mode = 'tas' }: ChartsViewProps) {
       if (dateKey === 'unknown') return;
 
       const factory = shipment.division;
+      const matchesFactoryFilter = selectedFactory === 'all' || factory === selectedFactory;
 
       if (!grouped[dateKey]) {
         grouped[dateKey] = {
@@ -152,8 +156,11 @@ export default function ChartsView({ data, mode = 'tas' }: ChartsViewProps) {
         };
       }
 
-      grouped[dateKey].total += shipment.quantity;
-      grouped[dateKey].count += 1;
+      if (matchesFactoryFilter) {
+        grouped[dateKey].total += shipment.quantity;
+        grouped[dateKey].count += 1;
+      }
+      // Разбивка по заводам всегда полная, независимо от фильтра.
       if (factory) {
         grouped[dateKey].factories[factory] = (grouped[dateKey].factories[factory] || 0) + shipment.quantity;
       }
@@ -203,17 +210,9 @@ export default function ChartsView({ data, mode = 'tas' }: ChartsViewProps) {
     return `${day}.${month}`;
   };
 
-  const getFactoryData = () => {
-    if (selectedFactory === 'all') {
-      return dailyData;
-    }
-    return dailyData.map(day => ({
-      ...day,
-      total: day.factories[selectedFactory] || 0
-    }));
-  };
-
-  const filteredDataForChart = getFactoryData();
+  // total/count в dailyData уже учитывают выбранный фильтр завода (см.
+  // processData) — отдельная функция-надстройка больше не нужна.
+  const filteredDataForChart = dailyData;
   const filteredMax = Math.max(...filteredDataForChart.map(d => d.total), 0);
 
   const getBarHeight = (total: number) => {
