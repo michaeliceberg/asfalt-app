@@ -21,7 +21,7 @@ import {
   isIncomingDateToday
 } from '@/lib/utils';
 import TruckProgressBar from './TruckProgressBar';
-import { Factory, Truck, Package, User, Lock, Pointer, Building2, ChevronDown, ChevronRight, Map as MapIcon } from 'lucide-react';
+import { Factory, Truck, Package, User, Lock, Pointer, ChevronDown, ChevronRight, Map as MapIcon } from 'lucide-react';
 import { tapHaptic } from '@/lib/haptics';
 import { DEMO_DRIVER_PHONES } from '@/lib/demo-data';
 
@@ -1270,31 +1270,27 @@ useEffect(() => {
       exit={{ opacity: 0, height: 0 }}
       transition={{ duration: 0.2 }}
     >
-      {/* Грузополучатель и материал — раньше были плоскими строками
-          "лейбл: значение", как и Завод/Машин ниже, терялись в общей
-          массе текста. Вынесли в отдельный "премиальный" блок — карточки
-          с иконкой, чтобы это был визуальный акцент заявки, а не ещё одна
-          скучная строка. */}
-      <div className="detail-hero">
-        <div className="detail-hero-item">
-          <span className="detail-hero-icon"><Building2 size={14} strokeWidth={2.2} /></span>
-          <span>
-            <span className="detail-hero-label">Грузополучатель</span>
-            <span className="detail-hero-value">{item.consignee}</span>
-          </span>
-        </div>
-        <div className="detail-hero-item">
-          <span className="detail-hero-icon detail-hero-icon-alt"><Package size={14} strokeWidth={2.2} /></span>
-          <span>
-            <span className="detail-hero-label">Материал</span>
-            <span className="detail-hero-value">{item.material}</span>
-          </span>
-        </div>
+      {/* Материал — раньше вместе с Грузополучателем занимал плоскую
+          строку "лейбл: значение", дублируя то, что уже видно в свёрнутой
+          строке (там грузополучатель уже написан). Убрали дубль, оставили
+          только материал — теперь в одну строку с иконкой (не пустует
+          справа, как было при вертикальной раскладке двух блоков) и по
+          клику на него заявка сворачивается обратно, как и по клику на
+          саму строку. */}
+      <div
+        className="detail-hero"
+        onClick={(e) => { e.stopPropagation(); tapHaptic(); setExpandedId(null); }}
+      >
+        <span className="detail-hero-icon"><Package size={14} strokeWidth={2.2} /></span>
+        <span className="detail-hero-label">Материал</span>
+        <span className="detail-hero-value">{item.material}</span>
       </div>
 
       {/* Мостик на вкладку GPS — открывает карту с колонной именно этой
-          заявки (см. onShowOnMap в page.tsx/demo/page.tsx). */}
-      {onShowOnMap && item.vehicles.length > 0 && (mode === 'tas' || demoMode) && (
+          заявки (см. onShowOnMap в page.tsx/demo/page.tsx). Только для
+          сегодняшних заявок — у прошлых дней машины давно не в рейсе,
+          показывать "на карте" уже нечего. */}
+      {onShowOnMap && isToday && item.vehicles.length > 0 && (mode === 'tas' || demoMode) && (
         <button
           className="show-on-map-btn"
           onClick={(e) => {
@@ -1307,8 +1303,36 @@ useEffect(() => {
         </button>
       )}
 
-      {/* Прогресс-бар для каждой машины */}
-      {item.vehicles.length > 0 && (mode === 'tas' || demoMode) && (
+      {/* Живой прогресс-бар — только для СЕГОДНЯШНИХ рейсов: расстояние/ETA
+          берутся из живого GPS-опроса (/api/trucks-distances), у него
+          просто нет и не может быть данных на позавчерашний рейс — машина
+          давно приехала и уехала на другие рейсы. Раньше диаграмма
+          рисовалась для любой даты и на старых заявках всегда молча
+          показывала "Нет данных", что выглядело как баг ("почему нет GPS
+          для этой машины?"), хотя это ожидаемо. Для прошлых дней — простой
+          список без живого трекинга. */}
+      {item.vehicles.length > 0 && (mode === 'tas' || demoMode) && !isToday && (
+        <div className="vehicles-list">
+          <div className="vehicles-title"><Truck size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Транспорт (доставлено):</div>
+          {[...item.vehicles]
+            .sort((a, b) => {
+              const dateA = a.fullDateTime || a.time;
+              const dateB = b.fullDateTime || b.time;
+              return dateB.localeCompare(dateA);
+            })
+            .map((vehicle, i) => (
+              <div key={i} className="vehicle-item">
+                <span className="vehicle-time">{vehicle.fullDateTime || vehicle.time}</span>
+                <span className="vehicle-license">{vehicle.licensePlate}</span>
+                <span className="vehicle-driver-inline"><User size={11} strokeWidth={2.2} style={{ marginRight: 2, verticalAlign: -1 }} />{vehicle.driver}</span>
+                <span className="vehicle-quantity">{vehicle.quantity.toFixed(1)} {item.unit === 'м³' ? 'м³' : 'т'}</span>
+              </div>
+            ))}
+        </div>
+      )}
+
+      {/* Прогресс-бар для каждой машины — только сегодня, см. комментарий выше */}
+      {item.vehicles.length > 0 && (mode === 'tas' || demoMode) && isToday && (
         <div className="truck-progress-list">
           {[...item.vehicles]
             .sort((a, b) => {
