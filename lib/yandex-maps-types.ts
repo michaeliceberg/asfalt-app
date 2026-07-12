@@ -57,6 +57,8 @@ export interface YandexMaps {
   ) => unknown;
   // Прокладывает маршрут по РЕАЛЬНЫМ дорогам (а не "по прямой", как раньше
   // рисовала простая Polyline) — визуально понятнее, как машина едет.
+  // Не используется сейчас (платный продукт, см. TruckMap.tsx), но тип
+  // оставлен на случай если когда-нибудь подключим платную лицензию.
   multiRouter: {
     MultiRoute: new (
       params: {
@@ -65,6 +67,12 @@ export interface YandexMaps {
       },
       options: Record<string, unknown>
     ) => YandexMultiRoute;
+  };
+  // Фабрика полностью кастомных HTML-макетов меток (без стандартного
+  // синего "пина" — в отличие от iconLayout: 'default#imageWithContent',
+  // который ВСЕГДА рисует дефолтную форму позади вашего контента).
+  templateLayoutFactory: {
+    createClass: (template: string) => unknown;
   };
   ready: (callback: () => void) => void;
 }

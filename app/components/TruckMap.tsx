@@ -158,13 +158,22 @@ const DEST_GLYPH = `
   </svg>
 `;
 
+// Все бейджи ниже — корневой div ставится в position:absolute;left:0;top:0
+// и центруется через transform: translate(-50%,-50%). Это нужно потому что
+// раньше метки рисовались через iconLayout: 'default#imageWithContent' —
+// пресет Яндекса, который ВСЕГДА подкладывает под контент свою стандартную
+// иконку (синяя "капелька"), а iconContentOffset лишь придвигал наш HTML
+// рядом с ней, а не поверх — отсюда были "две метки рядом". Теперь метки —
+// полностью кастомный ymaps.templateLayoutFactory-макет (см. ниже), без
+// какой-либо дефолтной формы под низом, поэтому сами следим за центровкой.
+
 function buildTruckBadgeHtml(color: string, selected: boolean): string {
   const size = selected ? 40 : 30;
   const ring = selected
     ? `<div class="truck-badge-pulse" style="position:absolute;inset:-6px;border-radius:50%;border:2px solid ${color};"></div>`
     : '';
   return `
-    <div style="position:relative;width:${size}px;height:${size}px;">
+    <div style="position:absolute;left:0;top:0;transform:translate(-50%,-50%);width:${size}px;height:${size}px;">
       ${ring}
       <div style="
         width:${size}px;height:${size}px;border-radius:50%;
@@ -179,7 +188,7 @@ function buildTruckBadgeHtml(color: string, selected: boolean): string {
 
 function buildFactoryBadgeHtml(name: string): string {
   return `
-    <div style="display:flex;flex-direction:column;align-items:center;">
+    <div style="position:absolute;left:0;top:0;transform:translate(-50%,-50%);">
       <div style="
         width:38px;height:38px;border-radius:50%;
         background:linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
@@ -188,6 +197,8 @@ function buildFactoryBadgeHtml(name: string): string {
         display:flex;align-items:center;justify-content:center;
       ">${FACTORY_GLYPH}</div>
       <div style="
+        position:absolute;top:100%;left:50%;
+        transform:translateX(-50%);
         margin-top:5px;
         background:#1a1a2e;
         color:#fff;
@@ -207,7 +218,7 @@ function buildFactoryBadgeHtml(name: string): string {
 
 function buildDestinationBadgeHtml(name: string, count: number, color: string): string {
   return `
-    <div style="display:flex;flex-direction:column;align-items:center;">
+    <div style="position:absolute;left:0;top:0;transform:translate(-50%,-50%);">
       <div style="
         width:34px;height:34px;border-radius:50%;
         background:${color};
@@ -216,6 +227,8 @@ function buildDestinationBadgeHtml(name: string, count: number, color: string): 
         display:flex;align-items:center;justify-content:center;
       ">${DEST_GLYPH}</div>
       <div style="
+        position:absolute;top:100%;left:50%;
+        transform:translateX(-50%);
         margin-top:5px;
         background:#fff;
         color:#1a1a2e;
@@ -353,8 +366,8 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
 
       const placemark = new ymaps.Placemark(
         [coords.lat, coords.lng],
-        { iconContent: buildFactoryBadgeHtml(coords.name || route.factory) },
-        { iconLayout: 'default#imageWithContent', iconContentOffset: [0, -19] }
+        {},
+        { iconLayout: ymaps.templateLayoutFactory.createClass(buildFactoryBadgeHtml(coords.name || route.factory)) }
       );
       map.geoObjects.add(placemark);
       factoryMarksRef.current.push(placemark);
@@ -414,8 +427,8 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
       // Точка назначения — премиальный бейдж с числом машин прямо в подписи
       const destPlacemark = new ymaps.Placemark(
         [route.destCoords.lat, route.destCoords.lng],
-        { iconContent: buildDestinationBadgeHtml(route.destination, route.count, color) },
-        { iconLayout: 'default#imageWithContent', iconContentOffset: [0, -17] }
+        {},
+        { iconLayout: ymaps.templateLayoutFactory.createClass(buildDestinationBadgeHtml(route.destination, route.count, color)) }
       );
       map.geoObjects.add(destPlacemark);
       routesRef.current[route.destination + '_dest'] = destPlacemark;
@@ -468,14 +481,28 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
     }
   }, [trucks, routes, drawRoutes]);
 
+  // initMap пересоздаётся при каждом обновлении trucks/routes (позиции машин
+  // тикают каждые несколько секунд). Раньше эффект загрузки скрипта ниже
+  // зависел прямо от initMap ([initMap]) — а значит, при КАЖДОМ тике эффект
+  // "перезапускался": срабатывал cleanup (map.geoObjects.removeAll(),
+  // isMapReady=false, mapRef=null), а следом карта пересоздавалась заново.
+  // Именно из-за этого при первом заходе на вкладку GPS ничего не успевало
+  // нарисоваться (пересоздание обрывало отрисовку на полпути), а после
+  // переключения на другую вкладку и обратно — уже успевало устояться.
+  // Держим последнюю версию initMap в ref и вызываем эффект только один раз.
+  const initMapRef = useRef(initMap);
+  useEffect(() => {
+    initMapRef.current = initMap;
+  }, [initMap]);
+
   // ============================================
-  // ЗАГРУЗКА API ЯНДЕКС КАРТ
+  // ЗАГРУЗКА API ЯНДЕКС КАРТ (запускается один раз при монтировании)
   // ============================================
 
   useEffect(() => {
     if (window.ymaps) {
       if (!mapRef.current && !initMapCalledRef.current) {
-        initMap();
+        initMapRef.current();
       }
       return;
     }
@@ -495,7 +522,7 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
       if (window.ymaps) {
         window.ymaps.ready(() => {
           if (!mapRef.current && !initMapCalledRef.current) {
-            initMap();
+            initMapRef.current();
           }
         });
       } else {
@@ -528,7 +555,8 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
         initMapCalledRef.current = false;
       }
     };
-  }, [initMap]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // намеренно один раз при монтировании — см. комментарий выше про initMapRef
 
   // ============================================
   // ОБНОВЛЕНИЕ МАРКЕРОВ МАШИН
@@ -588,7 +616,6 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
       const placemark = new ymaps.Placemark(
         [truck.position.lat, truck.position.lng],
         {
-          iconContent: buildTruckBadgeHtml(statusColor, isSelected),
           balloonContent: `
             <div style="padding: 8px; min-width: 200px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
               <div style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
@@ -608,8 +635,7 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
           `,
         },
         {
-          iconLayout: 'default#imageWithContent',
-          iconContentOffset: isSelected ? [-20, -20] : [-15, -15],
+          iconLayout: ymaps.templateLayoutFactory.createClass(buildTruckBadgeHtml(statusColor, isSelected)),
         }
       );
 
@@ -722,32 +748,36 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
             mapRef.current.geoObjects.remove(window._routeTimePlacemark);
           }
 
+          // Полупрозрачный фон (rgba + blur) — раньше карточка была полностью
+          // непрозрачной и заслоняла кусок карты под собой.
+          const etaHtml = `
+            <div style="
+              position:absolute;left:0;top:0;
+              transform:translate(-50%, calc(-100% - 14px));
+              background: linear-gradient(135deg, rgba(26,26,46,0.82) 0%, rgba(22,33,62,0.82) 50%, rgba(15,52,96,0.82) 100%);
+              backdrop-filter: blur(6px);
+              -webkit-backdrop-filter: blur(6px);
+              color: #fff;
+              padding: 9px 15px;
+              border-radius: 13px;
+              font-size: 13px;
+              font-weight: 700;
+              border: 1.5px solid rgba(255,217,61,0.5);
+              box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+              font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+              text-align: center;
+              min-width: 120px;
+              white-space: nowrap;
+            ">
+              <div style="color:#ffd93d;">⏱ ${routeInfo.durationFormatted}</div>
+              <div style="font-size: 11px; color: #cfd2e6; font-weight:500; margin-top:2px;">до места · ${routeInfo.distance} км</div>
+            </div>
+          `;
+
           const placemark = new ymaps.Placemark(
             [truckPos.lat, truckPos.lng],
-            {
-              iconContent: `
-                <div style="
-                  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-                  color: #fff;
-                  padding: 9px 15px;
-                  border-radius: 13px;
-                  font-size: 13px;
-                  font-weight: 700;
-                  border: 1.5px solid rgba(255,217,61,0.5);
-                  box-shadow: 0 6px 20px rgba(0,0,0,0.35);
-                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                  text-align: center;
-                  min-width: 120px;
-                ">
-                  <div style="color:#ffd93d;">⏱ ${routeInfo.durationFormatted}</div>
-                  <div style="font-size: 11px; color: #9090b0; font-weight:500; margin-top:2px;">до места · ${routeInfo.distance} км</div>
-                </div>
-              `,
-            },
-            {
-              iconLayout: 'default#imageWithContent',
-              iconContentOffset: [0, -56],
-            }
+            {},
+            { iconLayout: ymaps.templateLayoutFactory.createClass(etaHtml) }
           );
 
           mapRef.current.geoObjects.add(placemark);
