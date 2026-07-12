@@ -135,7 +135,10 @@ interface ApiRequest {
 }
 
 type MainTab = 'incoming' | 'shipment' | 'shipmentConcrete' | 'summary';
-type ViewTab = 'compact' | 'grouped' | 'list' | 'charts' | 'topCustomers';
+// 'gps' — вкладка есть только в компоненте ViewTabs при showGps (сейчас
+// только /demo); тут держим её в union для совместимости типов пропа
+// onTabChange, реально она в боевом приложении никогда не рендерится.
+type ViewTab = 'compact' | 'grouped' | 'list' | 'charts' | 'topCustomers' | 'gps';
 type UnifiedDataItem = IncomingItem | ShipmentItem;
 
 // ============================================

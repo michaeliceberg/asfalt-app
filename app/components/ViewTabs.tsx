@@ -1,17 +1,22 @@
 // components/ViewTabs.tsx
 'use client';
 
-import { LayoutGrid, List, BarChart2, Trophy } from 'lucide-react';
+import { LayoutGrid, List, BarChart2, Trophy, Satellite } from 'lucide-react';
 import { tapHaptic } from '@/lib/haptics';
 
-type ViewTab = 'compact' | 'grouped' | 'list' | 'charts' | 'topCustomers';
+type ViewTab = 'compact' | 'grouped' | 'list' | 'charts' | 'topCustomers' | 'gps';
 
 interface ViewTabsProps {
   activeTab: ViewTab;
   onTabChange: (tab: ViewTab) => void;
+  // Вкладка "GPS" — только там, где явно попросили её показать (сейчас
+  // только /demo, для витрины PRO-фичи "GPS-навигация"). В боевом
+  // приложении GPS живёт на отдельной странице /trucks, вкладку сюда
+  // не добавляем, чтобы не менять привычный UI без явного запроса.
+  showGps?: boolean;
 }
 
-export default function ViewTabs({ activeTab, onTabChange }: ViewTabsProps) {
+export default function ViewTabs({ activeTab, onTabChange, showGps = false }: ViewTabsProps) {
   const handleChange = (tab: ViewTab) => {
     tapHaptic();
     onTabChange(tab);
@@ -46,6 +51,15 @@ export default function ViewTabs({ activeTab, onTabChange }: ViewTabsProps) {
       >
         <Trophy size={15} strokeWidth={2.2} /> Топ-10
       </button>
+
+      {showGps && (
+        <button
+          className={`tab ${activeTab === 'gps' ? 'active' : ''}`}
+          onClick={() => handleChange('gps')}
+        >
+          <Satellite size={15} strokeWidth={2.2} /> GPS
+        </button>
+      )}
     </div>
   );
 }

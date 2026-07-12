@@ -67,6 +67,10 @@ export const FACTORY_COLORS: Record<FactoryCode, string> = {
 
 
 export function getFactoryColor(factory: string): string {
+  // Демо-заводы не входят в строгий FactoryCode (тот только ЛХ/ЛЮ/СП/Щ) —
+  // те же цвета, что и у бейджей СЕ/ЮГ в остальном приложении (globals.css).
+  if (factory === 'ДЕМО-СЕВ') return '#3a56d4';
+  if (factory === 'ДЕМО-ЮГ') return '#0d9488';
   return FACTORY_COLORS[factory as FactoryCode] || '#888888';
 }
 

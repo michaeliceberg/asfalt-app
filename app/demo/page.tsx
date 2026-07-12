@@ -18,13 +18,14 @@ import PricingSection from '@/app/components/PricingSection';
 import SummaryView from '@/app/components/SummaryView';
 import OnboardingTour from '@/app/components/OnboardingTour';
 import DemoPushSimulator from '@/app/components/DemoPushSimulator';
+import DemoTruckColonna from '@/app/components/DemoTruckColonna';
 import { IncomingItem, ShipmentItem } from '@/app/page';
 import { getFactoryName, isConcreteMaterial, isSpecialMaterial } from '@/lib/utils';
 import { getDemoData, demoRequests, demoFutureRequests } from '@/lib/demo-data';
 import { Inbox } from 'lucide-react';
 
 type MainTab = 'incoming' | 'shipment' | 'shipmentConcrete' | 'summary';
-type ViewTab = 'compact' | 'list' | 'charts' | 'topCustomers';
+type ViewTab = 'compact' | 'list' | 'charts' | 'topCustomers' | 'gps';
 
 type UnifiedDataItem = IncomingItem | ShipmentItem;
 
@@ -138,6 +139,7 @@ export default function DemoPage() {
             <ViewTabs
               activeTab={activeViewTab}
               onTabChange={(tab) => setActiveViewTab(tab as ViewTab)}
+              showGps
             />
 
             <div className="stats">
@@ -172,7 +174,9 @@ export default function DemoPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3 }}
       >
-        {filteredData.length === 0 ? (
+        {activeViewTab === 'gps' ? (
+          <DemoTruckColonna />
+        ) : filteredData.length === 0 ? (
           <div className="empty" style={{ padding: '40px 20px', textAlign: 'center' }}>
             <p style={{ fontSize: '18px', color: '#888', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
               <Inbox size={18} strokeWidth={2.2} />Нет данных для отображения
