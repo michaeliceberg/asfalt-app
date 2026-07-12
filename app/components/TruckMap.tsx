@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getTruckType, getStatusColor } from '@/lib/truck-icons';
 import { getFactoryColor, getFactoryCoords } from '@/lib/constants';
-import type { YandexMap, YandexPlacemark, YandexMultiRoute } from '@/lib/yandex-maps-types';
+import type { YandexMap, YandexPlacemark } from '@/lib/yandex-maps-types';
 import { Truck as TruckIconLucide, Zap, Clock, Target, MapPin } from 'lucide-react';
 
 // ============================================
@@ -236,6 +236,40 @@ function buildDestinationBadgeHtml(name: string, count: number, color: string): 
 // АВТО-МАСШТАБ
 // ============================================
 
+// Плавная маршрутная линия завод → destination. Раньше здесь был
+// ymaps.multiRouter.MultiRoute (прокладка по реальным дорогам) — но
+// у Яндекса это отдельный ПЛАТНЫЙ продукт "Получение деталей маршрута"
+// (бесплатного тарифа нет вообще, от 226 200 ₽/год), в то время как сам
+// JavaScript API с картой и метками бесплатен. Чтобы не подключать
+// платную лицензию, линия колонны — сглаженная кривая (квадратичный
+// Безье с изгибом перпендикулярно направлению), визуально читается как
+// "путь", но не претендует на точное повторение дорог и ничего не стоит.
+function buildRouteCurvePoints(
+  from: { lat: number; lng: number },
+  to: { lat: number; lng: number },
+  segments = 28
+): [number, number][] {
+  const dLat = to.lat - from.lat;
+  const dLng = to.lng - from.lng;
+  const dist = Math.sqrt(dLat * dLat + dLng * dLng) || 1;
+  const perpLat = -dLng / dist;
+  const perpLng = dLat / dist;
+  const bulge = dist * 0.14;
+  const ctrlLat = (from.lat + to.lat) / 2 + perpLat * bulge;
+  const ctrlLng = (from.lng + to.lng) / 2 + perpLng * bulge;
+
+  const points: [number, number][] = [];
+  for (let i = 0; i <= segments; i++) {
+    const t = i / segments;
+    const mt = 1 - t;
+    points.push([
+      mt * mt * from.lat + 2 * mt * t * ctrlLat + t * t * to.lat,
+      mt * mt * from.lng + 2 * mt * t * ctrlLng + t * t * to.lng,
+    ]);
+  }
+  return points;
+}
+
 function computeBounds(points: [number, number][]): [[number, number], [number, number]] | null {
   if (points.length === 0) return null;
   let minLat = points[0][0], maxLat = points[0][0];
@@ -328,7 +362,8 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
   }, [isMapReady, routes]);
 
   // ============================================
-  // ОТРИСОВКА МАРШРУТОВ — по РЕАЛЬНЫМ дорогам (multiRoute), не "по прямой"
+  // ОТРИСОВКА МАРШРУТОВ — плавная кривая завод → destination (бесплатно,
+  // без платного Router API — см. комментарий у buildRouteCurvePoints)
   // ============================================
 
   const drawRoutes = useCallback(() => {
@@ -348,33 +383,33 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
       if (!route.destCoords || !route.factoryCoords) return;
 
       const color = getFactoryColor(route.factory) || '#4ade80';
+      const curvePoints = buildRouteCurvePoints(route.factoryCoords, route.destCoords);
 
-      // Линия маршрута по реальным дорогам (визуально понятно, как машина
-      // едет — раньше была прямая линия "по воздуху" между точками).
-      const multiRoute: YandexMultiRoute = new ymaps.multiRouter.MultiRoute(
+      // Мягкое "свечение" под линией — визуально премиальнее плоской линии.
+      const glowLine = new ymaps.Polyline(
+        curvePoints,
+        {},
         {
-          referencePoints: [
-            [route.factoryCoords.lat, route.factoryCoords.lng],
-            [route.destCoords.lat, route.destCoords.lng],
-          ],
-          params: { routingMode: 'auto' },
-        },
-        {
-          boundsAutoApply: false,
-          wayPointVisible: false,
-          viaPointVisible: false,
-          pinVisible: false,
-          routeActiveStrokeWidth: 4,
-          routeActiveStrokeColor: color,
-          routeActiveStrokeOpacity: 0.85,
-          routeStrokeWidth: 4,
-          routeStrokeColor: color,
-          routeStrokeOpacity: 0.55,
+          strokeColor: color,
+          strokeWidth: 9,
+          strokeOpacity: 0.16,
         }
       );
+      map.geoObjects.add(glowLine);
+      routesRef.current[route.destination + '_glow'] = glowLine;
 
-      map.geoObjects.add(multiRoute);
-      routesRef.current[route.destination] = multiRoute;
+      // Основная маршрутная линия.
+      const routeLine = new ymaps.Polyline(
+        curvePoints,
+        {},
+        {
+          strokeColor: color,
+          strokeWidth: 3.5,
+          strokeOpacity: 0.9,
+        }
+      );
+      map.geoObjects.add(routeLine);
+      routesRef.current[route.destination] = routeLine;
 
       // Точка назначения — премиальный бейдж с числом машин прямо в подписи
       const destPlacemark = new ymaps.Placemark(
@@ -449,9 +484,11 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
     isScriptLoadingRef.current = true;
 
     const script = document.createElement('script');
-    // modules=multiRouter.MultiRoute — нужен для прокладки маршрута по
-    // реальным дорогам (раньше грузился только базовый набор модулей).
-    script.src = `https://api-maps.yandex.ru/2.1/?apikey=${process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY || ''}&lang=ru_RU&modules=multiRouter.MultiRoute`;
+    // Базовый набор модулей — без multiRouter.MultiRoute, т.к. прокладка
+    // маршрута по реальным дорогам это отдельный платный продукт Яндекса
+    // (см. комментарий у buildRouteCurvePoints выше). Линия колонны
+    // рисуется бесплатной Polyline по сглаженной кривой.
+    script.src = `https://api-maps.yandex.ru/2.1/?apikey=${process.env.NEXT_PUBLIC_YANDEX_MAPS_API_KEY || ''}&lang=ru_RU`;
     script.async = true;
 
     script.onload = () => {
