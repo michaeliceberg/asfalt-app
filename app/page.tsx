@@ -158,6 +158,7 @@ interface GpsRoute {
   licensePlates: string[];
   destCoords: { lat: number; lng: number; name: string } | null;
   factoryCoords: { lat: number; lng: number; name: string } | null;
+  lastShipmentDate?: string | null;
 }
 
 // ============================================
@@ -982,6 +983,36 @@ const handleRefresh = async () => {
 
   const filteredData = getCurrentData();
 
+  // GPS-вкладка: /api/trucks отдаёт СЫРЫЕ данные — все машины компании
+  // (реальный GPS-трекер, независимо от того, есть ли у них сейчас рейс)
+  // и ВСЕ маршруты (в т.ч. старые/чужого завода/режима). Раньше страница
+  // /trucks сама фильтровала это до "активных сегодня по текущему режиму"
+  // маршрутов — тут делаем то же самое, иначе на карте рисовались чужие
+  // /устаревшие маршруты (та самая "непонятная синяя линия") и bounds
+  // считались по точкам за сотни км друг от друга, отсюда и "нет данных
+  // для этого участка" — карта пыталась влезть в невозможный масштаб.
+  const gpsActiveRoutes = gpsRoutes.filter((route) => {
+    const wantFactories = mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ'];
+    if (!wantFactories.includes(route.factory)) return false;
+    if (!route.lastShipmentDate) return false;
+    const shipmentDate = parseRussianDate(route.lastShipmentDate);
+    shipmentDate.setHours(0, 0, 0, 0);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return shipmentDate.getTime() === today.getTime();
+  });
+
+  // Как и в demo — показываем только машины реально активных маршрутов,
+  // а не весь боевой автопарк компании (это отдельная задача страницы
+  // /trucks, тут нужен фокус на текущей колонне, как в demo).
+  const gpsRelevantPlates = new Set(
+    gpsActiveRoutes.flatMap((r) => r.licensePlates.map((p) => p.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '')))
+  );
+  const gpsActiveTrucks = gpsTrucks.filter((t) => {
+    const tName = t.name.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
+    return gpsRelevantPlates.has(tName);
+  });
+
   const outgoingRequestsForCompact = outgoingRequests.map(req => ({
     number: req.number,
     date: req.date,
@@ -1258,7 +1289,7 @@ useEffect(() => {
           )}
 
           {activeMainTab !== 'summary' && activeViewTab === 'gps' && (
-            <div style={{ height: 520, borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
+            <div style={{ minHeight: 200, borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
               {gpsError && (
                 <div style={{
                   position: 'absolute', top: 12, left: 12, right: 12, zIndex: 10,
@@ -1270,8 +1301,15 @@ useEffect(() => {
               )}
               {gpsLoading && gpsTrucks.length === 0 ? (
                 <LoadingSpinner message="Загрузка данных GPS..." size="large" />
+              ) : gpsActiveRoutes.length === 0 ? (
+                <div className="empty" style={{ padding: '40px 20px', textAlign: 'center' }}>
+                  <p style={{ fontSize: '16px', color: '#888' }}>Нет активных отгрузок сегодня</p>
+                  <p style={{ fontSize: '13px', color: '#aaa' }}>GPS-колонна появится здесь, как только пойдут рейсы</p>
+                </div>
               ) : (
-                <TruckMap trucks={gpsTrucks} routes={gpsRoutes} filterPlate={null} />
+                <div style={{ height: 520 }}>
+                  <TruckMap trucks={gpsActiveTrucks} routes={gpsActiveRoutes} filterPlate={null} />
+                </div>
               )}
             </div>
           )}

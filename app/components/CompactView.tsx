@@ -486,11 +486,15 @@ useEffect(() => {
       else if (incoming.division === 'ДЕМО-СЕВ') factory = 'СЕ';
       else if (incoming.division === 'ДЕМО-ЮГ') factory = 'ЮГ';
       else if (incoming.division) factory = incoming.division;
-      
-      const documentNumber = incoming.number || 'unknown';
-      const vehicleId = incoming.licensePlate || incoming.driver || 'unknown';
-      const groupKey = `${dateKey}_${factory}_${incoming.material}_${incoming.supplier}_${documentNumber}_${vehicleId}`;
-      
+
+      // Раньше в ключ группы попадали ещё и номер документа, и госномер
+      // машины — а они уникальны для КАЖДОЙ отдельной машины, поэтому
+      // группа никогда не получала больше одной машины: "агрегат" не
+      // работал, каждая поставка рисовалась отдельной строкой. Группируем
+      // так же, как везде — по дню+заводу+материалу+поставщику, а машины
+      // (документы) внутри дня складываются в один vehicles[] массив.
+      const groupKey = `${dateKey}_${factory}_${incoming.material}_${incoming.supplier}`;
+
       if (!acc[dateKey]) {
         acc[dateKey] = new Map<string, GroupedItem>();
       }
