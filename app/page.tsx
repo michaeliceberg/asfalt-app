@@ -241,6 +241,10 @@ export default function Home() {
   const [gpsRoutes, setGpsRoutes] = useState<GpsRoute[]>([]);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
+  // Мостик "Показать на карте" из развёрнутой заявки (CompactView) — узнаём
+  // госномер одной машины заявки, находим по нему нужный маршрут (см.
+  // filterPlate в TruckMap.tsx) и сразу открываем на нём вкладку GPS.
+  const [gpsFilterPlate, setGpsFilterPlate] = useState<string | null>(null);
 
   const { accessibleFactories } = useAuth();
 
@@ -335,7 +339,17 @@ export default function Home() {
   };
 
   const handleViewTabChange = (tab: ViewTab) => {
+    // Ручное переключение вкладки — сбрасываем фильтр от "Показать на
+    // карте" (см. handleShowOnMap), иначе GPS молча останется сужен на
+    // машины прошлой заявки, если открыть его напрямую через вкладки.
+    setGpsFilterPlate(null);
     setActiveViewTab(tab);
+    setContentKey(prev => prev + 1);
+  };
+
+  const handleShowOnMap = (licensePlate: string) => {
+    setGpsFilterPlate(licensePlate);
+    setActiveViewTab('gps');
     setContentKey(prev => prev + 1);
   };
 
@@ -1274,6 +1288,7 @@ useEffect(() => {
               allShipmentsForChart={shipmentData}
               selectedFactory={activeFactory}
               mode={mode}
+              onShowOnMap={handleShowOnMap}
             />
           )}
 
@@ -1308,7 +1323,7 @@ useEffect(() => {
                 </div>
               ) : (
                 <div style={{ height: 520 }}>
-                  <TruckMap trucks={gpsActiveTrucks} routes={gpsActiveRoutes} filterPlate={null} />
+                  <TruckMap trucks={gpsActiveTrucks} routes={gpsActiveRoutes} filterPlate={gpsFilterPlate} />
                 </div>
               )}
             </div>

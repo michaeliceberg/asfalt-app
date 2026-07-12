@@ -3825,6 +3825,82 @@ body {
   word-break: break-word;
 }
 
+/* "Премиальный" блок Грузополучатель/Материал в развёрнутой заявке —
+   вместо плоских строк "лейбл: значение" (как у Завод/Машин ниже). */
+.detail-hero {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: linear-gradient(135deg, #eef1ff 0%, #f7f8ff 100%);
+  border: 1px solid #dde3fb;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.detail-hero-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.detail-hero-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #3a56d4, #5b7cfa);
+  color: #fff;
+}
+
+.detail-hero-icon-alt {
+  background: linear-gradient(135deg, #16a34a, #4ade80);
+}
+
+.detail-hero-label {
+  display: block;
+  font-size: 10px;
+  font-weight: 700;
+  color: #6b7896;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.detail-hero-value {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  color: #1a1a2e;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+/* Кнопка-мостик "Показать на карте" — переключает на вкладку GPS и
+   центрирует карту на колонне именно этой заявки. */
+.show-on-map-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+  background: rgba(58, 86, 212, 0.08);
+  border: 1px solid rgba(58, 86, 212, 0.25);
+  border-radius: 8px;
+  color: #3a56d4;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.show-on-map-btn:hover {
+  background: rgba(58, 86, 212, 0.15);
+}
 
 
 

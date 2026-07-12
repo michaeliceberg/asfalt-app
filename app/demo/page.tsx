@@ -220,6 +220,12 @@ export default function DemoPage() {
                 selectedFactory={activeFactory}
                 mode="iceberg"
                 demoMode
+                onShowOnMap={() => {
+                  // В демо всего одна синтетическая колонна — фильтровать
+                  // по госномеру не нужно, просто открываем вкладку GPS.
+                  setActiveMainTab('shipment');
+                  setActiveViewTab('gps');
+                }}
               />
             )}
 

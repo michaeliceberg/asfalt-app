@@ -21,7 +21,7 @@ import {
   isIncomingDateToday
 } from '@/lib/utils';
 import TruckProgressBar from './TruckProgressBar';
-import { Factory, Truck, Package, User, Lock, Pointer, Building2, ChevronDown, ChevronRight } from 'lucide-react';
+import { Factory, Truck, Package, User, Lock, Pointer, Building2, ChevronDown, ChevronRight, Map as MapIcon } from 'lucide-react';
 import { tapHaptic } from '@/lib/haptics';
 import { DEMO_DRIVER_PHONES } from '@/lib/demo-data';
 
@@ -70,6 +70,10 @@ interface CompactViewProps {
   // что и в ТАС, но с синтетическими (не GPS) статусами — реальных
   // координат у демо-машин нет, а /api/trucks-distances требует авторизацию.
   demoMode?: boolean;
+  // Мостик к вкладке GPS — "Показать на карте" в развёрнутой заявке.
+  // Один госномер достаточно: TruckMap сам находит по нему весь маршрут
+  // (см. filterPlate в TruckMap.tsx) и показывает всю колонну этой заявки.
+  onShowOnMap?: (licensePlate: string) => void;
 }
 
 interface VehicleItem {
@@ -200,7 +204,8 @@ export default function CompactView({
   allShipmentsForChart = [],
   selectedFactory = 'all',
   mode = 'tas',
-  demoMode = false
+  demoMode = false,
+  onShowOnMap
 }: CompactViewProps) {
 
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -1265,19 +1270,42 @@ useEffect(() => {
       exit={{ opacity: 0, height: 0 }}
       transition={{ duration: 0.2 }}
     >
-      {/* Полное имя контрагента — в свёрнутой строке колонка узкая и имя
-          обрезается многоточием (text-overflow: ellipsis), а тут места
-          достаточно, показываем целиком без обрезки. */}
-      <div className="detail-row">
-          <span className="detail-label"><Building2 size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Грузополучатель:</span>
-          <span className="detail-value">{item.consignee}</span>
+      {/* Грузополучатель и материал — раньше были плоскими строками
+          "лейбл: значение", как и Завод/Машин ниже, терялись в общей
+          массе текста. Вынесли в отдельный "премиальный" блок — карточки
+          с иконкой, чтобы это был визуальный акцент заявки, а не ещё одна
+          скучная строка. */}
+      <div className="detail-hero">
+        <div className="detail-hero-item">
+          <span className="detail-hero-icon"><Building2 size={14} strokeWidth={2.2} /></span>
+          <span>
+            <span className="detail-hero-label">Грузополучатель</span>
+            <span className="detail-hero-value">{item.consignee}</span>
+          </span>
+        </div>
+        <div className="detail-hero-item">
+          <span className="detail-hero-icon detail-hero-icon-alt"><Package size={14} strokeWidth={2.2} /></span>
+          <span>
+            <span className="detail-hero-label">Материал</span>
+            <span className="detail-hero-value">{item.material}</span>
+          </span>
+        </div>
       </div>
 
-      {/* Материал, без дублей */}
-      <div className="detail-row">
-          <span className="detail-label"><Package size={12} strokeWidth={2.2} style={{ marginRight: 3, verticalAlign: -2 }} />Материал:</span>
-          <span className="detail-value">{item.material}</span>
-      </div>
+      {/* Мостик на вкладку GPS — открывает карту с колонной именно этой
+          заявки (см. onShowOnMap в page.tsx/demo/page.tsx). */}
+      {onShowOnMap && item.vehicles.length > 0 && (mode === 'tas' || demoMode) && (
+        <button
+          className="show-on-map-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            tapHaptic();
+            onShowOnMap(item.vehicles[0].licensePlate);
+          }}
+        >
+          <MapIcon size={13} strokeWidth={2.4} />Показать на карте
+        </button>
+      )}
 
       {/* Прогресс-бар для каждой машины */}
       {item.vehicles.length > 0 && (mode === 'tas' || demoMode) && (
