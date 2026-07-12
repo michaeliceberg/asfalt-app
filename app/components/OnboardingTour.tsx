@@ -12,9 +12,16 @@
 // между позициями шагов, а не дёргается с одного места на другое.
 // Текст внутри подсказки при этом мягко перекрещивается через
 // AnimatePresence — двигается плавно контейнер, а не сам текст.
+//
+// Дополнительно: "бонусный" шаг, который включается не по таймеру тура,
+// а по внешнему триггеру (highlightPushTrigger) — когда на странице
+// прилетает демо-push-уведомление (см. DemoPushSimulator), тур снова
+// коротко просыпается и обращает на него внимание. Срабатывает только
+// если обычный 3-шаговый тур уже неактивен (stepIndex === -1) — если
+// пользователь всё ещё листает основной тур, не перебиваем его.
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface TourStep {
@@ -41,15 +48,29 @@ const STEPS: TourStep[] = [
   },
 ];
 
+const BONUS_STEP: TourStep = {
+  targetId: 'onboarding-push-notification',
+  title: 'Push-уведомления',
+  text: 'Заводу сразу приходит уведомление о новой заявке и о прибытии машины — даже если приложение свёрнуто.',
+};
+
 const SPOTLIGHT_PADDING = 8;
 const TOOLTIP_WIDTH = 280;
 const TOOLTIP_HEIGHT_ESTIMATE = 150;
 const SPRING = { type: 'spring' as const, stiffness: 260, damping: 28 };
 
-export default function OnboardingTour() {
+interface OnboardingTourProps {
+  // Внешний триггер бонус-шага про push-уведомления. Меняется с false на
+  // true (или инкрементится) снаружи, когда стоит показать подсказку.
+  highlightPushTrigger?: boolean;
+}
+
+export default function OnboardingTour({ highlightPushTrigger }: OnboardingTourProps) {
   const [stepIndex, setStepIndex] = useState<number>(-1); // -1 = тур не запущен
+  const [bonusMode, setBonusMode] = useState(false);
   const [rect, setRect] = useState<DOMRect | null>(null);
   const [viewport, setViewport] = useState({ w: 400, h: 800 });
+  const bonusShownRef = useRef(false);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -58,9 +79,21 @@ export default function OnboardingTour() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Бонус-шаг про push: срабатывает один раз, только если обычный тур
+  // сейчас неактивен (не мешаем, если пользователь ещё листает шаги 0-2).
+  useEffect(() => {
+    if (!highlightPushTrigger || bonusShownRef.current) return;
+    if (stepIndex !== -1) return;
+    bonusShownRef.current = true;
+    const t = setTimeout(() => setBonusMode(true), 300);
+    return () => clearTimeout(t);
+  }, [highlightPushTrigger, stepIndex]);
+
+  const activeStep: TourStep | null = bonusMode ? BONUS_STEP : (stepIndex >= 0 && stepIndex < STEPS.length ? STEPS[stepIndex] : null);
+
   const measure = useCallback(() => {
-    if (stepIndex < 0 || stepIndex >= STEPS.length) return;
-    const el = document.getElementById(STEPS[stepIndex].targetId);
+    if (!activeStep) return;
+    const el = document.getElementById(activeStep.targetId);
     if (!el) return;
     el.scrollIntoView({ block: 'center', behavior: 'smooth' });
     // Даём scrollIntoView время доехать перед тем, как замерять позицию —
@@ -70,7 +103,8 @@ export default function OnboardingTour() {
       setViewport({ w: window.innerWidth, h: window.innerHeight });
     }, 320);
     return () => clearTimeout(t);
-  }, [stepIndex]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeStep?.targetId]);
 
   useEffect(() => {
     const cleanup = measure();
@@ -83,20 +117,26 @@ export default function OnboardingTour() {
   }, [measure]);
 
   const finish = () => {
-    setStepIndex(-1);
+    if (bonusMode) {
+      setBonusMode(false);
+    } else {
+      setStepIndex(-1);
+    }
     setRect(null);
   };
 
   const next = () => {
-    if (stepIndex >= STEPS.length - 1) {
+    if (bonusMode) {
+      finish();
+    } else if (stepIndex >= STEPS.length - 1) {
       finish();
     } else {
       setStepIndex(stepIndex + 1); // rect НЕ сбрасываем — так прожектор плавно едет со старого места на новое
     }
   };
 
-  if (stepIndex < 0 || stepIndex >= STEPS.length) return null;
-  const step = STEPS[stepIndex];
+  if (!activeStep) return null;
+  const step = activeStep;
   const { w: viewportW, h: viewportH } = viewport;
 
   const spotlightTarget = rect
@@ -159,7 +199,7 @@ export default function OnboardingTour() {
       >
         <AnimatePresence mode="wait">
           <motion.div
-            key={stepIndex}
+            key={bonusMode ? 'bonus' : stepIndex}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -167,7 +207,7 @@ export default function OnboardingTour() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
               <span style={{ fontSize: 11, color: '#ffd93d', fontWeight: 700, letterSpacing: '0.3px' }}>
-                ШАГ {stepIndex + 1} ИЗ {STEPS.length}
+                {bonusMode ? 'КСТАТИ' : `ШАГ ${stepIndex + 1} ИЗ ${STEPS.length}`}
               </span>
               <button
                 onClick={finish}
@@ -192,7 +232,7 @@ export default function OnboardingTour() {
                 cursor: 'pointer',
               }}
             >
-              {stepIndex === STEPS.length - 1 ? 'Понятно!' : 'Далее'}
+              {bonusMode || stepIndex === STEPS.length - 1 ? 'Понятно!' : 'Далее'}
             </button>
           </motion.div>
         </AnimatePresence>

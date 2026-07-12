@@ -15,7 +15,11 @@ import {
   FileSpreadsheet,
   RefreshCw,
   Headphones,
+  Download,
+  Loader2,
 } from 'lucide-react';
+import type { IncomingItem, ShipmentItem } from '@/app/page';
+import { generateDemoExcelReport } from '@/lib/demo-excel-report';
 
 type Feature =
   | { kind: 'icon'; Icon: typeof Smartphone; text: string; premium?: boolean }
@@ -146,7 +150,88 @@ const FEATURE_ROWS: FeatureRow[] = [
   { Icon: Headphones, label: 'Приоритетная поддержка 24/7', values: [false, false, true] },
 ];
 
-export default function PricingSection() {
+interface PricingSectionProps {
+  // Демо-данные для живой демонстрации PRO-фичи "Excel отчёты" — кнопка
+  // ниже собирает приход/отгрузку за сегодня в .xlsx прямо в браузере.
+  incoming?: IncomingItem[];
+  shipments?: ShipmentItem[];
+}
+
+function ExcelReportCta({ incoming, shipments }: { incoming: IncomingItem[]; shipments: ShipmentItem[] }) {
+  const [downloading, setDownloading] = useState(false);
+
+  const handleDownload = async () => {
+    setDownloading(true);
+    try {
+      await generateDemoExcelReport({ incoming, shipments });
+    } finally {
+      setDownloading(false);
+    }
+  };
+
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      background: '#fff',
+      border: '1px solid #e9ecef',
+      borderRadius: 14,
+      padding: '14px 16px',
+      marginBottom: 20,
+    }}>
+      <div style={{
+        width: 38,
+        height: 38,
+        borderRadius: 10,
+        background: 'rgba(40,167,69,0.1)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0,
+      }}>
+        <FileSpreadsheet size={19} strokeWidth={2.2} color="#28a745" />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e', display: 'flex', alignItems: 'center', gap: 6 }}>
+          Excel-отчёты
+          <PremiumBadge />
+        </div>
+        <div style={{ fontSize: 11.5, color: '#888', marginTop: 1 }}>
+          Пример: приход и отгрузка за сегодня — один клик
+        </div>
+      </div>
+      <button
+        onClick={handleDownload}
+        disabled={downloading}
+        style={{
+          flexShrink: 0,
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          padding: '9px 12px',
+          borderRadius: 9,
+          border: '1px solid #28a745',
+          background: downloading ? '#f1f3f5' : 'rgba(40,167,69,0.08)',
+          color: '#28a745',
+          fontWeight: 600,
+          fontSize: 12.5,
+          cursor: downloading ? 'default' : 'pointer',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {downloading ? (
+          <Loader2 size={14} strokeWidth={2.4} className="spin" />
+        ) : (
+          <Download size={14} strokeWidth={2.4} />
+        )}
+        Скачать
+      </button>
+    </div>
+  );
+}
+
+export default function PricingSection({ incoming = [], shipments = [] }: PricingSectionProps) {
   // Карточки тарифов кликабельны — выбор подсвечивает соответствующий
   // столбец в таблице сравнения ниже, чтобы было видно, что именно входит
   // в выбранный тариф. По умолчанию выбран популярный (Стандарт).
@@ -162,6 +247,8 @@ export default function PricingSection() {
       }}
     >
       <FeatureChips />
+
+      <ExcelReportCta incoming={incoming} shipments={shipments} />
 
       <div style={{ textAlign: 'center', marginBottom: 16 }}>
         <h2 style={{

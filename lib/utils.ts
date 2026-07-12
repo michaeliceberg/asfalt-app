@@ -188,6 +188,12 @@ export const getFactoryBadgeClass = (factory: string): string => {
     case 'Щ': return 'factory-badge-small Щ';
     case 'СЕ': return 'factory-badge-small СЕ';
     case 'ЮГ': return 'factory-badge-small ЮГ';
+    // Демо передаёт "сырые" коды division (ДЕМО-СЕВ/ДЕМО-ЮГ), а не уже
+    // сокращённые СЕ/ЮГ — раньше они не попадали ни в один case и оба
+    // падали в default ("Другой"), поэтому в "На будущее" СЕВ и ЮГ
+    // выглядели одинаково (один и тот же серый/синий цвет).
+    case 'ДЕМО-СЕВ': return 'factory-badge-small СЕ';
+    case 'ДЕМО-ЮГ': return 'factory-badge-small ЮГ';
     default: return 'factory-badge-small Другой';
   }
 };

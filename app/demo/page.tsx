@@ -17,6 +17,7 @@ import DemoLanding from '@/app/components/DemoLanding'; // ← Новый ком
 import PricingSection from '@/app/components/PricingSection';
 import SummaryView from '@/app/components/SummaryView';
 import OnboardingTour from '@/app/components/OnboardingTour';
+import DemoPushSimulator from '@/app/components/DemoPushSimulator';
 import { IncomingItem, ShipmentItem } from '@/app/page';
 import { getFactoryName, isConcreteMaterial, isSpecialMaterial } from '@/lib/utils';
 import { getDemoData, demoRequests, demoFutureRequests } from '@/lib/demo-data';
@@ -32,6 +33,7 @@ export default function DemoPage() {
   const [activeMainTab, setActiveMainTab] = useState<MainTab>('shipment');
   const [activeViewTab, setActiveViewTab] = useState<ViewTab>('compact');
   const [activeFactory, setActiveFactory] = useState<string>('all');
+  const [pushHighlight, setPushHighlight] = useState(false);
   const [data, setData] = useState<{ incoming: IncomingItem[]; shipments: ShipmentItem[] }>({
     incoming: [],
     shipments: [],
@@ -94,7 +96,8 @@ export default function DemoPage() {
 
   return (
     <div className="container" style={{ paddingTop: 16, paddingBottom: 40 }}>
-      <OnboardingTour />
+      <OnboardingTour highlightPushTrigger={pushHighlight} />
+      <DemoPushSimulator onFirstShown={() => setPushHighlight(true)} />
 
       {/* ← УБИРАЕМ DemoBanner, СТАВИМ DemoLanding */}
       <DemoLanding />
@@ -251,7 +254,7 @@ export default function DemoPage() {
         <div style={{ flex: 1, height: 1, background: 'linear-gradient(90deg, #e0e0e8, transparent)' }} />
       </div>
 
-      <PricingSection />
+      <PricingSection incoming={data.incoming} shipments={data.shipments} />
     </div>
   );
 }
