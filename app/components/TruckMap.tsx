@@ -2,10 +2,10 @@
 'use client';
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { getTruckType, getStatusColor } from '@/lib/truck-icons';
+import { getStatusColor } from '@/lib/truck-icons';
 import { getFactoryColor, getFactoryCoords } from '@/lib/constants';
 import type { YandexMap, YandexPlacemark } from '@/lib/yandex-maps-types';
-import { Truck as TruckIconLucide, Zap, Clock, Target, MapPin } from 'lucide-react';
+import { Truck as TruckIconLucide, Zap, Target, Phone, X } from 'lucide-react';
 
 // ============================================
 // ТИПЫ
@@ -61,32 +61,8 @@ declare global {
 // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ
 // ============================================
 
-function getStatusLabel(vel: number, lastUpdate: string | null): string {
-  if (!lastUpdate) return '⚪ Нет данных';
-
-  const now = Date.now();
-  const lastUpdateTime = new Date(lastUpdate).getTime();
-  const minutesSinceUpdate = (now - lastUpdateTime) / 1000 / 60;
-
-  if (minutesSinceUpdate > 60) return '⚪ Офлайн';
-  if (vel === 0 && minutesSinceUpdate > 30) return '🔴 Стоит';
-  if (vel === 0) return '🟡 Загружается';
-  if (vel < 20) return '🟡 Медленно';
-  if (vel < 50) return '🟢 Едет';
-  return '🔵 Быстро';
-}
-
-function getTruckTypeEmoji(type: string): string {
-  switch (type) {
-    case 'mixer': return '🧱';
-    case 'tipper': return '🪨';
-    default: return '🚛';
-  }
-}
-
-// Версия статуса для JSX (карточка выбранной машины) — цветной кружок + текст
-// вместо emoji-строки (та используется в HTML-балунах Яндекс.Карт, где JSX
-// не работает, поэтому getStatusLabel выше оставлен как есть).
+// Цветной кружок + текст статуса — для JSX-карточки выбранной машины
+// (HTML-балун Яндекса больше не используется, вся инфа теперь только тут).
 function renderStatusBadge(vel: number, lastUpdate: string | null) {
   let color = '#9ca3af';
   let text = 'Нет данных';
@@ -116,14 +92,6 @@ function renderStatusBadge(vel: number, lastUpdate: string | null) {
       {text}
     </span>
   );
-}
-
-function getTruckTypeLabel(type: string): string {
-  switch (type) {
-    case 'mixer': return 'Бетоновоз';
-    case 'tipper': return 'Тонар';
-    default: return 'Самосвал';
-  }
 }
 
 function cleanDestName(name: string): string {
@@ -312,6 +280,7 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
 
   const mapRef = useRef<YandexMap | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const selectedCardRef = useRef<HTMLDivElement>(null);
   const placemarksRef = useRef<Record<string, YandexPlacemark>>({});
   const routesRef = useRef<Record<string, unknown>>({});
   const factoryMarksRef = useRef<unknown[]>([]);
@@ -319,11 +288,6 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
   const isScriptLoadingRef = useRef(false);
   const initMapCalledRef = useRef(false);
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  // "Подпись" набора маршрутов, для которого карта уже сама подобрала
-  // масштаб (см. авто-масштаб ниже) — чтобы не пересчитывать bounds и не
-  // дёргать карту под пальцем у пользователя на каждое обновление позиций
-  // машин (в демо — каждые 3.5с, на боевом /trucks — каждые 2 мин опроса).
-  const autoFitSignatureRef = useRef<string | null>(null);
 
   // ============================================
   // РАСЧЁТ ВРЕМЕНИ МАРШРУТА (формула на сервере — без изменений)
@@ -614,45 +578,20 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
 
       const vel = truck.position.vel;
       const statusColor = getStatusColor(vel, truck.lastUpdate);
-      const truckType = getTruckType(truck.name);
       const isSelected = selectedTruck?.uid === truck.uid;
 
-      const destinationInfo = truck.destination ? `
-        <div style="font-size: 12px; color: #888; border-top: 1px solid #eee; padding-top: 4px; margin-top: 4px;">
-          🎯 ${truck.destination}
-        </div>
-      ` : '';
-
-      const driverInfo = truck.driver ? `
-        <div style="font-size: 12px; color: #888; border-top: 1px solid #eee; padding-top: 4px; margin-top: 4px;">
-          👤 ${truck.driver}${truck.quantity ? ` · ${truck.quantity} т` : ''}
-        </div>
-        ${truck.driverPhone ? `<div style="font-size: 12px; color: #3b82f6;">📞 <a href="tel:${truck.driverPhone.replace(/[^\d+]/g, '')}" style="color:#3b82f6;text-decoration:none;">${truck.driverPhone}</a></div>` : ''}
-      ` : '';
-
+      // Раньше тут ещё был balloonContent (стандартный балун Яндекса) —
+      // он открывался ПОВЕРХ нашей собственной карточки внизу карты (см.
+      // selectedTruck-карточку в рендере), дублируя часть той же информации
+      // (в частности время последнего обновления) — по фидбеку это и есть
+      // "избыточная информация". Теперь вся инфа — только в компактной
+      // карточке снизу, у placemark баллуна нет вообще (openBalloonOnClick:
+      // false на всякий случай, если Яндекс попробует открыть пустой).
       const placemark = new ymaps.Placemark(
         [truck.position.lat, truck.position.lng],
+        {},
         {
-          balloonContent: `
-            <div style="padding: 8px; min-width: 200px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-              <div style="font-size: 16px; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-                ${getTruckTypeEmoji(truckType)}
-                ${truck.name}
-              </div>
-              <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 8px; font-size: 14px;">
-                <div>${getStatusLabel(vel, truck.lastUpdate)}</div>
-                <div>⚡ ${vel} км/ч</div>
-                <div>🕐 ${new Date(truck.position.time * 1000).toLocaleString()}</div>
-                <div style="font-size: 12px; color: #888; border-top: 1px solid #eee; padding-top: 4px; margin-top: 4px;">
-                  🏷️ ${getTruckTypeLabel(truckType)}
-                </div>
-                ${destinationInfo}
-                ${driverInfo}
-              </div>
-            </div>
-          `,
-        },
-        {
+          openBalloonOnClick: false,
           // getShape ниже — это и есть исправление "нельзя нажать на машинку".
           // У кастомного HTML-макета (templateLayoutFactory) без явного
           // getShape область клика по умолчанию нулевая (0×0) — сам HTML
@@ -701,23 +640,18 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
   // фиксированным zoom, либо вообще оставалась на дефолтном виде Москвы —
   // нужно было вручную скроллить/зумить, чтобы увидеть и завод, и точку
   // назначения. Теперь считаем bounding box по всем точкам, которые сейчас
-  // реально показаны на карте, и просим карту сама подобрать масштаб.
+  // реально показаны на карте, и просим карту сама подобрать масштаб —
+  // плавно (setBounds с duration ниже), на каждое обновление позиций машин,
+  // чтобы колонна всегда была в кадре.
   //
-  // ВАЖНО: раньше этот эффект зависел напрямую от [trucks], а массив trucks
-  // пересоздаётся при КАЖДОМ обновлении позиций машин (в демо — каждые
-  // 3.5 сек). Из-за этого карта постоянно animated-recenter'илась под
-  // пользователем — не только раздражало, но и срывало тапы по машинкам
-  // (клик по метке "терялся", потому что в момент тапа карта сама уезжала
-  // в сторону). Теперь считаем bounds только один раз на каждый набор
-  // маршрутов (по "подписи" — конкатенации destination), а последующие
-  // обновления одних только позиций машин карту не трогают.
+  // Раньше это временно отключали (пересчитывали bounds только один раз на
+  // маршрут), подозревая, что постоянный recenter мешает попасть тапом по
+  // машинке — но настоящая причина немого клика была в другом (отсутствие
+  // getShape у кастомной HTML-метки, см. ниже в placemark.events.add), и
+  // это уже починено. Плавное автоцентрирование теперь безопасно вернуть.
 
   useEffect(() => {
     if (!isMapReady || !mapRef.current || !routes || routes.length === 0) return;
-
-    const signature = routes.map(r => r.destination).join('|');
-    if (autoFitSignatureRef.current === signature) return;
-    autoFitSignatureRef.current = signature;
 
     const points: [number, number][] = [];
 
@@ -844,60 +778,118 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
   }, [isMapReady, onMapReady]);
 
   // ============================================
+  // ЗАКРЫТИЕ КАРТОЧКИ ВЫБРАННОЙ МАШИНЫ ПО КЛИКУ МИМО
+  // ============================================
+  // Клик по метке машины отдельно ставит выбор (см. placemark.events.add
+  // выше) — клик по "пустой" карте (сама карта не считает это кликом по
+  // объекту) закрывает карточку. Плюс клик вообще где угодно за пределами
+  // самой карточки на странице — на случай, если карта не занимает весь
+  // экран и пользователь тапнет рядом с картой, а не по ней.
+
+  useEffect(() => {
+    if (!isMapReady || !mapRef.current) return;
+    const map = mapRef.current;
+    const handleMapClick = () => setSelectedTruck(null);
+    map.events.add('click', handleMapClick);
+  }, [isMapReady]);
+
+  useEffect(() => {
+    if (!selectedTruck) return;
+    const handleOutsideClick = (e: MouseEvent | TouchEvent) => {
+      if (selectedCardRef.current && !selectedCardRef.current.contains(e.target as Node)) {
+        setSelectedTruck(null);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    document.addEventListener('touchstart', handleOutsideClick);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      document.removeEventListener('touchstart', handleOutsideClick);
+    };
+  }, [selectedTruck]);
+
+  // ============================================
   // РЕНДЕР
   // ============================================
 
   return (
     <div style={{ position: 'relative', height: '100%', width: '100%' }}>
       {selectedTruck && selectedTruck.position && (
-        <div style={{
-          position: 'absolute',
-          bottom: 40,
-          left: '50%',
-          transform: 'translateX(-50%)',
-          zIndex: 10,
-          background: 'rgba(0,0,0,0.9)',
-          backdropFilter: 'blur(12px)',
-          padding: '16px 24px',
-          borderRadius: 16,
-          color: '#fff',
-          border: '1px solid rgba(255,255,255,0.08)',
-          minWidth: 280,
-          textAlign: 'center',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-        }}>
-          <div style={{ fontSize: 18, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
-            <TruckIconLucide size={18} strokeWidth={2.2} />
+        <div
+          ref={selectedCardRef}
+          style={{
+            position: 'absolute',
+            bottom: 16,
+            left: '50%',
+            transform: 'translateX(-50%)',
+            zIndex: 10,
+            background: 'rgba(0,0,0,0.9)',
+            backdropFilter: 'blur(12px)',
+            padding: '12px 16px',
+            borderRadius: 14,
+            color: '#fff',
+            border: '1px solid rgba(255,255,255,0.08)',
+            width: 240,
+            textAlign: 'center',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+          }}
+        >
+          <button
+            onClick={() => setSelectedTruck(null)}
+            aria-label="Закрыть"
+            style={{
+              position: 'absolute', top: 6, right: 6,
+              width: 24, height: 24, borderRadius: '50%',
+              background: 'rgba(255,255,255,0.1)', border: 'none',
+              color: '#aaa', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}
+          >
+            <X size={14} strokeWidth={2.2} />
+          </button>
+
+          <div style={{ fontSize: 16, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7 }}>
+            <TruckIconLucide size={16} strokeWidth={2.2} />
             {selectedTruck.name}
           </div>
-          <div style={{ display: 'flex', gap: 20, justifyContent: 'center', marginTop: 8, flexWrap: 'wrap', fontSize: 14 }}>
+
+          <div style={{ display: 'flex', gap: 14, justifyContent: 'center', marginTop: 6, flexWrap: 'wrap', fontSize: 13 }}>
             <span>{renderStatusBadge(selectedTruck.position.vel, selectedTruck.lastUpdate)}</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Zap size={13} strokeWidth={2.2} />{selectedTruck.position.vel} км/ч</span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Clock size={13} strokeWidth={2.2} />{new Date(selectedTruck.position.time * 1000).toLocaleTimeString()}</span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Zap size={12} strokeWidth={2.2} />{selectedTruck.position.vel} км/ч</span>
           </div>
+
           {selectedTruck.destination && (
-            <div style={{ fontSize: 14, color: '#ffd93d', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
-              <Target size={13} strokeWidth={2.2} />{selectedTruck.destination}
+            <div style={{ fontSize: 12.5, color: '#ffd93d', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+              <Target size={12} strokeWidth={2.2} />{selectedTruck.destination}
             </div>
           )}
+
           {(selectedTruck.driver || selectedTruck.quantity) && (
-            <div style={{ fontSize: 13, color: '#e5e7eb', marginTop: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 12.5, color: '#cfd2e6', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, flexWrap: 'wrap' }}>
               {selectedTruck.driver && <span>{selectedTruck.driver}</span>}
               {selectedTruck.quantity ? <span>· {selectedTruck.quantity} т</span> : null}
             </div>
           )}
+
           {selectedTruck.driverPhone && (
             <a
               href={`tel:${selectedTruck.driverPhone.replace(/[^\d+]/g, '')}`}
               onClick={(e) => e.stopPropagation()}
-              style={{ fontSize: 13, color: '#4ade80', marginTop: 4, display: 'inline-block', textDecoration: 'none' }}
+              style={{
+                marginTop: 8,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 7,
+                background: 'rgba(74,222,128,0.16)',
+                color: '#4ade80',
+                fontSize: 16,
+                fontWeight: 700,
+                padding: '9px 10px',
+                borderRadius: 10,
+                textDecoration: 'none',
+              }}
             >
-              {selectedTruck.driverPhone}
+              <Phone size={16} strokeWidth={2.4} />{selectedTruck.driverPhone}
             </a>
           )}
-          <div style={{ fontSize: 12, color: '#888', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4 }}>
-            <MapPin size={11} strokeWidth={2.2} />{selectedTruck.position.lat.toFixed(6)}, {selectedTruck.position.lng.toFixed(6)}
-          </div>
         </div>
       )}
 

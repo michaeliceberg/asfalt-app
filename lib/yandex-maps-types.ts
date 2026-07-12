@@ -13,6 +13,11 @@ export interface YandexMap {
     options?: { checkZoomRange?: boolean; zoomMargin?: number | number[]; duration?: number }
   ) => void;
   destroy: () => void;
+  // Клик по "пустой" карте (не по метке) — используется, чтобы закрывать
+  // карточку выбранной машины по тапу мимо неё.
+  events: {
+    add: (event: string, handler: () => void) => void;
+  };
 }
 
 export interface YandexPlacemark {
