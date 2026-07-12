@@ -6,6 +6,12 @@ export interface YandexMap {
     removeAll: () => void;
   };
   setCenter: (center: [number, number], zoom: number) => void;
+  // Автомасштаб под область (используется, чтобы завод + вся колонна +
+  // destination всегда помещались в видимую область карты одним взглядом).
+  setBounds: (
+    bounds: [[number, number], [number, number]],
+    options?: { checkZoomRange?: boolean; zoomMargin?: number | number[]; duration?: number }
+  ) => void;
   destroy: () => void;
 }
 
@@ -13,6 +19,28 @@ export interface YandexPlacemark {
   events: {
     add: (event: string, handler: () => void) => void;
   };
+}
+
+// Свойство объекта маршрута (distance/duration) — .get() возвращает
+// {value: number, text: string} для реального расстояния/времени по дорогам.
+export interface YandexRouteProperty {
+  value: number;
+  text: string;
+}
+
+export interface YandexMultiRouteActiveRoute {
+  properties: {
+    get: (key: 'distance' | 'duration') => YandexRouteProperty | undefined;
+  };
+}
+
+export interface YandexMultiRoute {
+  model: {
+    events: {
+      add: (event: string, handler: () => void) => void;
+    };
+  };
+  getActiveRoute: () => YandexMultiRouteActiveRoute | null;
 }
 
 export interface YandexMaps {
@@ -27,6 +55,17 @@ export interface YandexMaps {
     properties: Record<string, string>,
     options: Record<string, unknown>
   ) => unknown;
+  // Прокладывает маршрут по РЕАЛЬНЫМ дорогам (а не "по прямой", как раньше
+  // рисовала простая Polyline) — визуально понятнее, как машина едет.
+  multiRouter: {
+    MultiRoute: new (
+      params: {
+        referencePoints: [number, number][];
+        params?: Record<string, unknown>;
+      },
+      options: Record<string, unknown>
+    ) => YandexMultiRoute;
+  };
   ready: (callback: () => void) => void;
 }
 
