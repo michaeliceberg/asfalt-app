@@ -1027,6 +1027,29 @@ const handleRefresh = async () => {
     return gpsRelevantPlates.has(tName);
   });
 
+  // Селектор конкретной заявки прямо на вкладке GPS (не только через
+  // "Показать на карте" из Компактно) — по умолчанию (gpsFilterPlate===null)
+  // карта показывает обзор всех активных сегодня маршрутов, клик по чипу
+  // сужает карту до одного (TruckMap сам фильтрует заводы/линии/машины по
+  // filterPlate — см. filteredRoutes в TruckMap.tsx).
+  const cleanGpsDestName = (name: string) =>
+    name.replace('ПК 25 ', '').replace('ПК 26 ', '').replace('АЙСБЕРГ ООО', 'АЙСБЕРГ');
+
+  const normalizeForGps = (s: string) => s.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
+
+  const gpsChipStyle = (active: boolean): React.CSSProperties => ({
+    flexShrink: 0,
+    padding: '7px 14px',
+    borderRadius: 20,
+    border: active ? '1.5px solid #3a56d4' : '1px solid #e2e8f0',
+    background: active ? 'rgba(58,86,212,0.1)' : '#fff',
+    color: active ? '#3a56d4' : '#475569',
+    fontSize: 12.5,
+    fontWeight: 600,
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  });
+
   const outgoingRequestsForCompact = outgoingRequests.map(req => ({
     number: req.number,
     date: req.date,
@@ -1322,9 +1345,32 @@ useEffect(() => {
                   <p style={{ fontSize: '13px', color: '#aaa' }}>GPS-колонна появится здесь, как только пойдут рейсы</p>
                 </div>
               ) : (
-                <div style={{ height: 520 }}>
-                  <TruckMap trucks={gpsActiveTrucks} routes={gpsActiveRoutes} filterPlate={gpsFilterPlate} />
-                </div>
+                <>
+                  {gpsActiveRoutes.length > 1 && (
+                    <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '2px 2px 10px', WebkitOverflowScrolling: 'touch' }}>
+                      <button onClick={() => setGpsFilterPlate(null)} style={gpsChipStyle(!gpsFilterPlate)}>
+                        Все ({gpsActiveRoutes.length})
+                      </button>
+                      {gpsActiveRoutes.map((route) => {
+                        const plate = route.licensePlates[0] || null;
+                        const normalizedFilter = gpsFilterPlate ? normalizeForGps(gpsFilterPlate) : '';
+                        const isSelected = route.licensePlates.some((p) => normalizeForGps(p) === normalizedFilter);
+                        return (
+                          <button
+                            key={route.requestNumber + route.destination}
+                            onClick={() => setGpsFilterPlate(plate)}
+                            style={gpsChipStyle(isSelected)}
+                          >
+                            {cleanGpsDestName(route.destination)} · {route.count}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  <div style={{ height: 520 }}>
+                    <TruckMap trucks={gpsActiveTrucks} routes={gpsActiveRoutes} filterPlate={gpsFilterPlate} />
+                  </div>
+                </>
               )}
             </div>
           )}

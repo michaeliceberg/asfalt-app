@@ -21,7 +21,7 @@ import {
   isIncomingDateToday
 } from '@/lib/utils';
 import TruckProgressBar from './TruckProgressBar';
-import { Factory, Truck, Package, User, Lock, Pointer, ChevronDown, ChevronRight, Map as MapIcon } from 'lucide-react';
+import { Factory, Truck, Package, User, Lock, Pointer, ChevronDown, ChevronRight, Satellite } from 'lucide-react';
 import { tapHaptic } from '@/lib/haptics';
 import { DEMO_DRIVER_PHONES } from '@/lib/demo-data';
 
@@ -1299,7 +1299,7 @@ useEffect(() => {
             onShowOnMap(item.vehicles[0].licensePlate);
           }}
         >
-          <MapIcon size={13} strokeWidth={2.4} />Показать на карте
+          <Satellite size={13} strokeWidth={2.4} />Показать на карте
         </button>
       )}
 

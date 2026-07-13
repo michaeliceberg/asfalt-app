@@ -1,7 +1,7 @@
 // app/components/TruckMap.tsx
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { getStatusColor } from '@/lib/truck-icons';
 import { getFactoryColor, getFactoryCoords } from '@/lib/constants';
 import type { YandexMap, YandexPlacemark } from '@/lib/yandex-maps-types';
@@ -290,6 +290,27 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
   const retryTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // ============================================
+  // ФИЛЬТРАЦИЯ ДО ОДНОГО МАРШРУТА (если пришли из конкретной заявки)
+  // ============================================
+  // Раньше filterPlate влиял ТОЛЬКО на список рисуемых машин (см. эффект
+  // ниже) — заводы, точки назначения и линии маршрутов рисовались по
+  // ВСЕМ routes целиком. Из-за этого при переходе "Показать на карте" из
+  // конкретной заявки карта всё равно показывала все активные сегодня
+  // заводы и маршруты разом. Теперь единый filteredRoutes используется
+  // везде (заводы/линии/destination/машины/автозум) — если задан
+  // filterPlate, сужаем до ОДНОГО маршрута, которому принадлежит этот
+  // госномер; если маршрут не нашёлся или filterPlate не задан — берём
+  // routes целиком (обзорный режим вкладки GPS).
+  const filteredRoutes = useMemo(() => {
+    if (!filterPlate) return routes;
+    const normalizedFilter = filterPlate.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
+    const route = routes.find((r) =>
+      r.licensePlates.some((p) => p.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '') === normalizedFilter)
+    );
+    return route ? [route] : routes;
+  }, [routes, filterPlate]);
+
+  // ============================================
   // РАСЧЁТ ВРЕМЕНИ МАРШРУТА (формула на сервере — без изменений)
   // ============================================
 
@@ -331,7 +352,7 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
     factoryMarksRef.current = [];
 
     const seen = new Set<string>();
-    routes.forEach((route) => {
+    filteredRoutes.forEach((route) => {
       if (seen.has(route.factory)) return;
       seen.add(route.factory);
 
@@ -346,7 +367,7 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
       map.geoObjects.add(placemark);
       factoryMarksRef.current.push(placemark);
     });
-  }, [isMapReady, routes]);
+  }, [isMapReady, filteredRoutes]);
 
   // ============================================
   // ОТРИСОВКА МАРШРУТОВ — плавная кривая завод → destination (бесплатно,
@@ -354,7 +375,7 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
   // ============================================
 
   const drawRoutes = useCallback(() => {
-    if (!isMapReady || !mapRef.current || !window.ymaps || !routes || routes.length === 0) {
+    if (!isMapReady || !mapRef.current || !window.ymaps || !filteredRoutes || filteredRoutes.length === 0) {
       return;
     }
 
@@ -366,7 +387,7 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
     });
     routesRef.current = {};
 
-    routes.forEach((route) => {
+    filteredRoutes.forEach((route) => {
       if (!route.destCoords || !route.factoryCoords) return;
 
       const color = getFactoryColor(route.factory) || '#4ade80';
@@ -409,7 +430,7 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
     });
 
     drawFactories();
-  }, [routes, isMapReady, drawFactories]);
+  }, [filteredRoutes, isMapReady, drawFactories]);
 
   // ============================================
   // ИНИЦИАЛИЗАЦИЯ КАРТЫ
@@ -548,29 +569,18 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
     });
     placemarksRef.current = {};
 
+    // filteredRoutes уже сужен до одного маршрута, если задан filterPlate
+    // (см. useMemo выше) — здесь просто берём машины из его licensePlates,
+    // без повторного поиска маршрута по номеру.
     let filteredTrucks = trucks;
     if (filterPlate) {
-      const normalizedFilter = filterPlate
-        .toUpperCase()
-        .replace(/\s/g, '')
-        .replace(/[^A-Z0-9]/g, '');
-
-      const route = routes.find(r =>
-        r.licensePlates.some(p => {
-          const pName = p.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
-          return pName === normalizedFilter;
-        })
+      const plateSet = new Set(
+        filteredRoutes.flatMap((r) => r.licensePlates.map((p) => p.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '')))
       );
-
-      if (route) {
-        const plateSet = new Set(route.licensePlates.map(p =>
-          p.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '')
-        ));
-        filteredTrucks = trucks.filter(t => {
-          const tName = t.name.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
-          return plateSet.has(tName);
-        });
-      }
+      filteredTrucks = trucks.filter((t) => {
+        const tName = t.name.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
+        return plateSet.has(tName);
+      });
     }
 
     filteredTrucks.forEach((truck) => {
@@ -621,17 +631,17 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
       map.geoObjects.add(placemark);
       placemarksRef.current[truck.uid] = placemark;
     });
-  }, [trucks, selectedTruck, isMapReady, onTruckSelect, filterPlate, routes]);
+  }, [trucks, selectedTruck, isMapReady, onTruckSelect, filterPlate, filteredRoutes]);
 
   // ============================================
   // ЭФФЕКТЫ ДЛЯ МАРШРУТОВ
   // ============================================
 
   useEffect(() => {
-    if (isMapReady && routes && routes.length > 0) {
+    if (isMapReady && filteredRoutes && filteredRoutes.length > 0) {
       drawRoutes();
     }
-  }, [routes, isMapReady, drawRoutes]);
+  }, [filteredRoutes, isMapReady, drawRoutes]);
 
   // ============================================
   // АВТО-МАСШТАБ: завод + вся колонна + destination — одним взглядом
@@ -651,17 +661,17 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
   // это уже починено. Плавное автоцентрирование теперь безопасно вернуть.
 
   useEffect(() => {
-    if (!isMapReady || !mapRef.current || !routes || routes.length === 0) return;
+    if (!isMapReady || !mapRef.current || !filteredRoutes || filteredRoutes.length === 0) return;
 
     const points: [number, number][] = [];
 
-    routes.forEach((route) => {
+    filteredRoutes.forEach((route) => {
       if (route.factoryCoords) points.push([route.factoryCoords.lat, route.factoryCoords.lng]);
       if (route.destCoords) points.push([route.destCoords.lat, route.destCoords.lng]);
     });
 
     const relevantPlates = new Set(
-      routes.flatMap(r => r.licensePlates.map(p => p.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '')))
+      filteredRoutes.flatMap(r => r.licensePlates.map(p => p.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '')))
     );
     trucks.forEach((t) => {
       if (!t.position) return;
@@ -689,7 +699,7 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
     }, 350);
 
     return () => clearTimeout(t);
-  }, [routes, trucks, isMapReady]);
+  }, [filteredRoutes, trucks, isMapReady]);
 
   // ============================================
   // ВРЕМЯ ДО ПРИБЫТИЯ ДЛЯ ВЕДУЩЕЙ МАШИНЫ КОЛОННЫ (формула — без изменений)
