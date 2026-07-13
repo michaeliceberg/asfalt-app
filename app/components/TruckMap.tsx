@@ -854,10 +854,24 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
   // маршрут), подозревая, что постоянный recenter мешает попасть тапом по
   // машинке — но настоящая причина немого клика была в другом (отсутствие
   // getShape у кастомной HTML-метки, см. ниже в placemark.events.add), и
-  // это уже починено. Плавное автоцентрирование теперь безопасно вернуть.
+  // это уже починено.
+  //
+  // ПОТОМ выяснилось другое неудобство: bounds пересчитывался на КАЖДЫЙ тик
+  // обновления позиций машин (trucks в зависимостях) — стоило вручную
+  // увеличить карту, чтобы рассмотреть конкретную улицу, как через
+  // несколько секунд её сбрасывало обратно под общий масштаб колонны. По
+  // фидбеку — автозум должен срабатывать только при смене выбора ПК
+  // (клик по чипу/"Все"), а не при каждом обновлении данных. Ключ ниже —
+  // текущий выбранный фильтр; пока он не меняется, повторный автозум не
+  // делаем (эффект всё ещё перезапускается на каждый тик — это дёшево, он
+  // просто сразу выходит по проверке ключа).
+  const lastAutoZoomKeyRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (!isMapReady || !mapRef.current || !filteredRoutes || filteredRoutes.length === 0) return;
+
+    const zoomKey = filterRequestNumber || 'all';
+    if (lastAutoZoomKeyRef.current === zoomKey) return;
 
     const points: [number, number][] = [];
 
@@ -878,7 +892,12 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
     });
 
     const bounds = computeBounds(points);
+    // Точек ещё нет (например, GPS-позиции машин ещё не подгрузились) —
+    // ключ НЕ фиксируем, чтобы попробовать снова на следующий тик, когда
+    // данные появятся, а не застрять без автозума до смены фильтра.
     if (!bounds) return;
+
+    lastAutoZoomKeyRef.current = zoomKey;
 
     const [[minLat, minLng], [maxLat, maxLng]] = bounds;
     const degenerate = Math.abs(maxLat - minLat) < 0.0005 && Math.abs(maxLng - minLng) < 0.0005;
@@ -895,7 +914,7 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
     }, 350);
 
     return () => clearTimeout(t);
-  }, [filteredRoutes, trucks, isMapReady]);
+  }, [filteredRoutes, trucks, isMapReady, filterRequestNumber]);
 
   // ============================================
   // ВРЕМЯ ДО ПРИБЫТИЯ ДЛЯ ВЕДУЩЕЙ МАШИНЫ КОЛОННЫ (формула — без изменений)
