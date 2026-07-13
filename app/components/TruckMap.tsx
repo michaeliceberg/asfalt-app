@@ -142,30 +142,23 @@ function cleanDestName(name: string): string {
 // трекерах (Яндекс.Такси и т.п.). Заводы и destination — такой же язык:
 // кружок-иконка + чистая подпись-чип снизу, без резких обводок и emoji.
 
-const TRUCK_GLYPH = `
-  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M2 15V6.5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1V15M2 15h1M2 15a2.2 2.2 0 1 0 4.4 0M12 15h6.5M12 15a2.2 2.2 0 1 0 4.4 0M12 9.5h4.2l3.3 3.3v2.2h-1.5"
-      stroke="#ffffff" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+// Раньше внутри кружка была иконка грузовичка — но все машины визуально
+// одинаковые, а сам факт "это грузовик" и так понятен из контекста карты.
+// По фидбеку заменили на СТАТУС самой машины — так с одного взгляда видно
+// не "что это", а "что происходит": едет (стрелка-навигатор, как в
+// lucide-react Navigation, которым оформлен весь остальной UI) или уже
+// доехала (флаг — lucide-react Flag). Мини-бейдж статуса в углу убрали —
+// теперь это и есть основная иконка, одним элементом меньше = меньше мусора.
+const NAV_GLYPH = `
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="#ffffff" stroke="#ffffff" stroke-width="1" xmlns="http://www.w3.org/2000/svg">
+    <polygon points="3 11 22 2 13 21 11 13 3 11" stroke-linejoin="round"/>
   </svg>
 `;
 
-// Мини-значок статуса рядом с машинкой: "в пути" (бегущий человечек) либо
-// "прибыл" (флаг финиша) — см. selectedTruck.arrived. Цвет заливки задаётся
-// снаружи через currentColor у обёртки, поэтому сам SVG использует
-// currentColor вместо жёстко зашитого цвета.
-const RUNNING_GLYPH = `
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="15.5" cy="4.8" r="2.2" fill="currentColor"/>
-    <path d="M13 8l3 2.3-1 4.4M16.3 10.3l3 1.6M13 8l-4 1.2 1 3.8-3 5M9 9.2l-2.2 2.8 3 2.2"
-      stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
-  </svg>
-`;
-
-const FINISH_GLYPH = `
-  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M6 2.5v19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-    <path d="M6 4h12l-2.4 3L18 10H6V4Z" fill="currentColor"/>
-    <path d="M8.2 4v2h2V4h-2Zm3.8 0v2h2V4h-2ZM8.2 7.6v2.1h2V7.6h-2Zm3.8 0v2.1h2V7.6h-2Z" fill="#fff"/>
+const FLAG_GLYPH = `
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="#ffffff" stroke="#ffffff" stroke-width="0.6" xmlns="http://www.w3.org/2000/svg">
+    <path d="M5 21V4c0-.4.3-.8.8-1 1-.5 2.6-1 4.2-1 2.5 0 4 1.5 6 1.5 1.3 0 2.4-.3 3.2-.6.6-.3 1.3.2 1.3.9v8.6c0 .4-.2.7-.6.9-.8.4-2.1.8-3.9.8-2 0-3.5-1.5-6-1.5-1.3 0-2.3.2-3 .5v6.9c0 .6-.4 1-1 1s-1-.4-1-1Z"
+      stroke-linejoin="round"/>
   </svg>
 `;
 
@@ -207,22 +200,21 @@ const DEST_GLYPH = `
 // полностью кастомный ymaps.templateLayoutFactory-макет (см. ниже), без
 // какой-либо дефолтной формы под низом, поэтому сами следим за центровкой.
 
-// name/arrived — новое: короткая плашка с госномером под машинкой (без
-// региона, чтобы не занимать место — см. shortPlate) и мини-значок статуса
-// (бегущий человечек / флаг финиша). ВАЖНО: оба добавления — position:
-// absolute внутри контейнера, у которого явно заданы width/height=size —
-// поэтому они рисуются "поверх границ" контейнера, не увеличивая его
-// собственный размер. Это критично для клика: getShape (см. ниже, в месте
-// создания placemark) считает область клика кругом радиуса size/2 с центром
-// в (0,0), что совпадает с центром контейнера ПОСЛЕ transform:translate(-50%,
-// -50%) только если размер контейнера не менялся — иначе клик снова "мимо".
+// name/arrived — короткая плашка с госномером под машинкой (без региона,
+// см. shortPlate) и статус-иконка ВМЕСТО грузовичка внутри кружка (едет /
+// прибыл). ВАЖНО: плашка — position:absolute внутри контейнера, у которого
+// явно заданы width/height=size, поэтому она рисуется "поверх границ"
+// контейнера, не увеличивая его собственный размер. Это критично для
+// клика: getShape (см. ниже, в месте создания placemark) считает область
+// клика кругом радиуса size/2 с центром в (0,0), что совпадает с центром
+// контейнера ПОСЛЕ transform:translate(-50%,-50%) только если размер
+// контейнера не менялся — иначе клик снова "мимо".
 function buildTruckBadgeHtml(name: string, color: string, selected: boolean, arrived: boolean): string {
   const size = selected ? 40 : 30;
   const ring = selected
     ? `<div class="truck-badge-pulse" style="position:absolute;inset:-6px;border-radius:50%;border:2px solid ${color};"></div>`
     : '';
-  const statusColor = arrived ? '#16a34a' : '#3a56d4';
-  const statusGlyph = arrived ? FINISH_GLYPH : RUNNING_GLYPH;
+  const statusGlyph = arrived ? FLAG_GLYPH : NAV_GLYPH;
   const plate = shortPlate(name);
   return `
     <div style="position:absolute;left:0;top:0;transform:translate(-50%,-50%);width:${size}px;height:${size}px;">
@@ -232,14 +224,6 @@ function buildTruckBadgeHtml(name: string, color: string, selected: boolean, arr
         background:${color};
         border:2.5px solid #fff;
         box-shadow:0 3px 10px rgba(0,0,0,0.35);
-        display:flex;align-items:center;justify-content:center;
-      ">${TRUCK_GLYPH}</div>
-      <div style="
-        position:absolute;top:-3px;right:-3px;
-        width:15px;height:15px;border-radius:50%;
-        background:#fff;color:${statusColor};
-        border:1.5px solid ${statusColor};
-        box-shadow:0 1px 4px rgba(0,0,0,0.35);
         display:flex;align-items:center;justify-content:center;
       ">${statusGlyph}</div>
       <div style="

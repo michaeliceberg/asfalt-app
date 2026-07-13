@@ -20,7 +20,8 @@ import ModeSwitch from './components/ModeSwitch';
 import LoadingSpinner from './components/LoadingSpinner';
 import { countActiveRequests, getFactoryName, isConcreteMaterial, isSpecialMaterial, parseRussianDate } from '@/lib/utils';
 import { useAuth } from '@/hooks/useAuth';
-import { AlertTriangle, RefreshCw, ArrowDown } from 'lucide-react';
+import { AlertTriangle, RefreshCw, ArrowDown, Navigation, Flag } from 'lucide-react';
+import type { YandexMap } from '@/lib/yandex-maps-types';
 
 // ============================================
 // ИНТЕРФЕЙСЫ
@@ -246,6 +247,10 @@ export default function Home() {
   const [gpsRoutes, setGpsRoutes] = useState<GpsRoute[]>([]);
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
+  // Ссылка на инстанс карты GPS — нужна, чтобы клик по машине в списке под
+  // картой (см. gpsSelectedRouteTrucks ниже) мог программно отцентрировать
+  // карту на этой машине через map.setCenter(...).
+  const [gpsMap, setGpsMap] = useState<YandexMap | null>(null);
   // Мостик "Показать на карте" из развёрнутой заявки (CompactView) — узнаём
   // requestNumber заявки и сразу открываем на нём вкладку GPS (см.
   // filterRequestNumber в TruckMap.tsx). Раньше это был госномер одной
@@ -1059,6 +1064,31 @@ const handleRefresh = async () => {
     whiteSpace: 'nowrap',
   });
 
+  // Список машин выбранного ПК под картой (только когда сужено до одного
+  // маршрута чипом) — чтобы видеть все номера/статусы разом, а не тыкать
+  // по одинаковым машинкам на карте. Клик по строке центрирует карту на
+  // этой машине (см. handleFocusGpsTruck, использует gpsMap из onMapReady).
+  const gpsSelectedRoute = gpsFilterRequestNumber
+    ? gpsActiveRoutes.find((r) => r.requestNumber === gpsFilterRequestNumber) || null
+    : null;
+
+  const gpsSelectedRouteTrucks = gpsSelectedRoute
+    ? (() => {
+        const plateSet = new Set(
+          gpsSelectedRoute.licensePlates.map((p) => p.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, ''))
+        );
+        return gpsActiveTrucks.filter((t) => {
+          const tName = t.name.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
+          return plateSet.has(tName);
+        });
+      })()
+    : [];
+
+  const handleFocusGpsTruck = (truck: GpsTruck) => {
+    if (!gpsMap || !truck.position) return;
+    gpsMap.setCenter([truck.position.lat, truck.position.lng], 15);
+  };
+
   const outgoingRequestsForCompact = outgoingRequests.map(req => ({
     number: req.number,
     date: req.date,
@@ -1379,8 +1409,51 @@ useEffect(() => {
                     </div>
                   )}
                   <div style={{ height: 520 }}>
-                    <TruckMap trucks={gpsActiveTrucks} routes={gpsActiveRoutes} filterRequestNumber={gpsFilterRequestNumber} showWeighStations />
+                    <TruckMap
+                      trucks={gpsActiveTrucks}
+                      routes={gpsActiveRoutes}
+                      filterRequestNumber={gpsFilterRequestNumber}
+                      showWeighStations
+                      onMapReady={(map) => setGpsMap(map)}
+                    />
                   </div>
+
+                  {gpsSelectedRoute && gpsSelectedRouteTrucks.length > 0 && (
+                    <div style={{ marginTop: 12, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
+                      <div style={{ padding: '10px 14px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontSize: 12.5, fontWeight: 700, color: '#475569' }}>
+                        Машины · {cleanGpsDestName(gpsSelectedRoute.destination)} ({gpsSelectedRouteTrucks.length})
+                      </div>
+                      {gpsSelectedRouteTrucks.map((truck) => (
+                        <button
+                          key={truck.uid}
+                          onClick={() => handleFocusGpsTruck(truck)}
+                          disabled={!truck.position}
+                          style={{
+                            display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                            width: '100%', padding: '10px 14px', background: 'transparent', border: 'none',
+                            borderBottom: '1px solid #f1f5f9', cursor: truck.position ? 'pointer' : 'default',
+                            textAlign: 'left', opacity: truck.position ? 1 : 0.5,
+                          }}
+                        >
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>{truck.name}</span>
+                            {truck.driver && <span style={{ fontSize: 12, color: '#64748b' }}>{truck.driver}</span>}
+                            {truck.quantity ? <span style={{ fontSize: 12, color: '#94a3b8' }}>· {truck.quantity} т</span> : null}
+                          </div>
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0,
+                            fontSize: 11.5, fontWeight: 700,
+                            color: truck.arrived ? '#16a34a' : '#3a56d4',
+                            background: truck.arrived ? 'rgba(22,163,74,0.1)' : 'rgba(58,86,212,0.1)',
+                            padding: '3px 9px', borderRadius: 20,
+                          }}>
+                            {truck.arrived ? <Flag size={12} strokeWidth={2.4} /> : <Navigation size={12} strokeWidth={2.4} />}
+                            {truck.arrived ? 'Прибыл' : 'В пути'}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </>
               )}
             </div>
