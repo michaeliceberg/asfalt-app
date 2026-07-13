@@ -290,7 +290,6 @@ body {
 }
 
 
-
 .number {
   font-weight: 600;
   color: #495057;
@@ -524,8 +523,6 @@ body {
 }
 
 
-
-
 /* Заголовок дня */
 .date-separator {
   background: #e9ecef;
@@ -617,11 +614,6 @@ body {
 }
 
 
-
-
-
-
-
 /* Маленькие бейджи заводов внутри карточки группировки */
 .factory-badge-small {
   display: inline-flex;
@@ -709,17 +701,12 @@ body {
 }
 
 
-
-
-
-
 .today-separator {
   background: #e3f2fd;
   color: #1565c0;
   font-weight: 700;
   box-shadow: 0 2px 8px rgba(79, 172, 254, 0.15);
 }
-
 
 
 /* Карточка в группировке */
@@ -982,9 +969,6 @@ body {
 }   
 
 
-
-
-
 /* Сводка план-факт */
 .summary-view {
   display: flex;
@@ -1179,18 +1163,6 @@ body {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 /* Процент выполнения заявки в группировке */
 .request-completion {
   display: flex;
@@ -1284,11 +1256,6 @@ body {
 }
 
 
-
-
-
-
-
 /* Бейдж для бетона */
 .concrete-badge {
   display: inline-block;
@@ -1358,7 +1325,6 @@ body {
   color: #6c757d;
   text-align: right;
 }
-
 
 
 /* Метки заводов */
@@ -1433,22 +1399,6 @@ body {
   font-size: 14px;
   font-weight: 600;
 } */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 /* Компактный вид - стили */
@@ -1531,11 +1481,6 @@ body {
 }
 
 
-
-
-
-
-
 /* Для поступлений */
 .col-material-header {
   flex: 2;
@@ -1575,10 +1520,6 @@ body {
   text-align: left;
   min-width: 80px;
 }
-
-
-
-
 
 
 /* План-факт - компактная версия */
@@ -1787,15 +1728,6 @@ body {
 }
 
 
-
-
-
-
-
-
-
-
-
 /* Детали развёрнутой строки */
 /* .compact-details {
   padding: 12px;
@@ -1892,13 +1824,6 @@ body {
 }
 
 
-
-
-
-
-
-
-
 /* Ёмкий вид (список) */
 .list-table {
   background: white;
@@ -1977,8 +1902,6 @@ body {
 }
 
 
-
-
 /* Цветовая индикация для Вып */
 .compact-row .col-fact {
   font-weight: 800;
@@ -1991,8 +1914,6 @@ body {
 }
 
 
-
-
 /* Список (ёмкий вид) - цифры жирные и зелёные */
 .list-row .list-quantity {
   width: 45px;
@@ -2002,11 +1923,6 @@ body {
   font-size: 13px;
   color: #28a745;
 }
-
-
-
-
-
 
 
 /* Графики */
@@ -2253,336 +2169,6 @@ body {
 }
 
 
-
-
-
-
-/* Топ-10 грузополучателей */
-.top-customers-view {
-  background: white;
-  border-radius: 16px;
-  padding: 16px;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-}
-
-.top-customers-header {
-  margin-bottom: 20px;
-}
-
-.top-customers-title {
-  font-size: 18px;
-  font-weight: 600;
-  color: #212529;
-  margin-bottom: 16px;
-  text-align: center;
-}
-
-.top-customers-controls {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.sort-filter {
-  display: flex;
-  gap: 10px;
-  justify-content: center;
-}
-
-.sort-btn {
-  background: #f8f9fa;
-  border: none;
-  border-radius: 20px;
-  padding: 6px 16px;
-  font-size: 13px;
-  font-weight: 500;
-  color: #495057;
-  cursor: pointer;
-  transition: all 0.2s;
-}
-
-.sort-btn.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-}
-
-.sort-btn:active {
-  transform: scale(0.96);
-}
-
-/* Список клиентов */
-.top-customers-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.customer-row {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 8px;
-  background: #f8f9fa;
-  border-radius: 12px;
-  transition: all 0.2s;
-}
-
-.customer-row:hover {
-  background: #e9ecef;
-}
-
-.customer-rank {
-  width: 40px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.rank-number {
-  font-size: 20px;
-  font-weight: 700;
-  color: #adb5bd;
-}
-
-.rank-number.top {
-  color: #ffc107;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-
-.customer-info {
-  flex: 1;
-}
-
-.customer-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #212529;
-  margin-bottom: 4px;
-}
-
-.customer-stats {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.customer-total {
-  font-size: 13px;
-  font-weight: 700;
-  color: #28a745;
-}
-
-.customer-count {
-  font-size: 12px;
-  color: #6c757d;
-}
-
-.customer-bar-wrapper {
-  height: 8px;
-  background: #e9ecef;
-  border-radius: 10px;
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-
-.customer-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-  border-radius: 10px;
-  transition: width 0.3s ease;
-}
-
-.customer-factories {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.customer-factories .factory-badge-mini {
-  display: inline-block;
-  width: auto;
-  padding: 2px 8px;
-  font-size: 10px;
-  font-weight: 600;
-  border-radius: 12px;
-}
-
-/* Адаптив */
-@media (max-width: 550px) {
-  .top-customers-view {
-    padding: 12px;
-  }
-  
-  .customer-rank {
-    width: 32px;
-  }
-  
-  .rank-number {
-    font-size: 16px;
-  }
-  
-  .customer-name {
-    font-size: 12px;
-  }
-  
-  .customer-total {
-    font-size: 12px;
-  }
-  
-  .customer-count {
-    font-size: 10px;
-  }
-}
-
-
-
-
-
-/* Список клиентов */
-.top-customers-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.customer-row {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  padding: 8px;
-  background: #f8f9fa;
-  border-radius: 12px;
-  transition: all 0.2s;
-}
-
-.customer-row:hover {
-  background: #e9ecef;
-}
-
-.customer-rank {
-  width: 40px;
-  text-align: center;
-  flex-shrink: 0;
-}
-
-.rank-number {
-  font-size: 20px;
-  font-weight: 700;
-  color: #adb5bd;
-}
-
-.rank-number.top {
-  color: #ffc107;
-  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-
-.customer-info {
-  flex: 1;
-}
-
-.customer-name {
-  font-size: 14px;
-  font-weight: 600;
-  color: #212529;
-  margin-bottom: 4px;
-}
-
-.customer-stats {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.customer-total {
-  font-size: 14px;
-  font-weight: 700;
-  color: #28a745;
-}
-
-.customer-count {
-  font-size: 14px;
-  font-weight: 800;
-  color: #1a5a8a;
-  background: #e8f0fe;
-  padding: 2px 8px;
-  border-radius: 16px;
-}
-
-.customer-bar-wrapper {
-  height: 8px;
-  background: #e9ecef;
-  border-radius: 10px;
-  overflow: hidden;
-  margin-bottom: 8px;
-}
-
-.customer-bar {
-  height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
-  border-radius: 10px;
-  transition: width 0.3s ease;
-}
-
-.customer-factories {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-}
-
-.customer-factories .factory-badge-mini {
-  display: inline-block;
-  width: auto;
-  padding: 2px 10px;
-  font-size: 11px;
-  font-weight: 700;
-  border-radius: 14px;
-}
-
-.factory-badge-mini.ЛХ {
-  background: #6c757d;
-  color: white;
-}
-
-.factory-badge-mini.ЛЮ {
-  background: #17a2b8;
-  color: white;
-}
-
-/* Адаптив */
-@media (max-width: 550px) {
-  .top-customers-view {
-    padding: 12px;
-  }
-  
-  .customer-rank {
-    width: 32px;
-  }
-  
-  .rank-number {
-    font-size: 16px;
-  }
-  
-  .customer-name {
-    font-size: 12px;
-  }
-  
-  .customer-total {
-    font-size: 13px;
-  }
-  
-  .customer-count {
-    font-size: 12px;
-    padding: 2px 6px;
-  }
-  
-  .customer-factories .factory-badge-mini {
-    font-size: 10px;
-    padding: 1px 6px;
-  }
-}
-
-
-
-
 .header-top {
   display: flex;
   justify-content: space-between;
@@ -2642,16 +2228,11 @@ body {
 }
 
 
-
 .closed-lock {
     font-size: 10px;
     opacity: 0.6;
     margin-left: 4px;
 }
-
-
-
-
 
 
 .logo-container {
@@ -2686,9 +2267,6 @@ body {
 }
 
 
-
-
-
 .status-dot {
   display: inline-block;
   width: 8px;
@@ -2709,16 +2287,6 @@ body {
   font-size: 24px;
   filter: drop-shadow(0 2px 4px rgba(0,0,0,0.1));
 }
-
-
-
-
-
-
-
-
-
-
 
 
 /* Подвкладки */
@@ -2829,18 +2397,6 @@ body {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
 /* Вкладка с индикатором будущих заявок */
 .main-tab.has-future {
   position: relative;
@@ -2902,9 +2458,6 @@ body {
  */
 
 
-
-
-
 .future-request-date-wrap {
   display: flex;
   align-items: center;
@@ -2919,13 +2472,6 @@ body {
   padding: 2px 6px;
   border-radius: 12px;
 }
-
-
-
-
-
-
-
 
 
 /* Бейдж "СЕГОДНЯ" в карточке текущих заявок */
@@ -2974,10 +2520,6 @@ body {
     padding: 2px 6px;
   }
 }
-
-
-
-
 
 
 /* Бейдж для новых отгрузок */
@@ -3046,8 +2588,6 @@ body {
 }
 
 
-
-
 .future-request-number {
   font-size: 11px;
   font-family: monospace;
@@ -3059,9 +2599,6 @@ body {
   margin-bottom: 8px;
   font-weight: 600;
 }
-
-
-
 
 
 .compact-date-header {
@@ -3088,25 +2625,6 @@ body {
   border-radius: 20px;
   font-family: monospace;
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 /* Основные вкладки */
@@ -3157,7 +2675,6 @@ body {
   font-weight: 600;
   letter-spacing: 0.3px;
 }
-
 
 
 /* Бейдж (точка + цифра) */
@@ -3305,22 +2822,6 @@ body {
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 /* .main-tabs {
   display: flex;
   gap: 10px;
@@ -3352,8 +2853,6 @@ body {
 }
 
 
-
-
 .completion-row {
   display: flex;
   justify-content: space-between;
@@ -3373,10 +2872,6 @@ body {
   color: #ffc107;
   font-weight: 700;
 } */
-
-
-
-
 
 
 /* Компактный список будущих заявок */
@@ -3513,10 +3008,6 @@ body {
 }
 
 
-
-
-
-
 @keyframes pulse-green {
   0% { opacity: 0.5; transform: scale(1); }
   50% { opacity: 1; transform: scale(1.2); }
@@ -3565,17 +3056,6 @@ body {
     white-space: nowrap;
   }
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 /* Гистограмма активности - компактная */
@@ -3702,10 +3182,6 @@ body {
 }
 
 
-
-
-
-
 /* .activity-chart-bar-value.current {
   color: #ff9800;
   background: rgba(255, 152, 0, 0.1);
@@ -3719,14 +3195,6 @@ body {
   color: #ff9800;
   font-weight: 700;
 }
-
-
-
-
-
-
-
-
 
 
 .activity-chart-bar-value {
@@ -3753,16 +3221,6 @@ body {
     padding: 1px 5px;
   }
 }
-
-
-
-
-
-
-
-
-
-
 
 
 /* Компактный вид - стили */
@@ -3900,7 +3358,6 @@ body {
 }
 
 
-
 /* Транспорт в деталях */
 .vehicles-list {
   margin-top: 8px;
@@ -3992,12 +3449,7 @@ body {
 }
 
 
-
-
 /* Активная точка */
-
-
-
 
 
 /* Активная точка (зеленая, мигающая) - для всех режимов */
@@ -4024,10 +3476,6 @@ body.iceberg-mode .active-dot {
   50% { opacity: 1; transform: scale(1.2); }
   100% { opacity: 0.5; transform: scale(1); }
 }
-
-
-
-
 
 
 /* .active-dot {
@@ -4084,30 +3532,6 @@ body.iceberg-mode .active-dot {
   .vehicle-quantity { min-width: 40px; }
   .vehicle-driver-inline { font-size: 9px; min-width: 50px; }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 /* Лендинг стили */
@@ -4606,13 +4030,6 @@ body.iceberg-mode .active-dot {
 }
 
 
-
-
-
-
-
-
-
 /* app/globals.css */
 .login-container {
   min-height: 100vh;
@@ -4673,13 +4090,6 @@ body.iceberg-mode .active-dot {
 }
 
 
-
-
-
-
-
-
-
 /* Кнопка выхода */
 .logout-btn {
   background: rgba(255, 255, 255, 0.15);
@@ -4709,12 +4119,6 @@ body.iceberg-mode .active-dot {
   font-weight: 600;
   color: #ffd93d;
 }
-
-
-
-
-
-
 
 
 /* Админ-панель */
@@ -4857,14 +4261,6 @@ body.iceberg-mode .active-dot {
 }
 
 
-
-
-
-
-
-
-
-
 .activity-chart-wrapper {
   background: white;
   border-radius: 12px;
@@ -4879,12 +4275,6 @@ body.iceberg-mode .active-dot {
   gap: 4px;
   justify-content: space-between;
 }
-
-
-
-
-
-
 
 
 /* ============================================
@@ -4984,8 +4374,6 @@ body.iceberg-mode .active-dot {
 }
 
 
-
-
 /* ============================================
    ПЕРЕКЛЮЧАТЕЛЬ РЕЖИМОВ СО СЛАЙДЕРОМ
    ============================================ */
@@ -5077,15 +4465,6 @@ body.iceberg-mode .active-dot {
 }
 
 
-
-
-
-
-
-
-
-
-
 /* ============================================
    ТЕМА "АЙСБЕРГ" (ТЁМНО-ГРАФИТОВАЯ, ПРЕМИУМ) 
    С БЕЛЫМ ФОНОМ КАК В TAS
@@ -5169,7 +4548,7 @@ body.iceberg-mode .factory-switch .factory-btn.active {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Вкладки (Компактно, Список, Графики, Топ-10) */
+/* Вкладки (Компактно, Список, Графики) */
 body.iceberg-mode .tabs .tab {
   background: rgba(30, 30, 38, 0.8);
   color: #c0c0cc;
@@ -5364,14 +4743,6 @@ body.iceberg-mode {
 }
 
 
-
-
-
-
-
-
-
-
 /* Бейджи заводов - яркие и сочные */
 body.iceberg-mode .factory-badge-small.Щ,
 body.iceberg-mode .factory-badge-mini.Щ {
@@ -5413,17 +4784,6 @@ body.iceberg-mode .factory-badges-group .factory-badge-small.СП {
   background: #4285f4;
   color: #ffffff;
 }
-
-
-
-
-
-
-
-
-
-
-
 
 
 /* Ripple эффект для переключателя */
@@ -5468,11 +4828,6 @@ body.iceberg-mode .factory-badges-group .factory-badge-small.СП {
 .mode-option.active .mode-icon {
   animation: bounceIcon 0.4s ease-out;
 }
-
-
-
-
-
 
 
 /* ============================================
@@ -5535,7 +4890,6 @@ body.iceberg-mode .factory-badges-group .factory-badge-small.СП {
   border-bottom-color: #28a745;
   animation-delay: -0.15s;
 } */
-
 
 
 /* ============================================
@@ -5704,8 +5058,6 @@ body.iceberg-mode .factory-badges-group .factory-badge-small.СП {
 }
 
 
-
-
 @keyframes spinRing {
   0% {
     transform: translate(-50%, -50%) rotate(0deg);
@@ -5752,13 +5104,6 @@ body.iceberg-mode .spinner-ring:nth-child(3) {
 }
 
 
-
-
-
-
-
-
-
 /* Старый спиннер (для совместимости) */
 .loading {
   display: flex;
@@ -5789,14 +5134,6 @@ body.iceberg-mode .spinner-ring:nth-child(3) {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
 }
-
-
-
-
-
-
-
-
 
 
 /* ============================================
@@ -5856,14 +5193,6 @@ body.iceberg-mode .compact-date-header .today-badge {
 }
 
 
-
-
-
-
-
-
-
-
 /* В globals.css добавьте или обновите */
 
 .date-wrapper {
@@ -5897,10 +5226,6 @@ body.iceberg-mode .compact-date-header .today-badge {
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-
-
-
-
 
 
 /* ============================================
@@ -5940,13 +5265,6 @@ body.iceberg-mode .compact-row.special-row {
 body.iceberg-mode .special-badge {
   background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%);
 }
-
-
-
-
-
-
-
 
 
 /* ============================================
@@ -5990,15 +5308,6 @@ body.iceberg-mode .pull-to-refresh-indicator {
     padding: 10px;
   }
 }
-
-
-
-
-
-
-
-
-
 
 
 /* Жирный шрифт для всего */
@@ -6059,10 +5368,6 @@ body.iceberg-mode .pull-to-refresh-indicator {
 }
 
 
-
-
-
-
 /* Стили для бейджа синхронизации внутри кнопки режима */
 .mode-sync-badge {
   display: inline-block;
@@ -6088,9 +5393,6 @@ body.iceberg-mode .pull-to-refresh-indicator {
     justify-content: center;
   }
 }
-
-
-
 
 
 /* Переключатель режимов с вертикальным расположением */
@@ -6170,12 +5472,6 @@ body.iceberg-mode .pull-to-refresh-indicator {
 }
 
 
-
-
-
-
-
-
 /* Для ТАС (светлая тема) */
 .compact-row.completed-row {
   /* background: #98fb98 !important; */
@@ -6201,12 +5497,6 @@ body.iceberg-mode .compact-row.completed-row:hover {
 }
 
 
-
-
-
-
-
-
 /* Демо-бейдж */
 .demo-badge {
   display: inline-flex;
@@ -6226,11 +5516,6 @@ body.iceberg-mode .compact-row.completed-row:hover {
 }
 
 
-
-
-
-
-
 /* globals.css */
 .ymaps-2-1-79-balloon__content,
 .ymaps-2-1-79-balloon__text {
@@ -6240,11 +5525,6 @@ body.iceberg-mode .compact-row.completed-row:hover {
 .ymaps-2-1-79-placemark-content {
   color: #2d3748 !important;
 }
-
-
-
-
-
 
 
 /* app/globals.css */

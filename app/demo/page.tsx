@@ -7,7 +7,6 @@ import { motion } from 'framer-motion';
 import CompactView from '@/app/components/CompactView';
 import ListView from '@/app/components/ListView';
 import ChartsView from '@/app/components/ChartsView';
-import TopCustomersView from '@/app/components/TopCustomersView';
 import Header from '@/app/components/header';
 import LoadingSpinner from '@/app/components/LoadingSpinner';
 import MainTabs from '@/app/components/MainTabs';
@@ -25,7 +24,7 @@ import { getDemoData, demoRequests, demoFutureRequests } from '@/lib/demo-data';
 import { Inbox } from 'lucide-react';
 
 type MainTab = 'incoming' | 'shipment' | 'shipmentConcrete' | 'summary';
-type ViewTab = 'compact' | 'list' | 'charts' | 'topCustomers' | 'gps';
+type ViewTab = 'compact' | 'list' | 'charts' | 'gps';
 
 type UnifiedDataItem = IncomingItem | ShipmentItem;
 
@@ -129,10 +128,10 @@ export default function DemoPage() {
           onTabChange={(tab) => {
             const nextTab = tab as MainTab;
             setActiveMainTab(nextTab);
-            // "Графики"/"Топ-10"/"GPS" скрыты для "Поступления" — если
+            // "Графики"/"GPS" скрыты для "Поступления" — если
             // была активна одна из них, возвращаемся на "Компактно",
             // иначе останется выбрана вкладка, которой не видно кнопки.
-            if (nextTab === 'incoming' && (activeViewTab === 'charts' || activeViewTab === 'topCustomers' || activeViewTab === 'gps')) {
+            if (nextTab === 'incoming' && (activeViewTab === 'charts' || activeViewTab === 'gps')) {
               setActiveViewTab('compact');
             }
           }}
@@ -243,12 +242,6 @@ export default function DemoPage() {
               />
             )}
 
-            {activeViewTab === 'topCustomers' && (
-              <TopCustomersView 
-                data={data.shipments} 
-                mode="iceberg"
-              />
-            )}
           </>
         )}
       </motion.div>

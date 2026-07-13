@@ -15,7 +15,6 @@ import CompactView from './components/CompactView';
 import TruckMap from './components/TruckMap';
 import Header from './components/header';
 import ChartsView from './components/ChartsView';
-import TopCustomersView from './components/TopCustomersView';
 import ModeSwitch from './components/ModeSwitch';
 import LoadingSpinner from './components/LoadingSpinner';
 import { countActiveRequests, getFactoryName, isConcreteMaterial, isSpecialMaterial, parseRussianDate } from '@/lib/utils';
@@ -137,7 +136,7 @@ interface ApiRequest {
 }
 
 type MainTab = 'incoming' | 'shipment' | 'shipmentConcrete' | 'summary';
-type ViewTab = 'compact' | 'grouped' | 'list' | 'charts' | 'topCustomers' | 'gps';
+type ViewTab = 'compact' | 'grouped' | 'list' | 'charts' | 'gps';
 type UnifiedDataItem = IncomingItem | ShipmentItem;
 
 // Форма данных, которую отдаёт /api/trucks — те же интерфейсы, что и в
@@ -339,9 +338,9 @@ export default function Home() {
   // а не каждая строка по отдельности — лёгкая нагрузка на телефон.
   const handleMainTabChange = (tab: MainTab) => {
     setActiveMainTab(tab);
-    // "Графики"/"Топ-10" скрыты для "Поступления" — если была активна
+    // "Графики" скрыты для "Поступления" — если была активна
     // одна из них, возвращаемся на "Компактно" (см. hideAnalytics в ViewTabs).
-    if (tab === 'incoming' && (activeViewTab === 'charts' || activeViewTab === 'topCustomers' || activeViewTab === 'gps')) {
+    if (tab === 'incoming' && (activeViewTab === 'charts' || activeViewTab === 'gps')) {
       setActiveViewTab('compact');
     }
     setContentKey(prev => prev + 1);
@@ -1356,13 +1355,6 @@ useEffect(() => {
 
           {activeMainTab !== 'summary' && activeViewTab === 'charts' && (
             <ChartsView data={shipmentData} mode={mode} />
-          )}
-
-          {activeMainTab !== 'summary' && activeViewTab === 'topCustomers' && (
-            <TopCustomersView
-              data={shipmentData}
-              mode={mode}
-            />
           )}
 
           {activeMainTab !== 'summary' && activeViewTab === 'gps' && (

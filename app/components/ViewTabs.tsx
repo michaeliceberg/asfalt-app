@@ -1,10 +1,10 @@
 // components/ViewTabs.tsx
 'use client';
 
-import { LayoutGrid, List, BarChart2, Trophy, Satellite } from 'lucide-react';
+import { LayoutGrid, List, BarChart2, Satellite } from 'lucide-react';
 import { tapHaptic } from '@/lib/haptics';
 
-type ViewTab = 'compact' | 'grouped' | 'list' | 'charts' | 'topCustomers' | 'gps';
+type ViewTab = 'compact' | 'grouped' | 'list' | 'charts' | 'gps';
 
 interface ViewTabsProps {
   activeTab: ViewTab;
@@ -14,8 +14,8 @@ interface ViewTabsProps {
   // приложении GPS живёт на отдельной странице /trucks, вкладку сюда
   // не добавляем, чтобы не менять привычный UI без явного запроса.
   showGps?: boolean;
-  // "Графики"/"Топ-10"/"GPS" не имеют смысла для вкладки "Поступление" —
-  // это аналитика по отгрузкам грузополучателям, к приходу сырья от
+  // "Графики"/"GPS" не имеют смысла для вкладки "Поступление" — это
+  // аналитика по отгрузкам грузополучателям, к приходу сырья от
   // поставщиков отношения не имеет.
   hideAnalytics?: boolean;
 }
@@ -48,15 +48,6 @@ export default function ViewTabs({ activeTab, onTabChange, showGps = false, hide
           onClick={() => handleChange('charts')}
         >
           <BarChart2 size={15} strokeWidth={2.2} /> Графики
-        </button>
-      )}
-
-      {!hideAnalytics && (
-        <button
-          className={`tab ${activeTab === 'topCustomers' ? 'active' : ''}`}
-          onClick={() => handleChange('topCustomers')}
-        >
-          <Trophy size={15} strokeWidth={2.2} /> Топ-10
         </button>
       )}
 
