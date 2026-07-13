@@ -632,23 +632,39 @@ export function formatFullDateTime(dateString: string): string {
  * Парсит строку "ПунктНазначения" вида:
  * "а/д Аладьино-Воскресенки-Труфаново км 0,000 - км 6,664 54.808136, 38.214683"
  * Возвращает { lat: number; lng: number; address: string } или null
+ *
+ * Для дорожных объектов (укладка/ремонт участка) в строке бывают ДВЕ пары
+ * координат подряд — начало и конец участка км X - км Y, например:
+ * "...к 11,500 - км 16,200 54.980400, 38.165638  55.022753, 38.175098".
+ * Раньше брали только последнюю пару как "точку назначения" — если машина
+ * фактически работала ближе к НАЧАЛУ участка, расстояние до "официальной"
+ * (последней) точки никогда не опускалось достаточно низко, и статус
+ * "прибыл" не выставлялся вообще (см. calc-distances.ts). Теперь, если пар
+ * координат две и больше, возвращаем ещё и segmentStart (первую пару) —
+ * calc-distances.ts считает расстояние до ВСЕГО отрезка [segmentStart, dest],
+ * а не только до его дальнего конца.
  */
 export function parseDestinationPoint(destinationPoint: string | null): {
   lat: number;
   lng: number;
   address: string;
+  segmentStart?: { lat: number; lng: number };
 } | null {
   if (!destinationPoint) return null;
-  
-  // Ищем координаты в конце строки
-  const coordMatch = destinationPoint.match(/(\d+\.\d+),\s*(\d+\.\d+)\s*$/);
-  if (!coordMatch) return null;
-  
-  const lat = parseFloat(coordMatch[1]);
-  const lng = parseFloat(coordMatch[2]);
-  const address = destinationPoint.replace(/\s*\d+\.\d+,\s*\d+\.\d+\s*$/, '').trim();
-  
-  return { lat, lng, address };
+
+  const allCoords = [...destinationPoint.matchAll(/(\d+\.\d+),\s*(\d+\.\d+)/g)];
+  if (allCoords.length === 0) return null;
+
+  const last = allCoords[allCoords.length - 1];
+  const lat = parseFloat(last[1]);
+  const lng = parseFloat(last[2]);
+  const address = destinationPoint.replace(/(\d+\.\d+,\s*\d+\.\d+\s*)+$/, '').trim();
+
+  const segmentStart = allCoords.length >= 2
+    ? { lat: parseFloat(allCoords[0][1]), lng: parseFloat(allCoords[0][2]) }
+    : undefined;
+
+  return { lat, lng, address, segmentStart };
 }
 
 

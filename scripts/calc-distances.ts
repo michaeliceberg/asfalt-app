@@ -3,6 +3,7 @@ import { shipments } from '../lib/db/schema';
 import { eq, and, gte } from 'drizzle-orm';
 import { calculateDistance, calculateETA, parseDestinationPoint, normalizePlate } from '../lib/utils';
 import { getTrucks } from '../lib/trucks';
+import { minDistanceToPolylineMeters } from '../lib/geofence';
 
 const AUTH_TOKEN = 'XBNlAqRnZxU3Q%2BSLHe3qKZSIIYiSGWym3mN8%2BbXmbSZE74YqB3bYf4TLIWAzLPyg%2BR9qd2Mf9AxDn2K3f4j5lA%3D%3D';
 const ARRIVAL_THRESHOLD_KM = 2;
@@ -104,8 +105,20 @@ async function main() {
     
     const truckPos = truckPositions.get(normalizePlate(shipment.licensePlate));
     if (!truckPos) continue;
-    
-    const distance = calculateDistance(truckPos.lat, truckPos.lng, destCoords.lat, destCoords.lng);
+
+    // Для дорожных объектов ПунктНазначения описывает УЧАСТОК (км X - км Y),
+    // а не одну точку — destCoords.segmentStart есть, только если в строке
+    // было ДВЕ пары координат (см. parseDestinationPoint). Тогда считаем
+    // расстояние до ВСЕГО отрезка [segmentStart, destCoords], а не только
+    // до его дальнего конца — иначе, если машина фактически работала ближе
+    // к началу участка, расстояние никогда не опускалось достаточно низко
+    // и "прибыл" не выставлялся вообще (см. разбор Е113ВК250, ПК 26 Озерский).
+    const distance = destCoords.segmentStart
+      ? (minDistanceToPolylineMeters(
+          { lat: truckPos.lat, lng: truckPos.lng },
+          [destCoords.segmentStart, { lat: destCoords.lat, lng: destCoords.lng }]
+        ) ?? 0) / 1000
+      : calculateDistance(truckPos.lat, truckPos.lng, destCoords.lat, destCoords.lng);
     const eta = calculateETA(distance);
 
     // Лучшее (минимальное) приближение за весь рейс — используется ниже

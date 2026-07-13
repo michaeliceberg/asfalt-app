@@ -44,6 +44,14 @@ interface RouteData {
   factoryCoords: { lat: number; lng: number } | null;
   lastShipmentDate?: string | null;
   truckTimes?: Record<string, string>; // ✅ Добавляем
+  // Тоннаж/водитель/прибытие — ТОЛЬКО из отгрузок ЭТОЙ заявки (в отличие от
+  // TruckData.quantity/driver/arrived выше, которые берутся по "последней
+  // отгрузке этого госномера ВООБЩЕ", независимо от заявки). Один и тот же
+  // госномер может отработать несколько разных заявок за день, и статус
+  // "прибыл"/тоннаж от ДРУГОЙ, более свежей заявки той же машины иначе
+  // "протекает" сюда — из-за этого статус на GPS-карте расходился со
+  // статусом в "Компактно" (там он всегда точный — по номеру рейса).
+  truckStatus?: Record<string, { quantity: number | null; driver: string | null; arrived: boolean }>;
 }
 
 interface ApiResponse {
@@ -229,11 +237,34 @@ const routesWithDates: RouteData[] = routes.map((route) => {
     }
     lastShipmentDate = latest?.date || null;
   }
-  
+
+  // Статус машины В РАМКАХ ЭТОЙ ЗАЯВКИ — если у одного госномера несколько
+  // отгрузок внутри одной и той же заявки (редко, но бывает), берём самую
+  // свежую ИЗ НИХ, а не вообще самую свежую отгрузку этого номера по всей
+  // базе (см. комментарий у truckStatus в RouteData выше).
+  const latestPerPlateInRoute: Record<string, Shipment> = {};
+  shipmentsForRoute.forEach((s: Shipment) => {
+    if (!s.licensePlate) return;
+    const normalizedPlate = s.licensePlate.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
+    const existing = latestPerPlateInRoute[normalizedPlate];
+    if (!existing || new Date(s.date) > new Date(existing.date)) {
+      latestPerPlateInRoute[normalizedPlate] = s;
+    }
+  });
+  const truckStatus: Record<string, { quantity: number | null; driver: string | null; arrived: boolean }> = {};
+  Object.entries(latestPerPlateInRoute).forEach(([plate, s]) => {
+    truckStatus[plate] = {
+      quantity: s.quantity ?? null,
+      driver: s.driver ?? null,
+      arrived: s.arrived ?? false,
+    };
+  });
+
   return {
     ...route,
     lastShipmentDate: lastShipmentDate,
     truckTimes: truckTimes, // ✅ Добавляем время отгрузки для каждой машины
+    truckStatus: truckStatus,
   };
 });
 

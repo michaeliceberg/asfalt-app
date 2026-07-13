@@ -47,6 +47,13 @@ interface Route {
   licensePlates: string[];
   destCoords: { lat: number; lng: number; name: string } | null;
   factoryCoords: { lat: number; lng: number; name: string } | null;
+  // Тоннаж/водитель/прибытие ИМЕННО по этой заявке — см. комментарий у
+  // truckStatus в app/api/trucks/route.ts. Используется вместо
+  // Truck.arrived, когда карта сужена до одной заявки (filterRequestNumber):
+  // Truck.arrived — это статус "последней отгрузки этого госномера ВООБЩЕ",
+  // который может относиться к СОВСЕМ ДРУГОЙ, более свежей заявке той же
+  // машины, если она отработала несколько заявок за день.
+  truckStatus?: Record<string, { quantity: number | null; driver: string | null; arrived: boolean }>;
 }
 
 // Весовые рамки — см. /admin/weigh-stations. Загружаются с /api/weigh-stations
@@ -779,12 +786,19 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
       });
     }
 
+    // Когда карта сужена до одной заявки, статус "прибыл" берём ИЗ НЕЁ
+    // (truckStatus), а не из truck.arrived (последняя отгрузка этого
+    // госномера вообще) — см. комментарий у truckStatus в Route выше.
+    const routeTruckStatus = filterRequestNumber ? filteredRoutes[0]?.truckStatus : undefined;
+
     filteredTrucks.forEach((truck) => {
       if (!truck.position) return;
 
       const vel = truck.position.vel;
       const statusColor = getStatusColor(vel, truck.lastUpdate);
       const isSelected = selectedTruck?.uid === truck.uid;
+      const tNameForStatus = truck.name.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
+      const arrived = routeTruckStatus?.[tNameForStatus]?.arrived ?? truck.arrived;
 
       // Раньше тут ещё был balloonContent (стандартный балун Яндекса) —
       // он открывался ПОВЕРХ нашей собственной карточки внизу карты (см.
@@ -808,7 +822,7 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
           // карты под меткой. Явно задаём круглую область клика того же
           // радиуса, что и сам бейдж, с центром в точке маркера (0,0) —
           // ровно туда, куда CSS-transform визуально ставит кружок.
-          iconLayout: ymaps.templateLayoutFactory.createClass(buildTruckBadgeHtml(truck.name, statusColor, isSelected, !!truck.arrived), {
+          iconLayout: ymaps.templateLayoutFactory.createClass(buildTruckBadgeHtml(truck.name, statusColor, isSelected, !!arrived), {
             getShape: function () {
               const r = (isSelected ? 40 : 30) / 2;
               return new ymaps.shape.Circle(new ymaps.geometry.pixel.Circle([0, 0], r));
@@ -818,9 +832,16 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
       );
 
       placemark.events.add('click', () => {
-        setSelectedTruck(truck);
+        // Тот же route-scoped статус, что и в самом бейдже (см. arrived
+        // выше) — иначе карточка при клике могла показать тоннаж/водителя
+        // от другой, более свежей заявки того же госномера.
+        const routeStatus = routeTruckStatus?.[tNameForStatus];
+        const clickedTruck = routeStatus
+          ? { ...truck, quantity: routeStatus.quantity ?? undefined, driver: routeStatus.driver ?? undefined, arrived: routeStatus.arrived }
+          : truck;
+        setSelectedTruck(clickedTruck);
         if (onTruckSelect) {
-          onTruckSelect(truck);
+          onTruckSelect(clickedTruck);
         }
       });
 

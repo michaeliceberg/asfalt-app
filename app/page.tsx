@@ -164,6 +164,11 @@ interface GpsRoute {
   destCoords: { lat: number; lng: number; name: string } | null;
   factoryCoords: { lat: number; lng: number; name: string } | null;
   lastShipmentDate?: string | null;
+  // Тоннаж/водитель/прибытие ИМЕННО по этой заявке (см. комментарий у
+  // truckStatus в app/api/trucks/route.ts) — используем при показе списка
+  // машин под картой, чтобы не путать со статусом другой, более свежей
+  // заявки того же госномера.
+  truckStatus?: Record<string, { quantity: number | null; driver: string | null; arrived: boolean }>;
 }
 
 // ============================================
@@ -1076,10 +1081,23 @@ const handleRefresh = async () => {
         const plateSet = new Set(
           gpsSelectedRoute.licensePlates.map((p) => p.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, ''))
         );
-        return gpsActiveTrucks.filter((t) => {
-          const tName = t.name.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
-          return plateSet.has(tName);
-        });
+        return gpsActiveTrucks
+          .filter((t) => {
+            const tName = t.name.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
+            return plateSet.has(tName);
+          })
+          // Статус (тоннаж/водитель/прибытие) — ИМЕННО по этой заявке
+          // (truckStatus), а не "последняя отгрузка этого госномера
+          // вообще" (t.quantity/driver/arrived) — иначе, если машина
+          // отработала ещё одну заявку позже этой, тут показывался бы
+          // статус ТОЙ заявки, что и объясняет расхождение со статусом
+          // в "Компактно" (там сравнение всегда идёт по точному номеру
+          // рейса). См. комментарий у truckStatus в app/api/trucks/route.ts.
+          .map((t) => {
+            const tName = t.name.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
+            const status = gpsSelectedRoute.truckStatus?.[tName];
+            return status ? { ...t, quantity: status.quantity, driver: status.driver, arrived: status.arrived } : t;
+          });
       })()
     : [];
 
