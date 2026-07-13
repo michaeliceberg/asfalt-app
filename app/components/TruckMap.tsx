@@ -43,6 +43,23 @@ interface Route {
   factoryCoords: { lat: number; lng: number; name: string } | null;
 }
 
+// Весовые рамки — см. /admin/weigh-stations. Загружаются с /api/weigh-stations
+// (публичный read-only эндпоинт, без requireAdmin — карта GPS доступна не
+// только админам) и рисуются на карте, если showWeighStations=true.
+interface WeighStationRoad {
+  id: number;
+  name: string | null;
+  points: { lat: number; lng: number }[];
+}
+
+interface WeighStationData {
+  id: number;
+  name: string;
+  lat: number;
+  lng: number;
+  roads: WeighStationRoad[];
+}
+
 interface TruckMapProps {
   trucks: Truck[];
   routes?: Route[];
@@ -56,6 +73,10 @@ interface TruckMapProps {
   // которому строятся сами routes (см. /api/truck-routes), уникален на
   // маршрут, поэтому однозначно определяет ровно одну заявку.
   filterRequestNumber?: string | null;
+  // Рисовать ли весовые рамки и запретные дороги к ним (см. /admin/weigh-stations).
+  // По умолчанию выключено — например, DemoTruckColonna не должен светить
+  // реальную инфраструктуру безопасности в публичном демо.
+  showWeighStations?: boolean;
 }
 
 declare global {
@@ -225,6 +246,47 @@ function buildDestinationBadgeHtml(name: string, count: number, color: string): 
   `;
 }
 
+const WEIGH_STATION_GLYPH = `
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M12 3 2 20h20L12 3Z" stroke="#ffffff" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="M12 10v4" stroke="#ffffff" stroke-width="1.9" stroke-linecap="round"/>
+    <circle cx="12" cy="17" r="1" fill="#ffffff"/>
+  </svg>
+`;
+
+// Весовая рамка — предупреждающий (красный) бейдж, визуально явно отличный
+// от заводов/точек назначения: это не часть маршрута, а зона, куда грузовику
+// с превышением ЗАПРЕЩЕНО заезжать (штраф 200 000 ₽).
+function buildWeighStationBadgeHtml(name: string): string {
+  return `
+    <div style="position:absolute;left:0;top:0;transform:translate(-50%,-50%);">
+      <div style="
+        width:34px;height:34px;border-radius:50%;
+        background:#dc2626;
+        border:3px solid #fff;
+        box-shadow:0 4px 14px rgba(220,38,38,0.45);
+        display:flex;align-items:center;justify-content:center;
+      ">${WEIGH_STATION_GLYPH}</div>
+      <div style="
+        position:absolute;top:100%;left:50%;
+        transform:translateX(-50%);
+        margin-top:5px;
+        background:#dc2626;
+        color:#fff;
+        padding:3px 11px;
+        border-radius:8px;
+        font-size:11px;
+        font-weight:700;
+        white-space:nowrap;
+        letter-spacing:0.2px;
+        box-shadow:0 2px 8px rgba(0,0,0,0.25);
+        border:1px solid rgba(255,255,255,0.4);
+        font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      ">⚠ ВЕСОВАЯ · ${name}</div>
+    </div>
+  `;
+}
+
 // ============================================
 // АВТО-МАСШТАБ
 // ============================================
@@ -280,10 +342,11 @@ function computeBounds(points: [number, number][]): [[number, number], [number, 
 // ОСНОВНОЙ КОМПОНЕНТ
 // ============================================
 
-export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapReady, filterRequestNumber }: TruckMapProps) {
+export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapReady, filterRequestNumber, showWeighStations = false }: TruckMapProps) {
   const [selectedTruck, setSelectedTruck] = useState<Truck | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
+  const [weighStations, setWeighStations] = useState<WeighStationData[]>([]);
 
   const mapRef = useRef<YandexMap | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -291,6 +354,7 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
   const placemarksRef = useRef<Record<string, YandexPlacemark>>({});
   const routesRef = useRef<Record<string, unknown>>({});
   const factoryMarksRef = useRef<unknown[]>([]);
+  const weighStationMarksRef = useRef<unknown[]>([]);
   const isMapReadyRef = useRef(false);
   const isScriptLoadingRef = useRef(false);
   const initMapCalledRef = useRef(false);
@@ -432,6 +496,79 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
 
     drawFactories();
   }, [filteredRoutes, isMapReady, drawFactories]);
+
+  // ============================================
+  // ВЕСОВЫЕ РАМКИ И ЗАПРЕТНЫЕ ДОРОГИ (см. /admin/weigh-stations)
+  // ============================================
+  // Загружаются с публичного /api/weigh-stations один раз при монтировании
+  // (если showWeighStations включён) — новые рамки/дороги, добавленные в
+  // админке, появятся на карте сами при следующей загрузке страницы, без
+  // изменений кода. Рисуются отдельным слоем, поверх заводов/маршрутов:
+  // красные пунктирные линии дорог + красный предупреждающий бейдж станции.
+
+  useEffect(() => {
+    if (!showWeighStations) return;
+
+    let cancelled = false;
+    fetch('/api/weigh-stations')
+      .then((res) => res.json())
+      .then((data) => {
+        if (!cancelled && Array.isArray(data.stations)) {
+          setWeighStations(data.stations);
+        }
+      })
+      .catch((err) => console.error('❌ Error loading weigh stations:', err));
+
+    return () => { cancelled = true; };
+  }, [showWeighStations]);
+
+  const drawWeighStations = useCallback(() => {
+    if (!isMapReady || !mapRef.current || !window.ymaps) return;
+
+    const map = mapRef.current;
+    const ymaps = window.ymaps;
+
+    weighStationMarksRef.current.forEach((mark) => map.geoObjects.remove(mark));
+    weighStationMarksRef.current = [];
+
+    if (!showWeighStations) return;
+
+    weighStations.forEach((station) => {
+      station.roads.forEach((road) => {
+        const coords: [number, number][] = road.points.map((p) => [p.lat, p.lng]);
+
+        // Свечение под линией дороги — та же техника, что у маршрутных линий,
+        // но красное и с пунктиром, чтобы явно читаться как "опасная зона".
+        const glowLine = new ymaps.Polyline(
+          coords,
+          {},
+          { strokeColor: '#dc2626', strokeWidth: 12, strokeOpacity: 0.18 }
+        );
+        map.geoObjects.add(glowLine);
+        weighStationMarksRef.current.push(glowLine);
+
+        const roadLine = new ymaps.Polyline(
+          coords,
+          {},
+          { strokeColor: '#dc2626', strokeWidth: 4, strokeOpacity: 0.85, strokeStyle: 'shortdash' }
+        );
+        map.geoObjects.add(roadLine);
+        weighStationMarksRef.current.push(roadLine);
+      });
+
+      const stationPlacemark = new ymaps.Placemark(
+        [station.lat, station.lng],
+        {},
+        { iconLayout: ymaps.templateLayoutFactory.createClass(buildWeighStationBadgeHtml(station.name)) }
+      );
+      map.geoObjects.add(stationPlacemark);
+      weighStationMarksRef.current.push(stationPlacemark);
+    });
+  }, [isMapReady, showWeighStations, weighStations]);
+
+  useEffect(() => {
+    drawWeighStations();
+  }, [drawWeighStations]);
 
   // ============================================
   // ИНИЦИАЛИЗАЦИЯ КАРТЫ

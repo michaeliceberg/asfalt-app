@@ -1374,7 +1374,7 @@ useEffect(() => {
                     </div>
                   )}
                   <div style={{ height: 520 }}>
-                    <TruckMap trucks={gpsActiveTrucks} routes={gpsActiveRoutes} filterRequestNumber={gpsFilterRequestNumber} />
+                    <TruckMap trucks={gpsActiveTrucks} routes={gpsActiveRoutes} filterRequestNumber={gpsFilterRequestNumber} showWeighStations />
                   </div>
                 </>
               )}

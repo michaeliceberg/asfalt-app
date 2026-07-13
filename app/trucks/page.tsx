@@ -658,6 +658,7 @@ useEffect(() => {
             routes={[selectedRoute]}
             filterRequestNumber={selectedRoute.requestNumber}
             onMapReady={(map) => setSharedMap(map)}
+            showWeighStations
           />
         ) : (
           <TruckMap
@@ -665,6 +666,7 @@ useEffect(() => {
             routes={displayedRoutes}
             filterRequestNumber={null}
             onMapReady={(map) => setSharedMap(map)}
+            showWeighStations
           />
         )}
       </div>
