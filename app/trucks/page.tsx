@@ -652,18 +652,18 @@ useEffect(() => {
         {loading ? (
           <LoadingSpinner message="Загрузка данных о транспорте..." size="large" />
         ) : selectedRoute ? (
-          <TruckMap 
+          <TruckMap
             key={selectedRoute.requestNumber}
-            trucks={trucksList} 
+            trucks={trucksList}
             routes={[selectedRoute]}
-            filterPlate={selectedRoute.licensePlates[0] || null}
+            filterRequestNumber={selectedRoute.requestNumber}
             onMapReady={(map) => setSharedMap(map)}
           />
         ) : (
-          <TruckMap 
-            trucks={trucksList} 
+          <TruckMap
+            trucks={trucksList}
             routes={displayedRoutes}
-            filterPlate={null}
+            filterRequestNumber={null}
             onMapReady={(map) => setSharedMap(map)}
           />
         )}

@@ -142,7 +142,7 @@ export default function DemoTruckColonna() {
       </div>
 
       <div style={{ height: 440, borderRadius: '0 0 14px 14px', overflow: 'hidden', border: '1px solid #e9ecef', borderTop: 'none' }}>
-        <TruckMap trucks={trucks} routes={routes} filterPlate={null} />
+        <TruckMap trucks={trucks} routes={routes} filterRequestNumber={null} />
       </div>
     </div>
   );

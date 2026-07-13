@@ -48,7 +48,14 @@ interface TruckMapProps {
   routes?: Route[];
   onTruckSelect?: (truck: Truck) => void;
   onMapReady?: (map: YandexMap) => void;
-  filterPlate?: string | null;
+  // Раньше сужали карту до одной заявки по госномеру (filterPlate) — но
+  // одна и та же машина за день может отработать НЕСКОЛЬКО разных заявок,
+  // и её госномер попадает в licensePlates сразу нескольких routes. Из-за
+  // этого при выборе одной заявки на карте/в чипах-селекторе иногда
+  // подсвечивались/фильтровались сразу две. requestNumber — ключ, по
+  // которому строятся сами routes (см. /api/truck-routes), уникален на
+  // маршрут, поэтому однозначно определяет ровно одну заявку.
+  filterRequestNumber?: string | null;
 }
 
 declare global {
@@ -273,7 +280,7 @@ function computeBounds(points: [number, number][]): [[number, number], [number, 
 // ОСНОВНОЙ КОМПОНЕНТ
 // ============================================
 
-export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapReady, filterPlate }: TruckMapProps) {
+export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapReady, filterRequestNumber }: TruckMapProps) {
   const [selectedTruck, setSelectedTruck] = useState<Truck | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [isMapReady, setIsMapReady] = useState(false);
@@ -292,23 +299,17 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
   // ============================================
   // ФИЛЬТРАЦИЯ ДО ОДНОГО МАРШРУТА (если пришли из конкретной заявки)
   // ============================================
-  // Раньше filterPlate влиял ТОЛЬКО на список рисуемых машин (см. эффект
-  // ниже) — заводы, точки назначения и линии маршрутов рисовались по
-  // ВСЕМ routes целиком. Из-за этого при переходе "Показать на карте" из
-  // конкретной заявки карта всё равно показывала все активные сегодня
-  // заводы и маршруты разом. Теперь единый filteredRoutes используется
-  // везде (заводы/линии/destination/машины/автозум) — если задан
-  // filterPlate, сужаем до ОДНОГО маршрута, которому принадлежит этот
-  // госномер; если маршрут не нашёлся или filterPlate не задан — берём
-  // routes целиком (обзорный режим вкладки GPS).
+  // Раньше сужали до ОДНОГО маршрута по госномеру (filterPlate) — но
+  // requestNumber уникален на маршрут (ключ группировки в
+  // /api/truck-routes), а госномер — нет: одна машина может отработать
+  // за день несколько разных заявок, и её плейт попадёт в licensePlates
+  // сразу нескольких routes, из-за чего "сужение" ловило лишний маршрут.
+  // filterRequestNumber однозначен — просто ищем route с таким же id.
   const filteredRoutes = useMemo(() => {
-    if (!filterPlate) return routes;
-    const normalizedFilter = filterPlate.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
-    const route = routes.find((r) =>
-      r.licensePlates.some((p) => p.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '') === normalizedFilter)
-    );
+    if (!filterRequestNumber) return routes;
+    const route = routes.find((r) => r.requestNumber === filterRequestNumber);
     return route ? [route] : routes;
-  }, [routes, filterPlate]);
+  }, [routes, filterRequestNumber]);
 
   // ============================================
   // РАСЧЁТ ВРЕМЕНИ МАРШРУТА (формула на сервере — без изменений)
@@ -569,11 +570,11 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
     });
     placemarksRef.current = {};
 
-    // filteredRoutes уже сужен до одного маршрута, если задан filterPlate
-    // (см. useMemo выше) — здесь просто берём машины из его licensePlates,
-    // без повторного поиска маршрута по номеру.
+    // filteredRoutes уже сужен до одного маршрута, если задан
+    // filterRequestNumber (см. useMemo выше) — здесь просто берём машины
+    // из его licensePlates, без повторного поиска маршрута по номеру.
     let filteredTrucks = trucks;
-    if (filterPlate) {
+    if (filterRequestNumber) {
       const plateSet = new Set(
         filteredRoutes.flatMap((r) => r.licensePlates.map((p) => p.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '')))
       );
@@ -631,7 +632,7 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
       map.geoObjects.add(placemark);
       placemarksRef.current[truck.uid] = placemark;
     });
-  }, [trucks, selectedTruck, isMapReady, onTruckSelect, filterPlate, filteredRoutes]);
+  }, [trucks, selectedTruck, isMapReady, onTruckSelect, filterRequestNumber, filteredRoutes]);
 
   // ============================================
   // ЭФФЕКТЫ ДЛЯ МАРШРУТОВ

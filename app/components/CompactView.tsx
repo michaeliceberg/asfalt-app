@@ -71,9 +71,12 @@ interface CompactViewProps {
   // координат у демо-машин нет, а /api/trucks-distances требует авторизацию.
   demoMode?: boolean;
   // Мостик к вкладке GPS — "Показать на карте" в развёрнутой заявке.
-  // Один госномер достаточно: TruckMap сам находит по нему весь маршрут
-  // (см. filterPlate в TruckMap.tsx) и показывает всю колонну этой заявки.
-  onShowOnMap?: (licensePlate: string) => void;
+  // Передаём requestNumber заявки, а не госномер машины — один и тот же
+  // госномер может встретиться сразу в НЕСКОЛЬКИХ заявках за день (машина
+  // отработала два разных рейса), из-за чего фильтрация по госномеру
+  // иногда сужала/подсвечивала на карте лишний маршрут. requestNumber —
+  // ключ группировки маршрутов (см. /api/truck-routes), уникален.
+  onShowOnMap?: (requestNumber: string) => void;
 }
 
 interface VehicleItem {
@@ -1296,7 +1299,7 @@ useEffect(() => {
           onClick={(e) => {
             e.stopPropagation();
             tapHaptic();
-            onShowOnMap(item.vehicles[0].licensePlate);
+            onShowOnMap(item.requestNumber);
           }}
         >
           <Satellite size={13} strokeWidth={2.4} />Показать на карте

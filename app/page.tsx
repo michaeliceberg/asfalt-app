@@ -242,9 +242,13 @@ export default function Home() {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [gpsError, setGpsError] = useState<string | null>(null);
   // Мостик "Показать на карте" из развёрнутой заявки (CompactView) — узнаём
-  // госномер одной машины заявки, находим по нему нужный маршрут (см.
-  // filterPlate в TruckMap.tsx) и сразу открываем на нём вкладку GPS.
-  const [gpsFilterPlate, setGpsFilterPlate] = useState<string | null>(null);
+  // requestNumber заявки и сразу открываем на нём вкладку GPS (см.
+  // filterRequestNumber в TruckMap.tsx). Раньше это был госномер одной
+  // машины заявки — но одна машина может за день отработать несколько
+  // разных заявок, и её плейт совпадал сразу в нескольких routes, из-за
+  // чего сужение карты/подсветка чипов ловили лишний маршрут. requestNumber
+  // уникален на заявку, такой проблемы нет.
+  const [gpsFilterRequestNumber, setGpsFilterRequestNumber] = useState<string | null>(null);
 
   const { accessibleFactories } = useAuth();
 
@@ -342,13 +346,13 @@ export default function Home() {
     // Ручное переключение вкладки — сбрасываем фильтр от "Показать на
     // карте" (см. handleShowOnMap), иначе GPS молча останется сужен на
     // машины прошлой заявки, если открыть его напрямую через вкладки.
-    setGpsFilterPlate(null);
+    setGpsFilterRequestNumber(null);
     setActiveViewTab(tab);
     setContentKey(prev => prev + 1);
   };
 
-  const handleShowOnMap = (licensePlate: string) => {
-    setGpsFilterPlate(licensePlate);
+  const handleShowOnMap = (requestNumber: string) => {
+    setGpsFilterRequestNumber(requestNumber);
     setActiveViewTab('gps');
     setContentKey(prev => prev + 1);
   };
@@ -1028,14 +1032,14 @@ const handleRefresh = async () => {
   });
 
   // Селектор конкретной заявки прямо на вкладке GPS (не только через
-  // "Показать на карте" из Компактно) — по умолчанию (gpsFilterPlate===null)
-  // карта показывает обзор всех активных сегодня маршрутов, клик по чипу
-  // сужает карту до одного (TruckMap сам фильтрует заводы/линии/машины по
-  // filterPlate — см. filteredRoutes в TruckMap.tsx).
+  // "Показать на карте" из Компактно) — по умолчанию (gpsFilterRequestNumber
+  // === null) карта показывает обзор всех активных сегодня маршрутов,
+  // клик по чипу сужает карту до одного (TruckMap сам фильтрует
+  // заводы/линии/машины по filterRequestNumber — см. filteredRoutes в
+  // TruckMap.tsx). Раньше сужали по госномеру — ломалось, если одна
+  // машина отработала несколько заявок за день (см. requestNumber ниже).
   const cleanGpsDestName = (name: string) =>
     name.replace('ПК 25 ', '').replace('ПК 26 ', '').replace('АЙСБЕРГ ООО', 'АЙСБЕРГ');
-
-  const normalizeForGps = (s: string) => s.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
 
   const gpsChipStyle = (active: boolean): React.CSSProperties => ({
     flexShrink: 0,
@@ -1348,17 +1352,19 @@ useEffect(() => {
                 <>
                   {gpsActiveRoutes.length > 1 && (
                     <div style={{ display: 'flex', gap: 8, overflowX: 'auto', padding: '2px 2px 10px', WebkitOverflowScrolling: 'touch' }}>
-                      <button onClick={() => setGpsFilterPlate(null)} style={gpsChipStyle(!gpsFilterPlate)}>
+                      <button onClick={() => setGpsFilterRequestNumber(null)} style={gpsChipStyle(!gpsFilterRequestNumber)}>
                         Все ({gpsActiveRoutes.length})
                       </button>
                       {gpsActiveRoutes.map((route) => {
-                        const plate = route.licensePlates[0] || null;
-                        const normalizedFilter = gpsFilterPlate ? normalizeForGps(gpsFilterPlate) : '';
-                        const isSelected = route.licensePlates.some((p) => normalizeForGps(p) === normalizedFilter);
+                        // requestNumber уникален на маршрут — в отличие от
+                        // госномера, который может встретиться сразу в
+                        // нескольких routes (одна машина отработала
+                        // несколько заявок за день), тут неоднозначности нет.
+                        const isSelected = route.requestNumber === gpsFilterRequestNumber;
                         return (
                           <button
-                            key={route.requestNumber + route.destination}
-                            onClick={() => setGpsFilterPlate(plate)}
+                            key={route.requestNumber}
+                            onClick={() => setGpsFilterRequestNumber(route.requestNumber)}
                             style={gpsChipStyle(isSelected)}
                           >
                             {cleanGpsDestName(route.destination)} · {route.count}
@@ -1368,7 +1374,7 @@ useEffect(() => {
                     </div>
                   )}
                   <div style={{ height: 520 }}>
-                    <TruckMap trucks={gpsActiveTrucks} routes={gpsActiveRoutes} filterPlate={gpsFilterPlate} />
+                    <TruckMap trucks={gpsActiveTrucks} routes={gpsActiveRoutes} filterRequestNumber={gpsFilterRequestNumber} />
                   </div>
                 </>
               )}
