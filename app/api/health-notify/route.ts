@@ -33,7 +33,11 @@ export async function GET() {
     const statusText = dbStatus === 'ok' ? 'ВСЁ ХОРОШО' : 'ПРОБЛЕМА С БД';
 
     // 4. Отправляем уведомление ТОЛЬКО mike
-    await sendPushNotification(userId, {
+    // Раньше результат {sent, total} игнорировался — эндпоинт всегда
+    // отвечал success:true, даже если реально ушло 0 уведомлений (все
+    // подписки мёртвые). Из-за этого в логе крона неделями было "всё ок",
+    // хотя пуши не доходили — теперь честно отражаем, сколько реально ушло.
+    const result = await sendPushNotification(userId, {
       title: `🩺 Health Check: ${statusText}`,
       body: `${status} Система работает стабильно\n🕐 ${new Date().toLocaleString('ru-RU')}`,
       tag: `health-${Date.now()}`,
@@ -41,7 +45,9 @@ export async function GET() {
     });
 
     return NextResponse.json({
-      success: true,
+      success: result.sent > 0,
+      sent: result.sent,
+      total: result.total,
       userId,
       status: dbStatus,
       timestamp: new Date().toISOString(),

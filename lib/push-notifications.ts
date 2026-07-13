@@ -18,14 +18,63 @@ if (vapidConfigured) {
   console.warn('⚠️ VAPID-ключи не заданы — push-уведомления отключены');
 }
 
-// Подписка мертва навсегда и её нужно удалить, если push-сервис отвечает:
-// 410 Gone — пользователь сам отписался/сбросил разрешение в браузере
-// 401/403 — ключ не подходит к этой подписке (например, VapidPkHashMismatch
-// после смены VAPID-ключей на сервере) — тоже никогда не заработает повторно
+// Причины из тела ответа push-сервиса, означающие, что подписка мертва
+// навсегда (ожить не может, пока пользователь не оформит новую). Раньше
+// сюда относили только statusCode 410/401/403 — но на практике Apple на
+// VapidPkHashMismatch (ключ VAPID сервера сменился после смены/сброса
+// ключей — сама подписка была оформлена под старый ключ и больше никогда
+// не подойдёт) отвечает кодом 400, а не 403, поэтому такие подписки
+// никогда не удалялись и копились в базе, засоряя лог одинаковой ошибкой
+// на каждой рассылке (обнаружено при разборе почему health-check дошёл
+// не всем — см. pm2 error log, десятки VapidPkHashMismatch подряд).
+const DEAD_SUBSCRIPTION_REASONS = new Set([
+  'VapidPkHashMismatch',
+  'BadJwtToken',
+  'InvalidToken',
+  'Unregistered',
+  'ExpiredPushSubscription',
+  'NotRegistered',
+]);
+
+// Помимо сетевых ошибок push-сервиса, web-push иногда падает ЛОКАЛЬНО —
+// ещё до похода в сеть — если в базе лежит битая подписка (например,
+// p256dh/auth ключ сохранился обрезанным). У такой ошибки вообще нет
+// statusCode (она не долетает до сервера), но подписка так же безнадёжна.
+function isMalformedSubscriptionError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  return /p256dh|VAPID|subscription.*(invalid|malformed)/i.test(error.message);
+}
+
 function isDeadSubscriptionError(error: unknown): boolean {
-  if (!error || typeof error !== 'object' || !('statusCode' in error)) return false;
-  const statusCode = (error as { statusCode: number }).statusCode;
-  return statusCode === 410 || statusCode === 401 || statusCode === 403;
+  if (isMalformedSubscriptionError(error)) return true;
+  if (!error || typeof error !== 'object') return false;
+
+  const err = error as { statusCode?: number; body?: string };
+  if (err.statusCode === 410 || err.statusCode === 401 || err.statusCode === 403) return true;
+
+  if (typeof err.body === 'string') {
+    try {
+      const parsed = JSON.parse(err.body) as { reason?: string };
+      if (parsed.reason && DEAD_SUBSCRIPTION_REASONS.has(parsed.reason)) return true;
+    } catch {
+      // тело не JSON — не наш случай, пропускаем
+    }
+  }
+
+  return false;
+}
+
+// Удаление обёрнуто отдельным try/catch — раньше падение самого delete
+// (например из-за "database is locked" при параллельной записи от
+// крон-задач) вылетало из внутреннего catch наружу и обрывало ВЕСЬ цикл
+// рассылки: остальные, ещё живые подписки в этом вызове просто не
+// получали уведомление, хотя формально всё выглядело как "success".
+async function deleteDeadSubscription(endpoint: string) {
+  try {
+    await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint));
+  } catch (error) {
+    console.error(`⚠️ Не удалось удалить мёртвую подписку (${endpoint.slice(0, 50)}...):`, error);
+  }
 }
 
 interface PushNotification {
@@ -123,9 +172,7 @@ export async function sendPushNotification(
           console.error(`Failed to send to ${sub.endpoint}:`, error);
           if (isDeadSubscriptionError(error)) {
             console.log(`🗑️ Удаляем невалидную подписку (${sub.endpoint.slice(0, 50)}...)`);
-            await db
-              .delete(pushSubscriptions)
-              .where(eq(pushSubscriptions.endpoint, sub.endpoint));
+            await deleteDeadSubscription(sub.endpoint);
           }
         }
       }
@@ -192,9 +239,7 @@ export async function sendToAdmins(notification: PushNotification) {
           console.error(`❌ Ошибка отправки:`, error);
           if (isDeadSubscriptionError(error)) {
             console.log(`🗑️ Удаляем невалидную подписку`);
-            await db
-              .delete(pushSubscriptions)
-              .where(eq(pushSubscriptions.endpoint, sub.push_subscriptions.endpoint));
+            await deleteDeadSubscription(sub.push_subscriptions.endpoint);
           }
         }
       }
