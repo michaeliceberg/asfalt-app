@@ -87,6 +87,7 @@ export default function DemoTruckColonna() {
         driver,
         driverPhone: DEMO_DRIVER_PHONES[driver],
         quantity: perTruckQty,
+        arrived,
       };
     });
   }, [truckStates]);

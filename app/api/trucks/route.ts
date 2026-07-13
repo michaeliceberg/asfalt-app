@@ -24,6 +24,13 @@ interface TruckData {
   lastUpdate: string | null;
   destination: string | null;
   factory: string;
+  // Тоннаж/водитель/прибытие — берём из самой свежей (по дате) отгрузки
+  // этого госномера, см. plateToLatestShipment ниже. Раньше эти поля были
+  // только в демо (DemoTruckColonna.tsx), в боевой карточке машины при
+  // клике оставались пустыми, хотя UI их уже умел показывать.
+  quantity: number | null;
+  driver: string | null;
+  arrived: boolean;
 }
 
 interface RouteData {
@@ -240,26 +247,45 @@ const routesWithDates: RouteData[] = routes.map((route) => {
 
 
     // console.log('🔵 Routes with dates:', routesWithDates.length);
-    
+
+    // Самая свежая (по дате) отгрузка на каждый госномер — источник
+    // тоннажа/водителя/статуса "прибыл" для карточки машины на карте.
+    // Один и тот же госномер может встречаться в нескольких отгрузках за
+    // день (разные заявки), поэтому берём именно последнюю по дате — это
+    // и есть текущий/последний известный рейс этой машины.
+    const plateToLatestShipment: Record<string, Shipment> = {};
+    for (const s of allShipments) {
+      if (!s.licensePlate) continue;
+      const normalizedPlate = s.licensePlate.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
+      const existing = plateToLatestShipment[normalizedPlate];
+      if (!existing || new Date(s.date) > new Date(existing.date)) {
+        plateToLatestShipment[normalizedPlate] = s;
+      }
+    }
+
     // 4. Формируем результат
     const result: TruckData[] = allTrucks.map(truck => {
       const pos = positions[truck.uid];
-      
+
       // Нормализуем номер для поиска в truckDestinations
       const normalizedName = truck.name
         .toUpperCase()
         .replace(/\s/g, '')
         .replace(/[^A-Z0-9]/g, '');
-      
+
       const destination = truckDestinations[normalizedName] || null;
       const factory = detectFactory(truck.name);
-      
+      const latestShipment = plateToLatestShipment[normalizedName];
+
       return {
         uid: truck.uid,
         name: truck.name,
         position: pos || null,
         lastUpdate: pos ? new Date(pos.time * 1000).toISOString() : null,
         destination: destination,
+        quantity: latestShipment?.quantity ?? null,
+        driver: latestShipment?.driver ?? null,
+        arrived: latestShipment?.arrived ?? false,
         factory: factory,
       };
     });

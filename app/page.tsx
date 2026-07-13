@@ -147,6 +147,11 @@ interface GpsTruck {
   name: string;
   position: { lat: number; lng: number; vel: number; time: number } | null;
   lastUpdate: string | null;
+  // Тоннаж/водитель/прибытие — из самой свежей отгрузки на этот госномер
+  // (см. app/api/trucks/route.ts, plateToLatestShipment).
+  quantity?: number | null;
+  driver?: string | null;
+  arrived?: boolean;
 }
 
 interface GpsRoute {

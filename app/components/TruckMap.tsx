@@ -25,11 +25,17 @@ interface Truck {
   lastUpdate: string | null;
   destination?: string | null;
   factory?: string;
-  // Водитель/тоннаж/телефон — сейчас заполняются только в демо
-  // (см. DemoTruckColonna.tsx), в боевом GPS-фиде таких полей нет.
-  driver?: string;
+  // Водитель/тоннаж — теперь подтягиваются в /api/trucks из самой свежей
+  // отгрузки этого госномера (см. plateToLatestShipment там), поэтому могут
+  // быть null (отгрузок ещё не было). Телефон водителя пока не хранится
+  // нигде в 1С-фиде — заполняется только в демо.
+  driver?: string | null;
   driverPhone?: string;
-  quantity?: number;
+  quantity?: number | null;
+  // Прибыла ли машина (см. shipments.arrived, calc-distances.ts) — на
+  // основе той же самой последней отгрузки по госномеру. Используется для
+  // мини-значка статуса рядом с машинкой (бегущий человечек / флаг финиша).
+  arrived?: boolean;
 }
 
 interface Route {
@@ -143,6 +149,39 @@ const TRUCK_GLYPH = `
   </svg>
 `;
 
+// Мини-значок статуса рядом с машинкой: "в пути" (бегущий человечек) либо
+// "прибыл" (флаг финиша) — см. selectedTruck.arrived. Цвет заливки задаётся
+// снаружи через currentColor у обёртки, поэтому сам SVG использует
+// currentColor вместо жёстко зашитого цвета.
+const RUNNING_GLYPH = `
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="15.5" cy="4.8" r="2.2" fill="currentColor"/>
+    <path d="M13 8l3 2.3-1 4.4M16.3 10.3l3 1.6M13 8l-4 1.2 1 3.8-3 5M9 9.2l-2.2 2.8 3 2.2"
+      stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+`;
+
+const FINISH_GLYPH = `
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M6 2.5v19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <path d="M6 4h12l-2.4 3L18 10H6V4Z" fill="currentColor"/>
+    <path d="M8.2 4v2h2V4h-2Zm3.8 0v2h2V4h-2ZM8.2 7.6v2.1h2V7.6h-2Zm3.8 0v2.1h2V7.6h-2Z" fill="#fff"/>
+  </svg>
+`;
+
+// Короткий номер для подписи у машинки: убираем код региона (2-3 цифры в
+// конце), чтобы не занимать место на карте — по просьбе пользователя,
+// регион не нужен, важно видеть только сам номер. Формат российского
+// госномера: буква + 3 цифры + 2 буквы (+ опционально регион), например
+// "Е100ВК150" → "Е100ВК". Если номер не совпал с этим паттерном (нестандартный
+// формат/иностранный борт), возвращаем как есть — лучше показать полностью,
+// чем обрезать неправильно.
+function shortPlate(name: string): string {
+  const clean = name.toUpperCase().replace(/\s/g, '');
+  const match = clean.match(/^([A-ZА-Я]\d{3}[A-ZА-Я]{2})\d{0,3}$/);
+  return match ? match[1] : clean;
+}
+
 const FACTORY_GLYPH = `
   <svg width="17" height="17" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M3 21V11l5 3.2V11l5 3.2V11l6-3.6V21H3Z" stroke="#ffffff" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"/>
@@ -168,11 +207,23 @@ const DEST_GLYPH = `
 // полностью кастомный ymaps.templateLayoutFactory-макет (см. ниже), без
 // какой-либо дефолтной формы под низом, поэтому сами следим за центровкой.
 
-function buildTruckBadgeHtml(color: string, selected: boolean): string {
+// name/arrived — новое: короткая плашка с госномером под машинкой (без
+// региона, чтобы не занимать место — см. shortPlate) и мини-значок статуса
+// (бегущий человечек / флаг финиша). ВАЖНО: оба добавления — position:
+// absolute внутри контейнера, у которого явно заданы width/height=size —
+// поэтому они рисуются "поверх границ" контейнера, не увеличивая его
+// собственный размер. Это критично для клика: getShape (см. ниже, в месте
+// создания placemark) считает область клика кругом радиуса size/2 с центром
+// в (0,0), что совпадает с центром контейнера ПОСЛЕ transform:translate(-50%,
+// -50%) только если размер контейнера не менялся — иначе клик снова "мимо".
+function buildTruckBadgeHtml(name: string, color: string, selected: boolean, arrived: boolean): string {
   const size = selected ? 40 : 30;
   const ring = selected
     ? `<div class="truck-badge-pulse" style="position:absolute;inset:-6px;border-radius:50%;border:2px solid ${color};"></div>`
     : '';
+  const statusColor = arrived ? '#16a34a' : '#3a56d4';
+  const statusGlyph = arrived ? FINISH_GLYPH : RUNNING_GLYPH;
+  const plate = shortPlate(name);
   return `
     <div style="position:absolute;left:0;top:0;transform:translate(-50%,-50%);width:${size}px;height:${size}px;">
       ${ring}
@@ -183,6 +234,29 @@ function buildTruckBadgeHtml(color: string, selected: boolean): string {
         box-shadow:0 3px 10px rgba(0,0,0,0.35);
         display:flex;align-items:center;justify-content:center;
       ">${TRUCK_GLYPH}</div>
+      <div style="
+        position:absolute;top:-3px;right:-3px;
+        width:15px;height:15px;border-radius:50%;
+        background:#fff;color:${statusColor};
+        border:1.5px solid ${statusColor};
+        box-shadow:0 1px 4px rgba(0,0,0,0.35);
+        display:flex;align-items:center;justify-content:center;
+      ">${statusGlyph}</div>
+      <div style="
+        position:absolute;top:100%;left:50%;
+        transform:translateX(-50%);
+        margin-top:3px;
+        background:rgba(15,15,26,0.88);
+        color:#fff;
+        padding:1.5px 6px;
+        border-radius:6px;
+        font-size:10px;
+        font-weight:700;
+        white-space:nowrap;
+        letter-spacing:0.2px;
+        box-shadow:0 2px 6px rgba(0,0,0,0.3);
+        font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      ">${plate}</div>
     </div>
   `;
 }
@@ -750,7 +824,7 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
           // карты под меткой. Явно задаём круглую область клика того же
           // радиуса, что и сам бейдж, с центром в точке маркера (0,0) —
           // ровно туда, куда CSS-transform визуально ставит кружок.
-          iconLayout: ymaps.templateLayoutFactory.createClass(buildTruckBadgeHtml(statusColor, isSelected), {
+          iconLayout: ymaps.templateLayoutFactory.createClass(buildTruckBadgeHtml(truck.name, statusColor, isSelected, !!truck.arrived), {
             getShape: function () {
               const r = (isSelected ? 40 : 30) / 2;
               return new ymaps.shape.Circle(new ymaps.geometry.pixel.Circle([0, 0], r));

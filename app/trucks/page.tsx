@@ -19,6 +19,11 @@ interface Truck {
     time: number;
   } | null;
   lastUpdate: string | null;
+  // Тоннаж/водитель/прибытие — из самой свежей отгрузки на этот госномер
+  // (см. app/api/trucks/route.ts, plateToLatestShipment).
+  quantity?: number | null;
+  driver?: string | null;
+  arrived?: boolean;
 }
 
 interface Route {
