@@ -1350,9 +1350,24 @@ useEffect(() => {
               const distData = vehicle.shipmentNumber
                 ? truckDistances.get(vehicle.shipmentNumber)
                 : undefined;
+
+              // Запасной сигнал "скорее всего доставлено": если рейс
+              // старше STALE_HOURS, а arrived в базе так и не выставился
+              // (машина заехала-уехала между прогонами крона, или GPS
+              // потерялся) — не показываем протухшее "живое" расстояние,
+              // которое на деле означает "текущая позиция машины минус
+              // старая точка назначения", а не реальный прогресс. Просто
+              // считаем рейс завершённым визуально. calc-distances.ts
+              // тоже подстраховывает это на уровне БД (min_distance_to_dest),
+              // это — дополнительная защита на случай, если и там не сработало.
+              const STALE_HOURS = 2;
+              const shipmentTime = parseRussianDate(vehicle.fullDateTime || vehicle.time);
+              const hoursSinceShipment = (Date.now() - shipmentTime.getTime()) / 1000 / 3600;
+              const presumedDelivered = hoursSinceShipment > STALE_HOURS;
+
               const distance = distData?.distance ?? null;
-              const isArrived = distData?.arrived ?? false;
-              
+              const isArrived = (distData?.arrived ?? false) || presumedDelivered;
+
               // Вычисляем общее расстояние (от завода до ПК)
               // Для простоты используем максимальное расстояние из всех машин
               // или можно вычислить по координатам

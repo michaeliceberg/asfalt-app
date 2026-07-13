@@ -1,0 +1,1 @@
+ALTER TABLE `shipments` ADD `min_distance_to_dest` real;

@@ -6,6 +6,15 @@ import { getTrucks } from '../lib/trucks';
 
 const AUTH_TOKEN = 'XBNlAqRnZxU3Q%2BSLHe3qKZSIIYiSGWym3mN8%2BbXmbSZE74YqB3bYf4TLIWAzLPyg%2BR9qd2Mf9AxDn2K3f4j5lA%3D%3D';
 const ARRIVAL_THRESHOLD_KM = 2;
+// Запасной сигнал прибытия — на случай, если машина ни разу не попала в
+// ARRIVAL_THRESHOLD_KM ровно в момент прогона крона (заехала и уехала
+// между двумя пятиминутками, либо координата точки назначения неточная
+// на несколько км). Если машина хоть раз подъезжала ближе, чем
+// DEPARTURE_MIN_APPROACH_KM, а сейчас расстояние выросло минимум на
+// DEPARTURE_MARGIN_KM относительно этого лучшего приближения — считаем,
+// что она доставила и уехала.
+const DEPARTURE_MIN_APPROACH_KM = 3;
+const DEPARTURE_MARGIN_KM = 3;
 
 async function getTruckPositions() {
   try {
@@ -98,18 +107,31 @@ async function main() {
     
     const distance = calculateDistance(truckPos.lat, truckPos.lng, destCoords.lat, destCoords.lng);
     const eta = calculateETA(distance);
-    
+
+    // Лучшее (минимальное) приближение за весь рейс — используется ниже
+    // как запасной сигнал прибытия, если прямое попадание в радиус
+    // ARRIVAL_THRESHOLD_KM было пропущено между прогонами крона.
+    const prevMinDistance = shipment.min_distance_to_dest;
+    const minDistance = prevMinDistance === null || prevMinDistance === undefined
+      ? distance
+      : Math.min(prevMinDistance, distance);
+
     await db.update(shipments)
       .set({
         distance_to_dest: distance,
         eta_minutes: eta.totalMinutes,
         updated_at: now,
+        min_distance_to_dest: minDistance,
       })
       .where(eq(shipments.id, shipment.id));
-    
+
     updatedCount++;
-    
-    if (distance < ARRIVAL_THRESHOLD_KM && !shipment.arrived) {
+
+    const arrivedByProximity = distance < ARRIVAL_THRESHOLD_KM;
+    const arrivedByDeparture =
+      minDistance < DEPARTURE_MIN_APPROACH_KM && distance > minDistance + DEPARTURE_MARGIN_KM;
+
+    if ((arrivedByProximity || arrivedByDeparture) && !shipment.arrived) {
       await db.update(shipments)
         .set({
           arrived: true,
@@ -117,7 +139,11 @@ async function main() {
         })
         .where(eq(shipments.id, shipment.id));
       arrivedCount++;
-      console.log(`✅ ${shipment.licensePlate} прибыла!`);
+      if (arrivedByProximity) {
+        console.log(`✅ ${shipment.licensePlate} прибыла (в радиусе ${ARRIVAL_THRESHOLD_KM} км)!`);
+      } else {
+        console.log(`✅ ${shipment.licensePlate} прибыла (подъезжала на ${minDistance.toFixed(1)} км, сейчас ${distance.toFixed(1)} км — похоже, уехала)!`);
+      }
     }
   }
 
