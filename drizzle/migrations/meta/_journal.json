@@ -29,6 +29,13 @@
       "when": 1783345305454,
       "tag": "0003_lyrical_silverclaw",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1783933880745,
+      "tag": "0004_left_dagger",
+      "breakpoints": true
     }
   ]
 }

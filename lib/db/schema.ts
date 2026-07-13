@@ -229,3 +229,59 @@ export const trucks = sqliteTable('trucks', {
 
 export type Truck = typeof trucks.$inferSelect;
 export type NewTruck = typeof trucks.$inferInsert;
+
+// ============================================
+// ВЕСОВЫЕ РАМКИ — geofencing (штраф 200 тыс за проезд самосвала
+// по дороге с рамкой). Координаты самой рамки + отдельно "запретные
+// дороги" (ломаные линии подъездов к ней, может быть несколько с разных
+// сторон) — рисуются вручную в /admin/weigh-stations.
+// ============================================
+
+export const weighStations = sqliteTable('weigh_stations', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  lat: real('lat').notNull(),
+  lng: real('lng').notNull(),
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: integer('created_at').notNull(),
+});
+
+// Ломаная линия дороги, ведущей к рамке. У одной станции может быть
+// несколько подъездов (с разных сторон) — каждый отдельной записью.
+export const restrictedRoads = sqliteTable('restricted_roads', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  stationId: integer('station_id').notNull().references(() => weighStations.id),
+  name: text('name'), // необязательное название подъезда, напр. "с востока"
+  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
+  createdAt: integer('created_at').notNull(),
+});
+
+// Точки ломаной линии дороги, по порядку.
+export const restrictedRoadPoints = sqliteTable('restricted_road_points', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  roadId: integer('road_id').notNull().references(() => restrictedRoads.id),
+  orderIndex: integer('order_index').notNull(),
+  lat: real('lat').notNull(),
+  lng: real('lng').notNull(),
+});
+
+// Активные тревоги — пока машина не покинула буфер дороги, повторный
+// push не шлём (lastSeenAt обновляется на каждом цикле воркера, пока
+// машина всё ещё рядом с дорогой). resolvedAt проставляется, когда
+// машина отъехала — тогда следующий заезд создаст новую тревогу.
+export const geofenceAlerts = sqliteTable('geofence_alerts', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  roadId: integer('road_id').notNull().references(() => restrictedRoads.id),
+  licensePlate: text('license_plate').notNull(),
+  triggeredAt: integer('triggered_at').notNull(),
+  lastSeenAt: integer('last_seen_at').notNull(),
+  resolvedAt: integer('resolved_at'),
+});
+
+export type WeighStation = typeof weighStations.$inferSelect;
+export type NewWeighStation = typeof weighStations.$inferInsert;
+export type RestrictedRoad = typeof restrictedRoads.$inferSelect;
+export type NewRestrictedRoad = typeof restrictedRoads.$inferInsert;
+export type RestrictedRoadPoint = typeof restrictedRoadPoints.$inferSelect;
+export type NewRestrictedRoadPoint = typeof restrictedRoadPoints.$inferInsert;
+export type GeofenceAlert = typeof geofenceAlerts.$inferSelect;
