@@ -742,7 +742,7 @@ useEffect(() => {
                 ) : (
                   <button
                     onClick={() => toggleDate(date)}
-                    style={{ background: 'transparent', border: 'none', color: '#3a56d4', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: '2px 6px' }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--accent)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: '2px 6px' }}
                   >
                     Развернуть ({sortedItems.length})
                   </button>
@@ -1014,7 +1014,7 @@ useEffect(() => {
                 {!isExpandedDay && (
                   <button
                     onClick={() => toggleDate(dateKey)}
-                    style={{ background: 'transparent', border: 'none', color: '#3a56d4', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: '2px 6px' }}
+                    style={{ background: 'transparent', border: 'none', color: 'var(--accent)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: '2px 6px' }}
                   >
                     Развернуть ({sortedItems.length})
                   </button>
@@ -1162,7 +1162,7 @@ useEffect(() => {
               ) : (
                 <button
                   onClick={() => toggleDate(date)}
-                  style={{ background: 'transparent', border: 'none', color: '#3a56d4', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: '2px 6px' }}
+                  style={{ background: 'transparent', border: 'none', color: 'var(--accent)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', padding: '2px 6px' }}
                 >
                   Развернуть ({items.length})
                 </button>

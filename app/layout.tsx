@@ -1,5 +1,6 @@
 // app/layout.tsx
 import './globals.css'
+import './theme.css'
 import type { Metadata, Viewport } from 'next'
 
 // ============================================
@@ -36,7 +37,16 @@ export default function RootLayout({
 }) {
   return (
     <html lang="ru">
-      <body>{children}</body>
+      <body suppressHydrationWarning>
+        {/* Тёмная тема Айсберга ставится до первой отрисовки главного экрана —
+            иначе при загрузке мелькает светлый фон (класс потом держит page.tsx) */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: "try{if(location.pathname==='/'&&localStorage.getItem('appMode')==='iceberg')document.body.classList.add('iceberg-mode')}catch(e){}",
+          }}
+        />
+        {children}
+      </body>
     </html>
   )
 }

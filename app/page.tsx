@@ -1059,9 +1059,9 @@ const handleRefresh = async () => {
     flexShrink: 0,
     padding: '7px 14px',
     borderRadius: 20,
-    border: active ? '1.5px solid #3a56d4' : '1px solid #e2e8f0',
-    background: active ? 'rgba(58,86,212,0.1)' : '#fff',
-    color: active ? '#3a56d4' : '#475569',
+    border: active ? '1.5px solid var(--accent)' : '1px solid var(--line)',
+    background: active ? 'var(--accent-soft)' : 'var(--surface)',
+    color: active ? 'var(--accent)' : 'var(--muted)',
     fontSize: 12.5,
     fontWeight: 600,
     cursor: 'pointer',
@@ -1362,7 +1362,11 @@ useEffect(() => {
               mainTab={activeMainTab}
               outgoingRequests={outgoingRequestsForCompact}
               allShipments={shipmentData}
-              allShipmentsForChart={shipmentData}
+              // Гистограмма 24 часа — только заводы текущей организации
+              // (раньше сюда шли отгрузки всех 4 заводов, и у ТАС и Айсберга
+              // цифры были одинаковые)
+              allShipmentsForChart={shipmentData.filter(s =>
+                (mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ']).includes(s.division))}
               selectedFactory={activeFactory}
               mode={mode}
               onShowOnMap={handleShowOnMap}
@@ -1370,7 +1374,11 @@ useEffect(() => {
           )}
 
           {activeMainTab !== 'summary' && activeViewTab === 'charts' && (
-            <ChartsView data={shipmentData} mode={mode} />
+            <ChartsView
+              data={shipmentData.filter(s =>
+                (mode === 'tas' ? ['ЛХ', 'ЛЮ'] : ['СП', 'Щ']).includes(s.division))}
+              mode={mode}
+            />
           )}
 
           {activeMainTab !== 'summary' && activeViewTab === 'gps' && (
@@ -1388,8 +1396,8 @@ useEffect(() => {
                 <LoadingSpinner message="Загрузка данных GPS..." size="large" />
               ) : gpsActiveRoutes.length === 0 ? (
                 <div className="empty" style={{ padding: '40px 20px', textAlign: 'center' }}>
-                  <p style={{ fontSize: '16px', color: '#888' }}>Нет активных отгрузок сегодня</p>
-                  <p style={{ fontSize: '13px', color: '#aaa' }}>GPS-колонна появится здесь, как только пойдут рейсы</p>
+                  <p style={{ fontSize: '16px', color: 'var(--muted)' }}>Нет активных отгрузок сегодня</p>
+                  <p style={{ fontSize: '13px', color: 'var(--faint)' }}>GPS-колонна появится здесь, как только пойдут рейсы</p>
                 </div>
               ) : (
                 <>
@@ -1427,8 +1435,8 @@ useEffect(() => {
                   </div>
 
                   {gpsSelectedRoute && gpsSelectedRouteTrucks.length > 0 && (
-                    <div style={{ marginTop: 12, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 12, overflow: 'hidden' }}>
-                      <div style={{ padding: '10px 14px', background: '#f8fafc', borderBottom: '1px solid #e2e8f0', fontSize: 12.5, fontWeight: 700, color: '#475569' }}>
+                    <div style={{ marginTop: 12, background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 12, overflow: 'hidden' }}>
+                      <div style={{ padding: '10px 14px', background: 'var(--surface-2)', borderBottom: '1px solid var(--line)', fontSize: 12.5, fontWeight: 700, color: 'var(--muted)' }}>
                         Машины · {cleanGpsDestName(gpsSelectedRoute.destination)} ({gpsSelectedRouteTrucks.length})
                       </div>
                       {gpsSelectedRouteTrucks.map((truck) => (
@@ -1439,20 +1447,20 @@ useEffect(() => {
                           style={{
                             display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
                             width: '100%', padding: '10px 14px', background: 'transparent', border: 'none',
-                            borderBottom: '1px solid #f1f5f9', cursor: truck.position ? 'pointer' : 'default',
+                            borderBottom: '1px solid var(--line)', cursor: truck.position ? 'pointer' : 'default',
                             textAlign: 'left', opacity: truck.position ? 1 : 0.5,
                           }}
                         >
                           <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0, flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: 13, fontWeight: 700, color: '#1a1a2e' }}>{truck.name}</span>
-                            {truck.driver && <span style={{ fontSize: 12, color: '#64748b' }}>{truck.driver}</span>}
-                            {truck.quantity ? <span style={{ fontSize: 12, color: '#94a3b8' }}>· {truck.quantity} т</span> : null}
+                            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text)' }}>{truck.name}</span>
+                            {truck.driver && <span style={{ fontSize: 12, color: 'var(--muted)' }}>{truck.driver}</span>}
+                            {truck.quantity ? <span style={{ fontSize: 12, color: 'var(--faint)' }}>· {truck.quantity} т</span> : null}
                           </div>
                           <span style={{
                             display: 'inline-flex', alignItems: 'center', gap: 4, flexShrink: 0,
                             fontSize: 11.5, fontWeight: 700,
-                            color: truck.arrived ? '#16a34a' : '#3a56d4',
-                            background: truck.arrived ? 'rgba(22,163,74,0.1)' : 'rgba(58,86,212,0.1)',
+                            color: truck.arrived ? 'var(--ok)' : 'var(--accent)',
+                            background: truck.arrived ? 'var(--ok-soft)' : 'var(--accent-soft)',
                             padding: '3px 9px', borderRadius: 20,
                           }}>
                             {truck.arrived ? <Flag size={12} strokeWidth={2.4} /> : <Navigation size={12} strokeWidth={2.4} />}

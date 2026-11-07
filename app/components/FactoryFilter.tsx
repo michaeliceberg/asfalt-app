@@ -13,10 +13,10 @@ interface FactoryFilterProps {
 // "🏭 АБЗ «Северный»", что не влезает в узкую кнопку.
 function getShortFactoryLabel(factory: string): string {
   switch (factory) {
-    case 'ЛХ': return 'АБЗ Луховицкий';
-    case 'ЛЮ': return 'АБЗ Люберецкий';
-    case 'СП': return 'АБЗ Сергиев Посад';
-    case 'Щ': return 'АБЗ Щёлково';
+    case 'ЛХ': return 'Луховицы';
+    case 'ЛЮ': return 'Люберцы';
+    case 'СП': return 'Сергиев Посад';
+    case 'Щ': return 'Щёлково';
     case 'ДЕМО-СЕВ': return 'АБЗ Северный';
     case 'ДЕМО-ЮГ': return 'АБЗ Южный';
     default: return factory;
@@ -31,7 +31,7 @@ export default function FactoryFilter({ factories, activeFactory, onFactoryChang
         onClick={() => { tapHaptic(); onFactoryChange('all'); }}
       >
         <LayoutGrid size={14} strokeWidth={2.2} style={{ marginRight: 4, verticalAlign: -2 }} />
-        Все заводы
+        Все
       </button>
       {factories.map(factory => (
         <button

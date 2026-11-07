@@ -1,0 +1,429 @@
+/* app/theme.css
+ *
+ * Дизайн главного экрана (2026-11-07): сдержанный, в духе garaggio.
+ * Две палитры:
+ *   ТАС     — светлая: белые карточки, спокойный синий акцент;
+ *   Айсберг — тёмная: графит, «ледяной» голубой акцент (body.iceberg-mode,
+ *             класс ставит app/page.tsx по выбранному режиму).
+ * Подключается ПОСЛЕ globals.css и перекрывает старые цвета. Цвета берём
+ * только из переменных ниже — новую деталь интерфейса красить ими же.
+ */
+
+:root {
+  --bg: #F3F4F6;
+  --surface: #FFFFFF;
+  --surface-2: #F7F8FA;
+  --surface-3: #EEF1F4;
+  --line: #E3E6EA;
+  --line-strong: #D3D8DE;
+  --text: #15191E;
+  --muted: #6B7480;
+  --faint: #9AA3AD;
+  --accent: #1F4E8C;
+  --accent-soft: #E7EEF7;
+  --accent-text: #FFFFFF;
+  --chip-active-bg: #15191E;
+  --chip-active-text: #FFFFFF;
+  --ok: #23834A;
+  --ok-soft: #EDF6F0;
+  --warn: #B7791F;
+  --warn-soft: #FBF3E3;
+  --danger: #C2412D;
+  --danger-soft: #FBEDEA;
+  --gold: #C9962E;
+  --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 4px 16px rgba(16, 24, 40, .05);
+  --radius: 16px;
+}
+
+body.iceberg-mode {
+  --bg: #111518;
+  --surface: #1A2026;
+  --surface-2: #20272E;
+  --surface-3: #262E36;
+  --line: #2B343C;
+  --line-strong: #37424C;
+  --text: #EDF1F4;
+  --muted: #93A1AB;
+  --faint: #66737D;
+  --accent: #7CC4E4;
+  --accent-soft: rgba(124, 196, 228, .14);
+  --accent-text: #0E1A21;
+  --chip-active-bg: rgba(124, 196, 228, .16);
+  --chip-active-text: #BFE6F6;
+  --ok: #5CBF86;
+  --ok-soft: rgba(92, 191, 134, .10);
+  --warn: #E2B04A;
+  --warn-soft: rgba(226, 176, 74, .12);
+  --danger: #E5654F;
+  --danger-soft: rgba(229, 101, 79, .12);
+  --gold: #F2C35B;
+  --shadow: none;
+  color-scheme: dark;
+}
+
+html body:not(._) { background: var(--bg) !important; color: var(--text); transition: background-color .25s ease; }
+
+/* ---------- Шапка: карточка вместо фиолетового градиента ---------- */
+html body:not(._) .header {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: 20px !important;
+  box-shadow: var(--shadow) !important;
+  padding: 14px !important;
+}
+
+html body:not(._) .app-header-brand-pill {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: none !important;
+}
+html body:not(._) .app-header-brand-name { color: var(--text) !important; }
+html body:not(._) .app-header-user-pill { background: transparent !important; color: var(--muted) !important; border: none !important; }
+html body:not(._) .app-header-user-pill-text { color: var(--muted) !important; }
+html body:not(._) .header-btn {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--line) !important;
+  color: var(--text) !important;
+  box-shadow: none !important;
+}
+
+/* Переключатель ТАС / Айсберг — сегменты */
+html body:not(._) .mode-switch-container {
+  background: var(--surface-2) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: none !important;
+  border-radius: 16px !important;
+}
+html body:not(._) .mode-switch-slider {
+  background: var(--surface) !important;
+  border: 1px solid var(--line-strong) !important;
+  box-shadow: 0 1px 3px rgba(16, 24, 40, .08) !important;
+  border-radius: 13px !important;
+}
+html body.iceberg-mode:not(._) .mode-switch-slider { background: var(--surface-3) !important; box-shadow: none !important; }
+html body:not(._) .mode-option, html body:not(._) .mode-option .mode-label { color: var(--muted) !important; background: transparent !important; }
+html body:not(._) .mode-option.active, html body:not(._) .mode-option.active .mode-label { color: var(--text) !important; }
+html body:not(._) .mode-option.active .mode-icon { color: var(--accent) !important; }
+html body:not(._) .mode-location { color: var(--faint) !important; }
+html body:not(._) .mode-sync-badge { box-shadow: none !important; }
+
+/* Вкладки разделов: Поступление / Отгрузка / На будущее */
+html body:not(._) .main-tab {
+  background: var(--surface-2) !important;
+  color: var(--muted) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: none !important;
+  border-radius: 14px !important;
+}
+html body:not(._) .main-tab .tab-label, html body:not(._) .main-tab .tab-icon { color: inherit !important; }
+html body:not(._) .main-tab.active {
+  background: var(--accent) !important;
+  color: var(--accent-text) !important;
+  border-color: var(--accent) !important;
+}
+html body:not(._) .main-tab.has-new:not(.active), html body:not(._) .main-tab.has-future:not(.active) {
+  background: var(--warn-soft) !important;
+  border-color: var(--warn) !important;
+  color: var(--text) !important;
+}
+
+/* Заводы и виды (Компактно / Список / Графики / GPS) — «таблетки» */
+html body:not(._) .factory-switch .factory-btn,
+html body:not(._) .tabs .tab {
+  background: transparent !important;
+  color: var(--muted) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: none !important;
+}
+html body:not(._) .factory-switch .factory-btn.active,
+html body:not(._) .tabs .tab.active {
+  background: var(--chip-active-bg) !important;
+  color: var(--chip-active-text) !important;
+  border-color: transparent !important;
+}
+html body.iceberg-mode:not(._) .factory-switch .factory-btn.active,
+html body.iceberg-mode:not(._) .tabs .tab.active { border-color: rgba(124, 196, 228, .35) !important; }
+
+html body:not(._) .stats, html body:not(._) .header .stats {
+  color: var(--muted) !important;
+  background: transparent !important;
+  padding: 0 2px !important;
+}
+html body:not(._) .stats strong, html body:not(._) .stats b { color: var(--text) !important; }
+
+/* ---------- Гистограмма 24 часа ---------- */
+html body:not(._) .activity-chart-wrapper {
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow) !important;
+}
+html body:not(._) .activity-chart-bar { background: var(--line-strong) !important; }
+html body:not(._) .activity-chart-bar.active,
+html body:not(._) .activity-chart-bar-wrapper .active { background: var(--accent) !important; opacity: .55; }
+html body:not(._) .activity-chart-bar.current-bar,
+html body:not(._) .activity-chart-bar-wrapper .current-bar { background: var(--accent) !important; opacity: 1; }
+html body:not(._) .activity-chart-bar-value {
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+html body:not(._) .activity-chart-label { color: var(--faint) !important; }
+
+/* ---------- Компактный вид: карточки дней ---------- */
+html body:not(._) .compact-date-group {
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow) !important;
+  overflow: hidden;
+}
+html body:not(._) .compact-date-header {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  box-shadow: none !important;
+  border-bottom: 1px solid var(--line) !important;
+}
+html body:not(._) .compact-date-header .date-text { color: var(--text) !important; }
+html body:not(._) .compact-date-header .date-total,
+html body:not(._) .date-total {
+  background: var(--surface-2) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: none !important;
+}
+html body:not(._) .today-badge {
+  background: var(--accent-soft) !important;
+  color: var(--accent) !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+/* свёрнутые дни — тихая строка, а не яркая плашка */
+html body:not(._) .compact-date-group:not(:has(.compact-table)) { box-shadow: none !important; }
+html body:not(._) .compact-date-group:not(:has(.compact-table)) .compact-date-header {
+  background: var(--surface) !important;
+  border-bottom: none !important;
+}
+
+html body:not(._) .compact-header {
+  background: var(--surface-2) !important;
+  color: var(--faint) !important;
+}
+html body:not(._) .compact-header > * { color: var(--faint) !important; }
+html body:not(._) .compact-row {
+  background: transparent !important;
+  color: var(--text) !important;
+  border-bottom: 1px solid var(--line) !important;
+}
+html body:not(._) .compact-row:last-child { border-bottom: none !important; }
+html body:not(._) .compact-row.compact-clickable:hover { background: var(--surface-2) !important; }
+html body:not(._) .compact-row.completed-row {
+  background: var(--ok-soft) !important;
+  box-shadow: inset 3px 0 0 var(--ok) !important;
+  border-left: none !important;
+}
+html body:not(._) .compact-row .col-time { color: var(--muted) !important; }
+html body:not(._) .compact-row .col-fact { color: var(--ok) !important; }
+html body:not(._) .compact-row .col-slash,
+html body:not(._) .compact-row .col-plan { color: var(--faint) !important; }
+html body:not(._) .compact-row .col-consignee { color: var(--text) !important; }
+html body:not(._) .compact-row .col-trucks { color: var(--accent) !important; }
+html body:not(._) .compact-row .warning, html body:not(._) .col-fact.warning { color: var(--danger) !important; }
+
+html body:not(._) .compact-details,
+html body:not(._) .compact-row + .compact-details {
+  background: var(--surface-2) !important;
+  color: var(--text) !important;
+  border-top: 1px solid var(--line) !important;
+}
+html body:not(._) .detail-label { color: var(--muted) !important; }
+html body:not(._) .detail-value { color: var(--text) !important; }
+
+/* Бейджи заводов — спокойные цвета, буквы читаются на обеих темах */
+html body:not(._) .factory-badge-small, html body:not(._) .factory-badge-mini {
+  box-shadow: none !important;
+  border: none !important;
+  font-weight: 700 !important;
+}
+html body:not(._) .factory-badge-small.ЛХ, html body:not(._) .factory-badge-mini.ЛХ { background: #E3F1E8 !important; color: #23834A !important; }
+html body:not(._) .factory-badge-small.ЛЮ, html body:not(._) .factory-badge-mini.ЛЮ { background: #E4EDF8 !important; color: #2457A6 !important; }
+html body:not(._) .factory-badge-small.СП, html body:not(._) .factory-badge-mini.СП { background: #F7EFDC !important; color: #9A6B12 !important; }
+html body:not(._) .factory-badge-small.Щ,  html body:not(._) .factory-badge-mini.Щ  { background: #F6E5E2 !important; color: #B23A2A !important; }
+html body.iceberg-mode:not(._) .factory-badge-small.СП, html body.iceberg-mode:not(._) .factory-badge-mini.СП { background: rgba(226, 176, 74, .16) !important; color: #E9C16E !important; }
+html body.iceberg-mode:not(._) .factory-badge-small.Щ,  html body.iceberg-mode:not(._) .factory-badge-mini.Щ  { background: rgba(124, 196, 228, .16) !important; color: #9AD3EC !important; }
+html body.iceberg-mode:not(._) .factory-badge-small.ЛХ, html body.iceberg-mode:not(._) .factory-badge-mini.ЛХ { background: rgba(92, 191, 134, .14) !important; color: #7FD3A3 !important; }
+html body.iceberg-mode:not(._) .factory-badge-small.ЛЮ, html body.iceberg-mode:not(._) .factory-badge-mini.ЛЮ { background: rgba(120, 160, 230, .16) !important; color: #A9C2EE !important; }
+
+/* Прогресс выполнения заявки */
+html body:not(._) .percent-fill, html body:not(._) .completion-fill { background: var(--accent) !important; }
+
+/* Прочие карточки (сводка, будущие заявки, список, группы) — те же поверхности */
+html body:not(._) .summary-card-compact,
+html body:not(._) .future-request-card,
+html body:not(._) .card,
+html body:not(._) .group-card,
+html body:not(._) .chart-container,
+html body:not(._) .stat-card {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border-color: var(--line) !important;
+  box-shadow: var(--shadow) !important;
+}
+
+/* Пустые состояния и подписи */
+html body:not(._) .empty, html body:not(._) .empty p { color: var(--muted) !important; }
+
+/* Заголовок гистограммы: «За 24 часа · 586 т» */
+.activity-chart-head {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 0 2px; margin-bottom: 22px; font-size: 13px !important;
+}
+.activity-chart-head > * { font-size: 13px !important; }
+.activity-chart-title { color: var(--muted); font-weight: 600; letter-spacing: .2px; }
+.activity-chart-total { color: var(--text); font-weight: 700; }
+html body:not(._) .activity-chart-wrapper { padding: 12px 12px 8px !important; }
+
+/* Заводы: ровные кнопки в одну строку, без обрезанного текста */
+html body:not(._) .factory-switch {
+  display: grid !important;
+  grid-template-columns: auto 1fr 1fr;
+  gap: 6px !important;
+}
+html body:not(._) .factory-switch .factory-btn {
+  min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* Экран загрузки — в цвет темы (тёмный у Айсберга сразу, без белой вспышки) */
+html body:not(._) .loading-spinner-wrapper.fullscreen { background: var(--bg) !important; }
+html body:not(._) .loading-text { color: var(--muted) !important; }
+html body:not(._) .premium-spinner-ring { border-top-color: var(--accent) !important; }
+
+/* ---------- Вид «Список» ---------- */
+html body:not(._) .list-table,
+html body:not(._) .list-rows { background: var(--surface) !important; }
+html body:not(._) .list-header {
+  background: var(--surface-2) !important;
+  color: var(--faint) !important;
+  border-bottom: 1px solid var(--line) !important;
+}
+html body:not(._) .list-header > * { color: var(--faint) !important; }
+html body:not(._) .list-row {
+  background: transparent !important;
+  border-bottom: 1px solid var(--line) !important;
+  color: var(--text) !important;
+}
+html body:not(._) .list-row:last-child { border-bottom: none !important; }
+html body:not(._) .list-time { color: var(--muted) !important; }
+html body:not(._) .list-material, html body:not(._) .list-customer { color: var(--text) !important; }
+html body:not(._) .list-quantity { color: var(--ok) !important; }
+html body:not(._) .list-license { color: var(--muted) !important; }
+
+/* ---------- Вид «Графики» ---------- */
+html body:not(._) .charts-view,
+html body:not(._) .charts-container,
+html body:not(._) .charts-stats {
+  background: var(--surface) !important;
+  color: var(--text) !important;
+  border: 1px solid var(--line) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow) !important;
+}
+html body:not(._) .charts-container, html body:not(._) .charts-stats { border: none !important; box-shadow: none !important; }
+html body:not(._) .charts-title { color: var(--text) !important; font-size: 16px !important; }
+html body:not(._) .factory-filter-btn {
+  background: transparent !important; color: var(--muted) !important;
+  border: 1px solid var(--line) !important; box-shadow: none !important;
+}
+html body:not(._) .factory-filter-btn.active {
+  background: var(--chip-active-bg) !important; color: var(--chip-active-text) !important; border-color: transparent !important;
+}
+html body:not(._) .bars-container .bar { background: var(--accent) !important; opacity: .55; box-shadow: none !important; }
+html body:not(._) .bars-container .today .bar, html body:not(._) .bar-column.today .bar { opacity: 1; }
+html body:not(._) .bar-value { color: var(--accent) !important; }
+html body:not(._) .bar-label { color: var(--faint) !important; }
+html body:not(._) .bar-label .today, html body:not(._) .today-label {
+  background: var(--accent-soft) !important; color: var(--accent) !important;
+}
+html body:not(._) .stats-header { color: var(--muted) !important; background: transparent !important; }
+html body:not(._) .stats-row { border-bottom: 1px solid var(--line) !important; background: transparent !important; color: var(--text) !important; }
+html body:not(._) .stats-date { color: var(--muted) !important; }
+html body:not(._) .stats-total { color: var(--text) !important; }
+html body:not(._) .stats-count { color: var(--faint) !important; }
+html body:not(._) .bar-label.today {
+  background: var(--accent-soft) !important; background-image: none !important;
+  color: var(--accent) !important; box-shadow: none !important;
+}
+html body:not(._) .bar-column:has(.bar-label.today) .bar { opacity: 1; }
+html body:not(._) .bar-value { color: var(--muted) !important; }
+html body:not(._) .compact-header { border-bottom: 1px solid var(--line) !important; }
+
+/* ---------- «На будущее»: карточки заявок ---------- */
+html body:not(._) .future-request-compact-item {
+  background: var(--surface) !important;
+  border: 1px solid var(--line) !important;
+  border-left: 3px solid var(--accent) !important;
+  box-shadow: var(--shadow) !important;
+  border-radius: 14px !important;
+  display: grid !important;
+  grid-template-columns: 1fr auto;
+  grid-template-areas: "date badge" "info info";
+  align-items: center;
+  gap: 8px 10px !important;
+}
+html body:not(._) .future-request-compact-item.today-item {
+  border-left-color: var(--warn) !important;
+  background: var(--surface) !important;
+}
+html body:not(._) .future-item-date {
+  grid-area: date; width: auto !important; order: 0 !important;
+  flex-direction: row !important; align-items: baseline; gap: 8px !important;
+}
+html body:not(._) .future-item-badge {
+  grid-area: badge; order: 0 !important; margin: 0 !important;
+  width: auto !important; background: transparent !important; padding: 0 !important;
+}
+html body:not(._) .future-item-info { grid-area: info; width: auto !important; order: 0 !important; }
+html body:not(._) .future-item-day { color: var(--accent) !important; }
+html body:not(._) .today-item .future-item-day { color: var(--warn) !important; }
+html body:not(._) .future-item-time { color: var(--muted) !important; font-size: 12px !important; }
+html body:not(._) .future-item-number { background: var(--accent-soft) !important; color: var(--accent) !important; }
+html body:not(._) .future-item-consignee { color: var(--text) !important; font-size: 14px !important; }
+html body:not(._) .future-item-material {
+  background: var(--surface-2) !important; color: var(--muted) !important; font-size: 11px !important;
+}
+html body:not(._) .future-item-quantity { color: var(--ok) !important; }
+@media (min-width: 560px) {
+  html body:not(._) .future-request-compact-item {
+    grid-template-columns: 96px 1fr auto;
+    grid-template-areas: "date info badge";
+  }
+  html body:not(._) .future-item-date { flex-direction: column !important; align-items: flex-start; gap: 2px !important; }
+}
+
+/* ---------- Раскрытая заявка: список рейсов ---------- */
+html body:not(._) .detail-row { border-color: var(--line) !important; }
+html body:not(._) .vehicles-list { border-color: var(--line) !important; }
+html body:not(._) .vehicles-title { color: var(--muted) !important; }
+html body:not(._) .vehicle-item {
+  background: transparent !important;
+  border: 0 !important;
+  border-top: 1px solid var(--line) !important;
+}
+html body:not(._) .vehicle-time { color: var(--muted) !important; }
+html body:not(._) .vehicle-license { color: var(--text) !important; }
+html body:not(._) .vehicle-driver-inline { color: var(--muted) !important; }
+html body:not(._) .vehicle-quantity { color: var(--ok) !important; }
+
+/* Плашка материала в раскрытой заявке ТАС */
+html body:not(._) .detail-hero {
+  background: var(--surface) !important; background-image: none !important;
+  border: 1px solid var(--line) !important;
+}
+html body:not(._) .detail-hero-icon {
+  background: var(--accent-soft) !important; background-image: none !important;
+  color: var(--accent) !important; box-shadow: none !important;
+}
+html body:not(._) .detail-hero-label { color: var(--muted) !important; }
+html body:not(._) .detail-hero-value { color: var(--text) !important; }

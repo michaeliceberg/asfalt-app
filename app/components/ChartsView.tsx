@@ -5,7 +5,7 @@
 import { useEffect, useState, useCallback, useMemo } from 'react';
 import { ShipmentItem } from '@/app/page';
 import LoadingSpinner from './LoadingSpinner';
-import { isConcreteMaterial } from '@/lib/utils';
+import { isConcreteMaterial, isSpecialMaterial } from '@/lib/utils';
 import { BarChart3, Factory } from 'lucide-react';
 
 interface ChartsViewProps {
@@ -115,7 +115,8 @@ export default function ChartsView({ data, mode = 'tas' }: ChartsViewProps) {
     // фильтр применяем ТОЛЬКО к total/count (бар и верхние колонки), а
     // разбивку по заводам считаем всегда по полному набору — так таблицу
     // можно использовать для сравнения заводов, даже когда выбран один.
-    const materialFiltered = data.filter(item => !isConcreteMaterial(item.material));
+    // Только асфальт: без бетона и без инертных/топлива (раньше дизель в литрах шёл как тонны асфальта)
+    const materialFiltered = data.filter(item => !isConcreteMaterial(item.material) && !isSpecialMaterial(item.material));
 
     // Вычисляем дату 10 дней назад
     const today = new Date();

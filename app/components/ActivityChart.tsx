@@ -153,7 +153,7 @@ if (materialType === 'asphalt') {
   // на каждый кадр). В обычном браузере разницы не видно, а в WKWebView
   // (Capacitor-обёртка на iOS) это заметно менее тормознутая анимация,
   // особенно когда все 12 столбиков переанимируются разом при смене вкладки.
-  const MAX_BAR_HEIGHT = 24;
+  const MAX_BAR_HEIGHT = 34;
 
   const getHeight = (tons: number, hasActivity: boolean) => {
     if (!hasActivity) return 2;
@@ -166,8 +166,16 @@ if (materialType === 'asphalt') {
 
   if (activityData.length === 0) return null;
 
+  const totalTons = activityData.reduce((sum, d) => sum + d.totalTons, 0);
+
   return (
     <div className="activity-chart-wrapper">
+      <div className="activity-chart-head">
+        <span className="activity-chart-title">За 24 часа</span>
+        <span className="activity-chart-total" style={totalTons > 0 ? undefined : { color: 'var(--faint)', fontWeight: 500 }}>
+          {totalTons > 0 ? `${formatTons(totalTons)} т` : 'отгрузок не было'}
+        </span>
+      </div>
       <div className="activity-chart-bars-row">
         {activityData.map((item) => {
           const height = getHeight(item.totalTons, item.hasActivity);

@@ -26,7 +26,7 @@ body {
 
 /* Хедер - компактная версия */
 .header {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--accent);
   color: white;
   padding: 16px 20px;
   border-radius: 16px;
@@ -90,7 +90,7 @@ body {
 
 .data-type-btn.active {
   background: white;
-  color: #667eea;
+  color: var(--accent);
   border-color: white;
 }
 
@@ -137,7 +137,7 @@ body {
 
 .factory-btn.active {
   background: white;
-  color: #667eea;
+  color: var(--accent);
   border-color: white;
 }
 
@@ -188,7 +188,7 @@ body {
 
 .tab.active {
   background: white;
-  color: #667eea;
+  color: var(--accent);
 }
 
 .tab:active {
@@ -384,8 +384,8 @@ body {
 
 
 .today-card {
-  border-left: 4px solid #667eea;
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+  border-left: 4px solid var(--accent);
+  box-shadow: 0 4px 12px var(--line-strong);
 }
 
 
@@ -398,7 +398,7 @@ body {
 /* Бейдж СЕГОДНЯ внутри карточки группировки */
 .group-today-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--accent);
   color: white;
   font-size: 10px;
   font-weight: 700;
@@ -444,7 +444,7 @@ body {
 /* Бейдж "СЕГОДНЯ" в списке */
 .today-badge {
   display: inline-block;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--accent);
   color: white;
   font-size: 10px;
   font-weight: 700;
@@ -469,7 +469,7 @@ body {
   width: 40px;
   height: 40px;
   border: 3px solid #f3f3f3;
-  border-top: 3px solid #667eea;
+  border-top: 3px solid var(--accent);
   border-radius: 50%;
   animation: spin 1s linear infinite;
 } */
@@ -550,7 +550,7 @@ body {
 /* Бейдж СЕГОДНЯ в итогах по дням (заголовок дня) */
 .today-badge-header {
   display: inline-block;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--accent);
   color: white;
   font-size: 11px;
   font-weight: 700;
@@ -715,7 +715,7 @@ body {
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-  border-left: 4px solid #667eea;
+  border-left: 4px solid var(--accent);
 }
 
 /* Заголовок карточки группировки */
@@ -779,7 +779,7 @@ body {
   left: 0;
   right: 0;
   bottom: 0;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--accent);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -806,7 +806,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #667eea;
+  color: var(--accent);
 }
 
 .pin-modal-header h2 {
@@ -840,7 +840,7 @@ body {
 }
 
 .pin-dot.filled {
-  background: #667eea;
+  background: var(--accent);
   transform: scale(1.1);
 }
 
@@ -1013,7 +1013,7 @@ body {
 }
 
 .request-number {
-  color: #667eea;
+  color: var(--accent);
   font-weight: 600;
 }
 
@@ -1393,7 +1393,7 @@ body {
 }
 
 /* .compact-date-header {
-  background: #667eea;
+  background: var(--accent);
   color: white;
   padding: 8px 12px;
   font-size: 14px;
@@ -1966,7 +1966,7 @@ body {
 }
 
 .factory-filter-btn.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--accent);
   color: white;
 }
 
@@ -2009,7 +2009,7 @@ body {
 }
 
 .bar {
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent) 100%);
   border-radius: 6px 6px 3px 3px;
   width: 100%;
   max-width: 35px;
@@ -2044,7 +2044,7 @@ body {
 }
 
 .bar-label.today {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--accent);
   color: white;
   font-weight: 600;
   padding: 2px 8px;
@@ -2243,7 +2243,7 @@ body {
 
 .logo-icon {
   font-size: 32px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--accent);
   width: 48px;
   height: 48px;
   border-radius: 14px;
@@ -2311,9 +2311,9 @@ body {
 }
 
 .summary-subtab.active {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--accent);
   color: white;
-  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+  box-shadow: 0 2px 8px var(--line-strong);
 }
 
 .summary-subtab:active {
@@ -2338,7 +2338,7 @@ body {
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  border-left: 4px solid #667eea;
+  border-left: 4px solid var(--accent);
 }
 
 .future-request-header {
@@ -2353,7 +2353,7 @@ body {
 .future-request-date {
   font-size: 12px;
   font-weight: 700;
-  color: #667eea;
+  color: var(--accent);
 }
 
 .future-request-badge {
@@ -2400,9 +2400,9 @@ body {
 /* Вкладка с индикатором будущих заявок */
 .main-tab.has-future {
   position: relative;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--accent);
   color: white;
-  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.4);
+  box-shadow: 0 2px 12px var(--line-strong);
 }
 
 .tab-content {
@@ -2450,7 +2450,7 @@ body {
 
 /* Для обычного состояния, когда вкладка не активна */
 /* .main-tab.has-future:not(.active) {
-  background: linear-gradient(135deg, #5a67d8 0%, #6b46a0 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #6b46a0 100%);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
@@ -2467,8 +2467,8 @@ body {
 .future-request-time {
   font-size: 11px;
   font-weight: 600;
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+  color: var(--accent);
+  background: var(--accent-soft);
   padding: 2px 6px;
   border-radius: 12px;
 }
@@ -2484,7 +2484,7 @@ body {
 
 .today-badge-summary {
   display: inline-block;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--accent);
   color: white;
   font-size: 10px;
   font-weight: 700;
@@ -2503,9 +2503,9 @@ body {
 /* Карточка с сегодняшней заявкой */
 .summary-card-compact.today-card,
 .future-request-card.today-card {
-  border-left: 4px solid #667eea;
+  border-left: 4px solid var(--accent);
   background: linear-gradient(135deg, #ffffff 0%, #f0f4ff 100%);
-  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.15);
+  box-shadow: 0 2px 12px var(--accent-soft);
 }
 
 /* Адаптация для мобильных */
@@ -2575,14 +2575,14 @@ body {
 }
 .main-tab.has-new.active {
   background: white;
-  color: #667eea;
+  color: var(--accent);
   border: 2px solid #ff9800;
   box-shadow: 0 0 12px rgba(255, 152, 0, 0.4);
 }
 
 /* Существующие стили для План-факт */
 .main-tab.has-future:not(.active) {
-  background: linear-gradient(135deg, #5a67d8 0%, #6b46a0 100%);
+  background: linear-gradient(135deg, var(--accent) 0%, #6b46a0 100%);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.3);
 }
@@ -2591,8 +2591,8 @@ body {
 .future-request-number {
   font-size: 11px;
   font-family: monospace;
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+  color: var(--accent);
+  background: var(--accent-soft);
   display: inline-block;
   padding: 2px 8px;
   border-radius: 12px;
@@ -2602,7 +2602,7 @@ body {
 
 
 .compact-date-header {
-  background: #667eea;
+  background: var(--accent);
   color: white;
   padding: 8px 12px;
   font-size: 14px;
@@ -2652,7 +2652,7 @@ body {
 
 .main-tab.active {
   background: white;
-  color: #667eea;
+  color: var(--accent);
   border-color: white;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
@@ -2722,8 +2722,8 @@ body {
 
 /* Для активной вкладки - другой цвет цифры */
 .main-tab.active .badge-number {
-  background: rgba(102, 126, 234, 0.2);
-  color: #667eea !important;
+  background: var(--line-strong);
+  color: var(--accent) !important;
 }
 
 /* Адаптив для маленьких экранов */
@@ -2749,8 +2749,8 @@ body {
 
 /* Для активной вкладки - другой цвет цифры */
 .main-tab.active .badge-number {
-  background: rgba(102, 126, 234, 0.2);
-  color: #667eea;
+  background: var(--line-strong);
+  color: var(--accent);
 }
 
 /* Адаптив для маленьких экранов */
@@ -2844,7 +2844,7 @@ body {
 
 .main-tab.active {
   background: white;
-  color: #667eea;
+  color: var(--accent);
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
@@ -2889,7 +2889,7 @@ body {
   align-items: center;
   gap: 12px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  border-left: 3px solid #667eea;
+  border-left: 3px solid var(--accent);
   transition: all 0.2s;
 }
 
@@ -2913,7 +2913,7 @@ body {
 .future-item-day {
   font-size: 13px;
   font-weight: 700;
-  color: #667eea;
+  color: var(--accent);
 }
 
 .future-item-time {
@@ -2936,8 +2936,8 @@ body {
 .future-item-number {
   font-size: 10px;
   font-family: monospace;
-  color: #667eea;
-  background: rgba(102, 126, 234, 0.1);
+  color: var(--accent);
+  background: var(--accent-soft);
   display: inline-block;
   padding: 2px 8px;
   border-radius: 12px;
@@ -3098,10 +3098,10 @@ body {
 /* .activity-chart-bar-value {
   font-size: 8px;
   font-weight: 700;
-  color: #667eea;
+  color: var(--accent);
   text-align: center;
   white-space: nowrap;
-  background: rgba(102, 126, 234, 0.08);
+  background: var(--accent-soft);
   padding: 1px 4px;
   border-radius: 10px;
 } */
@@ -3116,7 +3116,7 @@ body {
 }
 
 .activity-chart-bar.active {
-  background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(180deg, var(--accent) 0%, var(--accent) 100%);
 }
 
 .activity-chart-bar.inactive {
@@ -3200,10 +3200,10 @@ body {
 .activity-chart-bar-value {
   font-size: 10px;
   font-weight: 700;
-  color: #667eea;
+  color: var(--accent);
   text-align: center;
   white-space: nowrap;
-  background: rgba(102, 126, 234, 0.1);
+  background: var(--accent-soft);
   padding: 2px 6px;
   border-radius: 12px;
 }
@@ -3596,7 +3596,7 @@ body.iceberg-mode .active-dot {
 }
 
 .btn-primary {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--accent);
   border: none;
   color: white;
 }
@@ -3688,7 +3688,7 @@ body.iceberg-mode .active-dot {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #667eea;
+  color: var(--accent);
 }
 
 .module-info {
@@ -3708,7 +3708,7 @@ body.iceberg-mode .active-dot {
 .module-price {
   font-size: 13px;
   font-weight: 600;
-  color: #667eea;
+  color: var(--accent);
 }
 
 .add-btn, .remove-btn {
@@ -3721,7 +3721,7 @@ body.iceberg-mode .active-dot {
 }
 
 .add-btn {
-  background: #667eea;
+  background: var(--accent);
   color: white;
 }
 
@@ -3772,7 +3772,7 @@ body.iceberg-mode .active-dot {
 .app-header {
   text-align: center;
   font-weight: 700;
-  color: #667eea;
+  color: var(--accent);
   margin-bottom: 12px;
 }
 
@@ -3782,7 +3782,7 @@ body.iceberg-mode .active-dot {
   padding: 12px;
   margin-bottom: 12px;
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-  border-left: 3px solid #667eea;
+  border-left: 3px solid var(--accent);
 }
 
 .demo-header {
@@ -3808,7 +3808,7 @@ body.iceberg-mode .active-dot {
 
 .progress-fill {
   height: 100%;
-  background: linear-gradient(90deg, #667eea, #764ba2);
+  background: linear-gradient(90deg, var(--accent), var(--accent));
   border-radius: 3px;
 }
 
@@ -3865,13 +3865,13 @@ body.iceberg-mode .active-dot {
 
 .total-price strong {
   font-size: 28px;
-  color: #667eea;
+  color: var(--accent);
 }
 
 .order-btn {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--accent);
   color: white;
   border: none;
   border-radius: 40px;
@@ -3910,7 +3910,7 @@ body.iceberg-mode .active-dot {
 }
 
 .tariff-btn.active {
-  background: linear-gradient(135deg, #667eea10, #764ba210);
+  background: var(--accent-soft);
   transform: scale(1.01);
 }
 
@@ -3938,7 +3938,7 @@ body.iceberg-mode .active-dot {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #667eea;
+  color: var(--accent);
 }
 
 .testimonials {
@@ -3965,7 +3965,7 @@ body.iceberg-mode .active-dot {
   margin-top: 16px;
   font-style: normal;
   font-weight: 600;
-  color: #667eea;
+  color: var(--accent);
 }
 
 .footer {
@@ -4036,7 +4036,7 @@ body.iceberg-mode .active-dot {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--accent);
   padding: 20px;
 }
 
@@ -4073,7 +4073,7 @@ body.iceberg-mode .active-dot {
 .login-card button {
   width: 100%;
   padding: 14px;
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: var(--accent);
   color: white;
   border: none;
   border-radius: 12px;
@@ -4152,7 +4152,7 @@ body.iceberg-mode .active-dot {
 .stat-card p {
   font-size: 32px;
   font-weight: 700;
-  color: #667eea;
+  color: var(--accent);
 }
 
 .table-container {
@@ -4181,7 +4181,7 @@ body.iceberg-mode .active-dot {
 }
 
 .view-logs-btn {
-  background: #667eea;
+  background: var(--accent);
   color: white;
   border: none;
   border-radius: 8px;
@@ -4191,7 +4191,7 @@ body.iceberg-mode .active-dot {
 }
 
 .view-logs-btn:hover {
-  background: #5a67d8;
+  background: var(--accent);
 }
 
 /* Модальное окно */
@@ -4317,16 +4317,16 @@ body.iceberg-mode .active-dot {
 
 /* Режим ЛХ/ЛЮ (активный) */
 .mode-option.active .mode-icon {
-  color: #667eea;
+  color: var(--accent);
 }
 
 .mode-option.active .mode-label {
-  color: #667eea;
+  color: var(--accent);
   font-weight: 700;
 }
 
 .mode-option.active .mode-location {
-  color: #764ba2;
+  color: var(--accent);
 }
 
 /* Режим Айсберг (активный) */
@@ -4692,17 +4692,6 @@ body.iceberg-mode .future-request-card.today-card {
   background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
 }
 
-/* Универсальное правило для неактивных кнопок */
-body.iceberg-mode button:not(.active):not(.refresh-btn):not(.logout-btn):not(.mode-option.active) {
-  background: rgba(30, 30, 38, 0.8);
-  color: #c0c0cc;
-  border-color: rgba(255, 255, 255, 0.1);
-}
-
-body.iceberg-mode button:not(.active):not(.refresh-btn):not(.logout-btn):not(.mode-option.active):active {
-  background: rgba(50, 50, 60, 0.9);
-}
-
 /* Бейджи в компактном виде */
 /* body.iceberg-mode .factory-badges-group .factory-badge-small {
   font-weight: 600;
@@ -4877,12 +4866,12 @@ body.iceberg-mode .factory-badges-group .factory-badge-small.СП {
 }
 
 .spinner-ring:nth-child(1) {
-  border-top-color: #667eea;
+  border-top-color: var(--accent);
   animation-delay: -0.45s;
 }
 
 .spinner-ring:nth-child(2) {
-  border-right-color: #764ba2;
+  border-right-color: var(--accent);
   animation-delay: -0.3s;
 }
 
@@ -4942,12 +4931,12 @@ body.iceberg-mode .factory-badges-group .factory-badge-small.СП {
 }
 
 .premium-spinner-ring:nth-child(1) {
-  border-top-color: #667eea;
+  border-top-color: var(--accent);
   animation: spinPremium 1s cubic-bezier(0.4, 0, 0.2, 1) infinite;
 }
 
 .premium-spinner-ring:nth-child(2) {
-  border-right-color: #764ba2;
+  border-right-color: var(--accent);
   animation: spinPremium 1s cubic-bezier(0.4, 0, 0.2, 1) infinite reverse;
   animation-delay: -0.3s;
 }
@@ -5043,12 +5032,12 @@ body.iceberg-mode .factory-badges-group .factory-badge-small.СП {
 }
 
 .spinner-ring:nth-child(1) {
-  border-top-color: #667eea;
+  border-top-color: var(--accent);
   animation-delay: -0.45s;
 }
 
 .spinner-ring:nth-child(2) {
-  border-right-color: #764ba2;
+  border-right-color: var(--accent);
   animation-delay: -0.3s;
 }
 
@@ -5119,7 +5108,7 @@ body.iceberg-mode .spinner-ring:nth-child(3) {
   width: 44px;
   height: 44px;
   border: 2px solid #e9ecef;
-  border-top: 2px solid #667eea;
+  border-top: 2px solid var(--accent);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }
@@ -5285,7 +5274,7 @@ body.iceberg-mode .special-badge {
   justify-content: center;
   align-items: center;
   padding: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: var(--accent);
   color: white;
   font-size: 13px;
   font-weight: 500;

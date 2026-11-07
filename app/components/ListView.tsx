@@ -185,7 +185,7 @@ export default function ListView({ data, mainTab }: ListViewProps) {
       style={{
         background: 'transparent',
         border: 'none',
-        color: '#3a56d4',
+        color: 'var(--accent)',
         fontSize: 12.5,
         fontWeight: 600,
         cursor: 'pointer',
