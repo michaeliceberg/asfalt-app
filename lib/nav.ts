@@ -21,6 +21,7 @@ import { and, desc, eq, gte, inArray, lte } from 'drizzle-orm';
 import { normalizePlate, parseRussianDate, parseDestinationPoint, calculateDistance } from './utils';
 import { FACTORIES } from './constants';
 import { minDistanceToPolylineMeters } from './geofence';
+import { loadWeighGeometry, routeRiskForPlace, weighRiskText, type WeighRisk } from './weighForecast';
 
 export const STOP_MIN_SEC = 7 * 60;          // остановка дольше 7 минут — разгрузка/погрузка
 const STOP_RADIUS_M = 250;                   // все точки остановки в пределах 250 м
@@ -376,6 +377,9 @@ export interface NavStatus {
   text: string;
   etaMinutes: number | null;
   placeName: string | null;
+  shipmentNumber?: string;      // для to_object — какую отгрузку везёт
+  weighRisk?: WeighRisk | null; // для to_object — прошлые рейсы к объекту шли через рамку
+  weighRiskText?: string;
 }
 
 function fmtAgo(sec: number): string {
@@ -409,6 +413,8 @@ export async function truckNavStatuses(plates: string[]): Promise<Record<string,
     if (!prev || parseRussianDate(s.date) > parseRussianDate(prev.date)) lastShipment.set(k, s);
   }
   const recentTrips = await db.select().from(trips).where(gte(trips.endedAt, now - 12 * 3600)).orderBy(desc(trips.endedAt));
+  const weighGeo = await loadWeighGeometry();
+  const riskByPlace = new Map<number, WeighRisk | null>();
   const lastTrip = new Map<string, typeof recentTrips[number]>();
   for (const t of recentTrips) if (!lastTrip.has(t.plate)) lastTrip.set(t.plate, t);
 
@@ -439,7 +445,15 @@ export async function truckNavStatuses(plates: string[]): Promise<Record<string,
         eta = estimateMinutes(remainingKm, totalKm, target.place ? await medianTripMinutes(target.place.id, ship.division) : null);
       }
       const to = target?.name || ship.consignee || ship.customer;
-      result[plate] = { kind: 'to_object', text: `Везёт → ${to}`, etaMinutes: eta, placeName: to };
+      let weighRisk: WeighRisk | null = null;
+      if (target?.place && weighGeo.stations.length) {
+        if (!riskByPlace.has(target.place.id)) riskByPlace.set(target.place.id, await routeRiskForPlace(target.place.id, weighGeo));
+        weighRisk = riskByPlace.get(target.place.id) ?? null;
+      }
+      result[plate] = {
+        kind: 'to_object', text: `Везёт → ${to}`, etaMinutes: eta, placeName: to,
+        shipmentNumber: ship.number, weighRisk, weighRiskText: weighRisk ? weighRiskText(weighRisk) : undefined,
+      };
       continue;
     }
 

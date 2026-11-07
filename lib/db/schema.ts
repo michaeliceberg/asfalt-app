@@ -305,6 +305,14 @@ export type GeofenceAlert = typeof geofenceAlerts.$inferSelect;
 // Точки GPS, которые сохраняет lib/gps-recorder.ts раз в минуту. Геоинформер
 // отдаёт только текущую позицию — без своей истории нельзя понять, где машина
 // останавливалась между опросами. Храним 30 дней.
+// Прогноз весовых рамок (lib/weighForecast.ts): какие предупреждения уже
+// отправлены. key — 'route:<номер отгрузки>' или 'near:<номер машины>:<рамка>:<3-часовой отрезок>'.
+export const weighWarnings = sqliteTable('weigh_warnings', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  key: text('key').notNull(),
+  createdAt: integer('created_at').notNull(),
+}, (t) => [uniqueIndex('weigh_warnings_key').on(t.key)]);
+
 export const gpsPoints = sqliteTable('gps_points', {
   id: integer('id').primaryKey({ autoIncrement: true }),
   plate: text('plate').notNull(),      // normalizePlate(госномер)

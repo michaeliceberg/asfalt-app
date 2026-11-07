@@ -37,7 +37,7 @@ interface Truck {
   // мини-значка статуса рядом с машинкой (бегущий человечек / флаг финиша).
   arrived?: boolean;
   // Статус по истории GPS (lib/nav.ts): «Везёт → объект», «На карьере …» и т.п.
-  navStatus?: { kind: string; text: string; etaMinutes: number | null; placeName: string | null } | null;
+  navStatus?: { kind: string; text: string; etaMinutes: number | null; placeName: string | null; weighRiskText?: string } | null;
 }
 
 interface Route {
@@ -1122,6 +1122,12 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
                     : `${selectedTruck.navStatus.etaMinutes} мин`}
                 </span>
               )}
+            </div>
+          )}
+
+          {selectedTruck.navStatus?.weighRiskText && (
+            <div style={{ fontSize: 12.5, color: '#fbbf24', marginTop: 6, padding: '6px 10px', borderRadius: 10, background: 'rgba(251, 191, 36, .12)', border: '1px solid rgba(251, 191, 36, .35)', textAlign: 'center', fontWeight: 600 }}>
+              ⚠️ Возможна весовая рамка: {selectedTruck.navStatus.weighRiskText}
             </div>
           )}
 

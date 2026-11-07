@@ -14,6 +14,9 @@ import { eq, isNull, and } from 'drizzle-orm';
 import { getTrucks } from './trucks';
 import { minDistanceToPolylineMeters, type LatLng } from './geofence';
 import { sendToAdmins } from './push-notifications';
+import { normalizePlate } from './utils';
+import { truckNavStatuses } from './nav';
+import { checkWeighForecasts, loadWeighGeometry } from './weighForecast';
 
 const POLL_INTERVAL_MS = 60_000; // раз в минуту — тот же порядок, что и у GPS-провайдера
 const ALERT_BUFFER_METERS = 40; // сработать, если машина ближе 40м к линии дороги
@@ -90,6 +93,19 @@ async function loadActiveRoads(): Promise<RoadWithPoints[]> {
 }
 
 async function checkOnce() {
+  // Прогноз рамок (маршрут по прошлым рейсам и «подъезжает к рамке») — до
+  // тревоги «уже на запретной дороге»: у рамки может и не быть размеченной дороги
+  try {
+    const geo = await loadWeighGeometry();
+    if (geo.stations.length > 0) {
+      const list = await getTrucks();
+      const statuses = await truckNavStatuses(list.map((t) => normalizePlate(t.name)));
+      await checkWeighForecasts(statuses, geo);
+    }
+  } catch (error) {
+    console.error('❌ [weigh-forecast] Ошибка прогноза:', error);
+  }
+
   try {
     const roads = await loadActiveRoads();
     if (roads.length === 0) return; // нет размеченных дорог — нечего проверять
