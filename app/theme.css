@@ -10,19 +10,21 @@
  */
 
 :root {
-  --bg: #F3F4F6;
-  --surface: #FFFFFF;
-  --surface-2: #F7F8FA;
-  --surface-3: #EEF1F4;
-  --line: #E3E6EA;
-  --line-strong: #D3D8DE;
+  --bg: #DDE3EA;
+  --surface: #F3F5F8;
+  --surface-2: #E9EDF2;
+  --surface-3: #DDE3EA;
+  --line: #D5DBE3;
+  --line-strong: #C2CAD4;
   --text: #15191E;
   --muted: #6B7480;
   --faint: #9AA3AD;
   --accent: #1F4E8C;
-  --accent-soft: #E7EEF7;
+  --accent-soft: #DCE7F3;
   --accent-text: #FFFFFF;
-  --chip-active-bg: #15191E;
+  --toggle-bg: #1F4E8C;
+  --toggle-text: #FFFFFF;
+  --chip-active-bg: #1F4E8C;
   --chip-active-text: #FFFFFF;
   --ok: #23834A;
   --ok-soft: #EDF6F0;
@@ -48,6 +50,8 @@ body.iceberg-mode {
   --accent: #7CC4E4;
   --accent-soft: rgba(124, 196, 228, .14);
   --accent-text: #0E1A21;
+  --toggle-bg: #2B4A5E;
+  --toggle-text: #EDF1F4;
   --chip-active-bg: rgba(124, 196, 228, .16);
   --chip-active-text: #BFE6F6;
   --ok: #5CBF86;
@@ -88,24 +92,34 @@ html body:not(._) .header-btn {
   box-shadow: none !important;
 }
 
-/* Переключатель ТАС / Айсберг — сегменты */
+/* Переключатель ТАС / Айсберг: ползунок цветом темы, радиус = рамка − отступ.
+   Свою белую овальную подложку у .mode-option.active (globals.css) гасим:
+   она и была «овалом, который не сходится с углом». */
 html body:not(._) .mode-switch-container {
-  background: var(--surface-2) !important;
-  border: 1px solid var(--line) !important;
+  background: var(--surface-3) !important;
+  border: 0 !important;
   box-shadow: none !important;
   border-radius: 16px !important;
 }
 html body:not(._) .mode-switch-slider {
-  background: var(--surface) !important;
-  border: 1px solid var(--line-strong) !important;
-  box-shadow: 0 1px 3px rgba(16, 24, 40, .08) !important;
-  border-radius: 13px !important;
+  background: var(--toggle-bg) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  border-radius: 12px !important;
 }
-html body.iceberg-mode:not(._) .mode-switch-slider { background: var(--surface-3) !important; box-shadow: none !important; }
-html body:not(._) .mode-option, html body:not(._) .mode-option .mode-label { color: var(--muted) !important; background: transparent !important; }
-html body:not(._) .mode-option.active, html body:not(._) .mode-option.active .mode-label { color: var(--text) !important; }
-html body:not(._) .mode-option.active .mode-icon { color: var(--accent) !important; }
+html body:not(._) .mode-option,
+html body:not(._) .mode-option.active {
+  background: transparent !important;
+  box-shadow: none !important;
+  border-radius: 12px !important;
+  animation: none !important;
+}
+html body:not(._) .mode-option, html body:not(._) .mode-option .mode-label { color: var(--muted) !important; }
+html body:not(._) .mode-option.active,
+html body:not(._) .mode-option.active .mode-label,
+html body:not(._) .mode-option.active .mode-icon { color: var(--toggle-text) !important; }
 html body:not(._) .mode-location { color: var(--faint) !important; }
+html body:not(._) .mode-option.active .mode-location { color: var(--toggle-text) !important; opacity: .7; }
 html body:not(._) .mode-sync-badge { box-shadow: none !important; }
 
 /* Вкладки разделов: Поступление / Отгрузка / На будущее */

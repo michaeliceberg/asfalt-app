@@ -3,7 +3,7 @@
 // Кто куда пускается:
 //  - публичные страницы (вход, демо, лендинг) и статические файлы;
 //  - вход/выход;
-//  - /api/excel-import — без токена, но сам проверяет IP завода Айсберг;
+//  - /api/excel-import и /api/last-import-update — без токена, сами проверяют IP завода Айсберг;
 //  - POST /api/send-plan — вебхук Telegram (кнопки в боте);
 //  - /api/health — общий статус для мониторинга (без данных);
 //  - крон-ручки — по заголовку Authorization: Bearer <CRON_SECRET> (crontab на сервере);
@@ -21,6 +21,7 @@ const PUBLIC_API = [
   '/api/auth/login',
   '/api/auth/logout',
   '/api/excel-import',
+  '/api/last-import-update',
   '/api/health',
 ];
 

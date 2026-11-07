@@ -122,7 +122,7 @@ docshiroko, bbr-studio. Никогда `pm2 restart all` / `pm2 reload all`. П�
 ## Доступ (с 2026-11-07)
 
 `proxy.ts`: без входа открыты только `/login`, `/demo`, `/landing`, статика, `/api/auth/*`, `/api/health`,
-`/api/excel-import` (сама пускает только IP завода Айсберг 89.31.82.106 по `X-Real-IP` от nginx, ещё IP —
+`/api/excel-import` и `/api/last-import-update` (сами пускают только IP завода Айсберг 89.31.82.106 по `X-Real-IP` от nginx, ещё IP —
 `EXCEL_IMPORT_IPS` в `.env`) и POST `/api/send-plan` (вебхук Telegram). Крон-ручки — по `CRON_SECRET`,
 всё остальное — только с JWT пользователя. Новую ручку для крона добавлять в `CRON_API` в `proxy.ts`.
 Внутри API не ходить HTTP-запросом к своим же ручкам (запрос пойдёт без cookie и получит 401) —

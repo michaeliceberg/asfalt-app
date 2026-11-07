@@ -2,31 +2,14 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { shipments, incomingMaterials, outgoingRequests } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-
-// Откуда принимаем выгрузку Айсберга: сервер завода (Python-скрипт) и сам
-// сервер. Список можно дополнить через EXCEL_IMPORT_IPS в .env (через запятую).
-const ALLOWED_IPS = [
-    '89.31.82.106', // сервер завода Айсберг
-    '127.0.0.1',
-    '::1',
-    '::ffff:127.0.0.1',
-    ...(process.env.EXCEL_IMPORT_IPS || '').split(',').map(s => s.trim()).filter(Boolean),
-];
-
-// X-Real-IP ставит nginx ($remote_addr) — его клиент подделать не может,
-// в отличие от левой части X-Forwarded-For.
-function getClientIp(request: Request): string {
-    return request.headers.get('x-real-ip')
-        || request.headers.get('x-forwarded-for')?.split(',').pop()?.trim()
-        || 'unknown';
-}
+import { getClientIp, isImportIpAllowed } from '@/lib/importAuth';
 
 export async function POST(request: Request) {
     try {
         const clientIp = getClientIp(request);
         console.log(`📡 Запрос с IP: ${clientIp}`);
         
-        if (!ALLOWED_IPS.includes(clientIp)) {
+        if (!isImportIpAllowed(clientIp)) {
             console.log(`❌ excel-import: доступ запрещён для IP ${clientIp}`);
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }

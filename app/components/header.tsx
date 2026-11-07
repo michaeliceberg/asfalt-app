@@ -123,11 +123,11 @@ export default function Header({
           minWidth: 0,
           overflow: 'hidden',
         }}>
-          <User size={13} color="#ffffff" strokeWidth={2} style={{ flexShrink: 0 }} />
+          <User size={13} color="var(--muted)" strokeWidth={2} style={{ flexShrink: 0 }} />
           <span className="app-header-user-pill-text" style={{
             fontSize: '12px',
             fontWeight: 600,
-            color: '#ffffff',
+            color: 'var(--muted)',
             letterSpacing: '0.3px',
             overflow: 'hidden',
             textOverflow: 'ellipsis',
