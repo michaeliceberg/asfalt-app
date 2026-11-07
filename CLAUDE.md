@@ -67,7 +67,7 @@ POST JSON `{factory, type, data}` на `https://abziceberg.ru/api/excel-import` 
 
 ### GPS
 Провайдер — Геоинформер `https://xptr.geoinformer.com/service/monitoring` (POST, список uid машин +
-токен `ud`, сейчас захардкожен в коде в трёх местах). Отдаёт только текущие позиции, истории не храним.
+токен `ud` — `GEOINFORMER_TOKEN` в `.env.production`). Отдаёт только текущие позиции, истории не храним.
 - `/api/trucks` — позиции + маршруты «завод → объект» (`/api/truck-routes` собирает их из ВСЕХ отгрузок);
   UI опрашивает раз в 2 минуты.
 - `scripts/calc-distances.ts` (крон каждые 5 минут через `npx tsx`) — расстояние до объекта и отметка
@@ -86,31 +86,38 @@ VPS reg.ru 168.222.192.167 (`ssh root@`), папка `/var/www/asfalt-app`, pm2-
 docshiroko, bbr-studio. Никогда `pm2 restart all` / `pm2 reload all`. Перезапускать только `asfalt-app`.**
 
 - Секреты — в `.env`, `.env.local`, `.env.production` на сервере (не в git), список — `.env.example`.
-- На сервере выкачена ветка **`server-version`**, а не `main` (по коду они совпадают на коммите 81cbb49),
-  и есть **незакоммиченные правки от 9 августа 2026** (фильтр отгрузок асфальта < 10 т, upsert прихода,
-  «габбро»/«молочко цементное» в инертных) — сначала их закоммитить, иначе следующий `git pull` их
-  потеряет или упадёт.
+- На сервере выкачена ветка `server-version`, в неё делается `git pull origin main` (fast-forward).
+  Правки, сделанные прямо на сервере 9.08.2026, закоммичены 7.11.2026. Правило: на сервере код не править,
+  только через git.
 - `deploy.sh`: бэкап БД → `git pull origin main` → `npm ci` → миграции → `rm -rf .next` → build →
   `pm2 reload ecosystem.config.js`. GitHub Actions (`.github/workflows/deploy.yml`) запускает его на
-  каждый push в `main` — **push в main = выкладка на прод**. Пока идёт сборка (`rm -rf .next` до build),
-  сайт лежит.
-- Крон (crontab root): `/api/cron`, `/api/cron-shipments`, `/api/cron-outgoing-requests` раз в 10 мин,
+  каждый push в `main`, но с июля 2026 этот запуск падает (на прод не выкладывает) — выкладка руками:
+  `cd /var/www/asfalt-app && git pull origin main && npm run build && pm2 restart asfalt-app --update-env`.
+  `deploy.sh` делает `rm -rf .next` до сборки — сайт на это время лежит.
+- Крон (crontab root) вызывает ручки с заголовком `Authorization: Bearer <CRON_SECRET>` (секрет —
+  в `.env*` и в `/root/.asfalt-cron-secret`; сменил секрет — поправь crontab): `/api/cron`, `/api/cron-shipments`, `/api/cron-outgoing-requests` раз в 10 мин,
   `/api/check-sync` раз в 5 мин, `scripts/calc-distances.ts` раз в 5 мин, `/api/health-notify` раз в 30 мин,
   `/api/send-plan` раз в 10 мин и в 20:15. Логи — `/var/log/asfalt-*.log`.
-- Бэкапы БД — `backups/` (делаются только при деплое, последний — июль 2026; ежедневного бэкапа нет).
+- Бэкапы БД — `backups/`: `daily-ГГГГММДД.db.gz` каждую ночь в 3:50 (`/root/backups/asfalt-backup.sh`,
+  14 штук) и `sqlite-*.db` при деплое.
+
+## Доступ (с 2026-11-07)
+
+`proxy.ts`: без входа открыты только `/login`, `/demo`, `/landing`, статика, `/api/auth/*`, `/api/health`,
+`/api/excel-import` (сама пускает только IP завода Айсберг 89.31.82.106 по `X-Real-IP` от nginx, ещё IP —
+`EXCEL_IMPORT_IPS` в `.env`) и POST `/api/send-plan` (вебхук Telegram). Крон-ручки — по `CRON_SECRET`,
+всё остальное — только с JWT пользователя. Новую ручку для крона добавлять в `CRON_API` в `proxy.ts`.
+Внутри API не ходить HTTP-запросом к своим же ручкам (запрос пойдёт без cookie и получит 401) —
+вызывать функцию напрямую.
 
 ## Известные проблемы (на 2026-11-07)
 
-1. **Публичные данные.** В `proxy.ts` почти все API в списке публичных: `/api/all-data` отдаёт без входа
-   всю базу (13 тыс. отгрузок, заявки, приход, ~12 МБ), `/api/trucks` — GPS всех машин,
-   `/api/excel-import` принимает данные от кого угодно (проверка IP закомментирована), крон-ручки без
-   `CRON_SECRET`. Репозиторий на GitHub **публичный**: в нём токен Геоинформера, IP завода, секрет
-   крона в `app/page.tsx`, старый токен Telegram и старые пароли 1С в истории, Excel-выгрузки
-   с реальными клиентами в `4files/`.
+1. Репозиторий на GitHub **публичный**: в истории коммитов остались токен Геоинформера, старый токен
+   Telegram, старые пароли 1С и Excel-выгрузки с клиентами. Сделать репозиторий приватным, сменить
+   пароль/токен Геоинформера.
 2. Даты в двух форматах (см. выше), у Айсберга ещё и кривой хвост ` 00:00:00`.
 3. Каждые 10 минут 1С ТАС отдаёт всю историю, а сайт переписывает ~6000 строк (12 тыс. запросов).
    Главный экран раз в минуту качает `/api/all-data` целиком.
-4. `/api/health` считает «память 94%» от кучи Node (44 из 47 МБ) — ложная тревога.
-5. Много мёртвого кода: закомментированные старые версии файлов (по 1000–2400 строк в page.tsx,
+4. Много мёртвого кода: закомментированные старые версии файлов (по 1000–2400 строк в page.tsx,
    CompactView.tsx, trucks/route.ts), дубли скриптов (`*.mts`/`*.ts`, три версии Python-скрипта),
    мусор в корне (`GET`, `nohup.out`, `build.log`, `._.`, папка `asfalt-app/` на сервере).
