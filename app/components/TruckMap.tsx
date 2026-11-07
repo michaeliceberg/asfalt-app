@@ -36,6 +36,8 @@ interface Truck {
   // основе той же самой последней отгрузки по госномеру. Используется для
   // мини-значка статуса рядом с машинкой (бегущий человечек / флаг финиша).
   arrived?: boolean;
+  // Статус по истории GPS (lib/nav.ts): «Везёт → объект», «На карьере …» и т.п.
+  navStatus?: { kind: string; text: string; etaMinutes: number | null; placeName: string | null } | null;
 }
 
 interface Route {
@@ -54,6 +56,8 @@ interface Route {
   // который может относиться к СОВСЕМ ДРУГОЙ, более свежей заявке той же
   // машины, если она отработала несколько заявок за день.
   truckStatus?: Record<string, { quantity: number | null; driver: string | null; arrived: boolean }>;
+  // Реальная дорога из последнего рейса к этому объекту — рисуем вместо кривой
+  roadTrack?: [number, number][] | null;
 }
 
 // Весовые рамки — см. /admin/weigh-stations. Загружаются с /api/weigh-stations
@@ -521,7 +525,10 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
       if (!route.destCoords || !route.factoryCoords) return;
 
       const color = getFactoryColor(route.factory) || '#4ade80';
-      const curvePoints = buildRouteCurvePoints(route.factoryCoords, route.destCoords);
+      // Есть прошлый рейс к этому объекту — рисуем по реальной дороге, иначе условную кривую
+      const curvePoints = route.roadTrack && route.roadTrack.length >= 2
+        ? route.roadTrack
+        : buildRouteCurvePoints(route.factoryCoords, route.destCoords);
 
       // Мягкое "свечение" под линией — визуально премиальнее плоской линии.
       const glowLine = new ymaps.Polyline(
@@ -1103,6 +1110,20 @@ export default function TruckMap({ trucks, routes = [], onTruckSelect, onMapRead
             <span>{renderStatusBadge(selectedTruck.position.vel, selectedTruck.lastUpdate)}</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}><Zap size={12} strokeWidth={2.2} />{selectedTruck.position.vel} км/ч</span>
           </div>
+
+          {selectedTruck.navStatus && (
+            <div style={{ fontSize: 13, color: '#a7f3d0', marginTop: 6, fontWeight: 600, textAlign: 'center' }}>
+              {selectedTruck.navStatus.text}
+              {selectedTruck.navStatus.etaMinutes != null && selectedTruck.navStatus.etaMinutes > 0 && (
+                <span style={{ color: '#cfd2e6', fontWeight: 400 }}>
+                  {' · будет через '}
+                  {selectedTruck.navStatus.etaMinutes >= 60
+                    ? `${Math.floor(selectedTruck.navStatus.etaMinutes / 60)} ч ${selectedTruck.navStatus.etaMinutes % 60} мин`
+                    : `${selectedTruck.navStatus.etaMinutes} мин`}
+                </span>
+              )}
+            </div>
+          )}
 
           {selectedTruck.destination && (
             <div style={{ fontSize: 12.5, color: '#ffd93d', marginTop: 4, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>

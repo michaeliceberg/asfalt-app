@@ -1,6 +1,8 @@
 // app/api/trucks/route.ts
 import { GET as getTruckRoutes } from '../truck-routes/route';
 import { NextResponse } from 'next/server';
+import { parseRussianDate, normalizePlate } from '@/lib/utils';
+import { truckNavStatuses, type NavStatus } from '@/lib/nav';
 import { getTrucks } from '@/lib/trucks';
 import { db } from '@/lib/db';
 import { shipments, type Shipment } from '@/lib/db/schema';
@@ -33,6 +35,7 @@ interface TruckData {
   quantity: number | null;
   driver: string | null;
   arrived: boolean;
+  navStatus: NavStatus | null;   // статус по истории GPS (lib/nav.ts)
 }
 
 interface RouteData {
@@ -46,6 +49,7 @@ interface RouteData {
   factoryCoords: { lat: number; lng: number } | null;
   lastShipmentDate?: string | null;
   truckTimes?: Record<string, string>; // ✅ Добавляем
+  roadTrack?: [number, number][] | null; // реальная дорога из последнего рейса (lib/nav.ts)
   // Тоннаж/водитель/прибытие — ТОЛЬКО из отгрузок ЭТОЙ заявки (в отличие от
   // TruckData.quantity/driver/arrived выше, которые берутся по "последней
   // отгрузке этого госномера ВООБЩЕ", независимо от заявки). Один и тот же
@@ -122,8 +126,8 @@ function findLastShipment(shipmentsList: Shipment[]): Shipment | null {
   if (shipmentsList.length === 0) return null;
   
   return shipmentsList.reduce((latest: Shipment, current: Shipment) => {
-    const currentDate = new Date(current.date);
-    const latestDate = new Date(latest.date);
+    const currentDate = parseRussianDate(current.date);
+    const latestDate = parseRussianDate(latest.date);
     return currentDate > latestDate ? current : latest;
   });
 }
@@ -230,8 +234,8 @@ const routesWithDates: RouteData[] = routes.map((route) => {
     let latest = shipmentsForRoute[0];
     for (let i = 1; i < shipmentsForRoute.length; i++) {
       const current = shipmentsForRoute[i];
-      const currentDate = new Date(current.date);
-      const latestDate = new Date(latest.date);
+      const currentDate = parseRussianDate(current.date);
+      const latestDate = parseRussianDate(latest.date);
       if (currentDate > latestDate) {
         latest = current;
       }
@@ -248,7 +252,7 @@ const routesWithDates: RouteData[] = routes.map((route) => {
     if (!s.licensePlate) return;
     const normalizedPlate = s.licensePlate.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
     const existing = latestPerPlateInRoute[normalizedPlate];
-    if (!existing || new Date(s.date) > new Date(existing.date)) {
+    if (!existing || parseRussianDate(s.date) > parseRussianDate(existing.date)) {
       latestPerPlateInRoute[normalizedPlate] = s;
     }
   });
@@ -290,12 +294,14 @@ const routesWithDates: RouteData[] = routes.map((route) => {
       if (!s.licensePlate) continue;
       const normalizedPlate = s.licensePlate.toUpperCase().replace(/\s/g, '').replace(/[^A-Z0-9]/g, '');
       const existing = plateToLatestShipment[normalizedPlate];
-      if (!existing || new Date(s.date) > new Date(existing.date)) {
+      if (!existing || parseRussianDate(s.date) > parseRussianDate(existing.date)) {
         plateToLatestShipment[normalizedPlate] = s;
       }
     }
 
     // 4. Формируем результат
+    const navStatuses = await truckNavStatuses(allTrucks.map(t => normalizePlate(t.name)));
+
     const result: TruckData[] = allTrucks.map(truck => {
       const pos = positions[truck.uid];
 
@@ -318,6 +324,7 @@ const routesWithDates: RouteData[] = routes.map((route) => {
         quantity: latestShipment?.quantity ?? null,
         driver: latestShipment?.driver ?? null,
         arrived: latestShipment?.arrived ?? false,
+        navStatus: navStatuses[normalizePlate(truck.name)] ?? null,
         factory: factory,
       };
     });

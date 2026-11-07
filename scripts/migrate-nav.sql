@@ -1,0 +1,7 @@
+CREATE TABLE IF NOT EXISTS gps_points (id INTEGER PRIMARY KEY AUTOINCREMENT, plate TEXT NOT NULL, ts INTEGER NOT NULL, lat REAL NOT NULL, lng REAL NOT NULL, vel REAL NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS gps_points_plate_ts ON gps_points(plate, ts);
+CREATE INDEX IF NOT EXISTS gps_points_ts ON gps_points(ts);
+CREATE TABLE IF NOT EXISTS places (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, kind TEXT NOT NULL, factory TEXT, lat REAL NOT NULL, lng REAL NOT NULL, radius_m INTEGER NOT NULL DEFAULT 400, aliases TEXT NOT NULL DEFAULT '', source TEXT NOT NULL DEFAULT 'manual', visits INTEGER NOT NULL DEFAULT 0, last_visit_at INTEGER, created_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS trips (id INTEGER PRIMARY KEY AUTOINCREMENT, kind TEXT NOT NULL, ref_number TEXT NOT NULL, plate TEXT NOT NULL, factory TEXT, place_id INTEGER, counterparty TEXT, started_at INTEGER NOT NULL, ended_at INTEGER NOT NULL, duration_min INTEGER NOT NULL, distance_km REAL, track TEXT, created_at INTEGER NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS trips_kind_ref ON trips(kind, ref_number);
+CREATE INDEX IF NOT EXISTS trips_place ON trips(place_id);

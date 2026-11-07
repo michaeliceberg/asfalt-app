@@ -1,5 +1,5 @@
 // lib/db/schema.ts (очищенная версия)
-import { sqliteTable, integer, text, real } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, integer, text, real, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 
 // ============================================
 // ОСНОВНЫЕ ТАБЛИЦЫ
@@ -297,3 +297,59 @@ export type NewRestrictedRoad = typeof restrictedRoads.$inferInsert;
 export type RestrictedRoadPoint = typeof restrictedRoadPoints.$inferSelect;
 export type NewRestrictedRoadPoint = typeof restrictedRoadPoints.$inferInsert;
 export type GeofenceAlert = typeof geofenceAlerts.$inferSelect;
+
+// ============================================
+// НАВИГАЦИЯ: история GPS, места, рейсы (см. lib/nav.ts)
+// ============================================
+
+// Точки GPS, которые сохраняет lib/gps-recorder.ts раз в минуту. Геоинформер
+// отдаёт только текущую позицию — без своей истории нельзя понять, где машина
+// останавливалась между опросами. Храним 30 дней.
+export const gpsPoints = sqliteTable('gps_points', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  plate: text('plate').notNull(),      // normalizePlate(госномер)
+  ts: integer('ts').notNull(),         // время точки от GPS, секунды Unix
+  lat: real('lat').notNull(),
+  lng: real('lng').notNull(),
+  vel: real('vel').notNull(),          // км/ч
+}, (t) => [uniqueIndex('gps_points_plate_ts').on(t.plate, t.ts), index('gps_points_ts').on(t.ts)]);
+
+// Места: заводы, объекты получателей, карьеры. Объекты и карьеры система
+// находит сама по долгим остановкам (source = 'auto'), их можно поправить на
+// /admin/places. aliases — названия получателей/поставщиков, по одному в строке.
+export const places = sqliteTable('places', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull(),
+  kind: text('kind').notNull(),                 // 'factory' | 'object' | 'quarry'
+  factory: text('factory'),                     // код завода для kind='factory'
+  lat: real('lat').notNull(),
+  lng: real('lng').notNull(),
+  radiusM: integer('radius_m').notNull().default(400),
+  aliases: text('aliases').notNull().default(''),
+  source: text('source').notNull().default('manual'), // 'manual' | 'auto'
+  visits: integer('visits').notNull().default(0),
+  lastVisitAt: integer('last_visit_at'),        // секунды Unix
+  createdAt: integer('created_at').notNull(),
+});
+
+// Рейсы, найденные по истории GPS: доставка (завод → объект) и карьер
+// (карьер → завод). По ним считается время в пути и рисуется реальная дорога.
+export const trips = sqliteTable('trips', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  kind: text('kind').notNull(),                 // 'delivery' | 'quarry'
+  refNumber: text('ref_number').notNull(),      // номер отгрузки или прихода
+  plate: text('plate').notNull(),
+  factory: text('factory'),
+  placeId: integer('place_id'),
+  counterparty: text('counterparty'),           // получатель или поставщик
+  startedAt: integer('started_at').notNull(),   // выехал (с завода / с карьера), сек
+  endedAt: integer('ended_at').notNull(),       // приехал (на объект / на завод), сек
+  durationMin: integer('duration_min').notNull(),
+  distanceKm: real('distance_km'),
+  track: text('track'),                         // JSON [[lat,lng],...], прорежено
+  createdAt: integer('created_at').notNull(),
+}, (t) => [uniqueIndex('trips_kind_ref').on(t.kind, t.refNumber), index('trips_place').on(t.placeId)]);
+
+export type GpsPoint = typeof gpsPoints.$inferSelect;
+export type Place = typeof places.$inferSelect;
+export type Trip = typeof trips.$inferSelect;

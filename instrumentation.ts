@@ -9,5 +9,8 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { startGeofenceWorker } = await import('./lib/geofence-worker');
     startGeofenceWorker();
+    // История GPS и разбор рейсов (доставки, карьеры) — lib/nav.ts
+    const { startGpsRecorder } = await import('./lib/gps-recorder');
+    startGpsRecorder();
   }
 }
