@@ -6,7 +6,7 @@ export async function GET() {
   try {
     console.log('🔄 2. Начинаем запрос к GPS...');
     
-    const AUTH_TOKEN = 'XBNlAqRnZxU3Q%2BSLHe3qKZSIIYiSGWym3mN8%2BbXmbSZE74YqB3bYf4TLIWAzLPyg%2BR9qd2Mf9AxDn2K3f4j5lA%3D%3D';
+    const AUTH_TOKEN = process.env.GEOINFORMER_TOKEN || '';
     
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000);

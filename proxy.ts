@@ -1,137 +1,84 @@
 // proxy.ts
+//
+// Кто куда пускается:
+//  - публичные страницы (вход, демо, лендинг) и статические файлы;
+//  - вход/выход;
+//  - /api/excel-import — без токена, но сам проверяет IP завода Айсберг;
+//  - POST /api/send-plan — вебхук Telegram (кнопки в боте);
+//  - /api/health — общий статус для мониторинга (без данных);
+//  - крон-ручки — по заголовку Authorization: Bearer <CRON_SECRET> (crontab на сервере);
+//  - всё остальное (в т.ч. все данные и GPS) — только с JWT пользователя
+//    (cookie token в браузере/iOS или Authorization: Bearer <jwt>).
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { jwtVerify } from 'jose';
 
 const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'your-secret-key');
 
+const PUBLIC_PAGES = ['/login', '/demo', '/landing'];
+
+const PUBLIC_API = [
+  '/api/auth/login',
+  '/api/auth/logout',
+  '/api/excel-import',
+  '/api/health',
+];
+
+// Ручки, которые дёргает crontab сервера. Пускаем по CRON_SECRET, а
+// пользователя — как обычно по JWT (кнопка «Обновить» на главной).
+const CRON_API = [
+  '/api/cron',
+  '/api/cron-shipments',
+  '/api/cron-outgoing-requests',
+  '/api/cron-calc-distances',
+  '/api/check-sync',
+  '/api/health-notify',
+  '/api/send-plan',
+];
+
+function matches(pathname: string, list: string[]): boolean {
+  return list.some(p => pathname === p || pathname.startsWith(p + '/'));
+}
+
+function unauthorized(request: NextRequest) {
+  if (request.nextUrl.pathname.startsWith('/api')) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+  return NextResponse.redirect(new URL('/login', request.url));
+}
+
 export async function proxy(request: NextRequest) {
-  console.log('🔵 PATH:', request.nextUrl.pathname);
-
-
-
-
-
-  // ✅ ПРОПУСКАЕМ ВСЕ CRON И SEND-PLAN
-  if (request.nextUrl.pathname === '/api/send-plan' || 
-      request.nextUrl.pathname.startsWith('/api/cron-')) {
-    console.log('✅ CRON/SEND-PLAN - пропускаем');
-    return NextResponse.next();
-  }
-
-
-
-  
-  const publicPaths = [
-    // Страницы
-    '/login',
-    '/demo',
-    '/landing',
-    
-    // Статические файлы
-    '/_next',
-    '/favicon.ico',
-    
-    // API для демо-страницы
-    '/api/incoming',
-    '/api/shipments',
-    '/api/combined-requests',
-    '/api/outgoing-requests',
-    '/api/last-import-info',
-    '/api/last-import-update',
-    '/api/cron-info',
-    
-    // API для синхронизации (крон)
-    '/api/cron',
-    '/api/cron-shipments',
-    '/api/cron-outgoing-requests',
-    '/api/cron-info-shipments',
-    '/api/check-sync',
-    '/api/send-plan',
-    '/api/excel-import',
-    '/api/cron-calc-distances',
-    
-    // API для аутентификации
-    '/api/auth/login',
-    '/api/auth/logout',
-
-    // API для GPS и маршрутов
-    '/api/route-time',
-    '/api/trucks',
-    '/api/truck-routes',
-    '/api/truck-route-by-request',
-    '/api/trucks-distances',
-    
-    // API для push уведомлений
-    '/api/push/subscribe',
-    '/api/push/unsubscribe',
-    '/api/test-push',
-    
-    // API для тестирования
-    '/api/test',
-    
-    // API для здоровья
-    '/api/health',
-    '/api/health-notify',
-
-    // API для данных
-    '/api/all-data',
-  ];
-
   const pathname = request.nextUrl.pathname;
-  
-  // Проверяем, является ли путь публичным
-  const isPublicPath = publicPaths.some(path => {
-    if (pathname === path) return true;
-    if (pathname.startsWith(path + '/')) return true;
-    if (pathname.startsWith(path) && request.nextUrl.search.includes('demo=true')) return true;
-    return false;
-  });
 
-  if (isPublicPath) {
-    console.log('✅ PUBLIC PATH - пропускаем');
-    return NextResponse.next();
-  }
+  if (pathname.startsWith('/_next') || pathname === '/favicon.ico') return NextResponse.next();
 
-  // Получаем токен — сначала пробуем заголовок Authorization (нужно для
-  // мобильного приложения, у него нет доступа к httpOnly cookie), иначе cookie (веб)
+  // Файлы из public/ (sw.js, manifest, иконки) — на странице входа они нужны без токена
+  if (!pathname.startsWith('/api') && /\.[a-z0-9]+$/i.test(pathname)) return NextResponse.next();
+
+  if (matches(pathname, PUBLIC_PAGES) || matches(pathname, PUBLIC_API)) return NextResponse.next();
+
+  // Telegram присылает нажатия кнопок POST-запросом без токена
+  if (pathname === '/api/send-plan' && request.method === 'POST') return NextResponse.next();
+
   const authHeader = request.headers.get('authorization');
   const bearerToken = authHeader?.startsWith('Bearer ') ? authHeader.slice(7) : null;
-  const token = bearerToken || request.cookies.get('token')?.value;
-  console.log('🔵 Token exists?', !!token, bearerToken ? '(из Authorization)' : '(из cookie)');
 
-  if (!token) {
-    console.log('❌ NO TOKEN');
-    if (pathname.startsWith('/api')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const url = new URL('/login', request.url);
-    return NextResponse.redirect(url);
+  const cronSecret = process.env.CRON_SECRET;
+  if (cronSecret && bearerToken === cronSecret && matches(pathname, CRON_API)) {
+    return NextResponse.next();
   }
+
+  const token = bearerToken || request.cookies.get('token')?.value;
+  if (!token) return unauthorized(request);
 
   try {
     await jwtVerify(token, JWT_SECRET);
-    console.log('✅ TOKEN VALID');
     return NextResponse.next();
-  } catch (error) {
-    console.log('❌ TOKEN INVALID');
-    if (pathname.startsWith('/api')) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-    const url = new URL('/login', request.url);
-    return NextResponse.redirect(url);
+  } catch {
+    return unauthorized(request);
   }
 }
 
 export const config = {
   matcher: ['/((?!_next/static|_next/image|favicon.ico).*)'],
 };
-
-
-
-
-
-
-
-
-

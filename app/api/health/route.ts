@@ -1,3 +1,4 @@
+import os from 'os';
 import { NextResponse } from 'next/server';
 import { db, sql } from '@/lib/db';
 import { users } from '@/lib/db/schema';
@@ -71,11 +72,14 @@ export async function GET() {
   }
 
   // 4. Память
+  // Считаем память процесса (rss) от памяти всего сервера. Раньше брали
+  // heapUsed/heapTotal — куча Node всегда заполнена на 90%+, тревога была ложной.
   const memoryUsage = process.memoryUsage();
+  const totalMem = os.totalmem();
   checks.memory = {
-    used: Math.round(memoryUsage.heapUsed / 1024 / 1024),
-    total: Math.round(memoryUsage.heapTotal / 1024 / 1024),
-    percent: Math.round((memoryUsage.heapUsed / memoryUsage.heapTotal) * 100),
+    used: Math.round(memoryUsage.rss / 1024 / 1024),
+    total: Math.round(totalMem / 1024 / 1024),
+    percent: Math.round((memoryUsage.rss / totalMem) * 100),
   };
 
   if (checks.memory.percent > 90) {

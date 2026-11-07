@@ -36,3 +36,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Выгрузки Excel с реальными данными клиентов — в репозиторий не класть
+4files/*.xlsx
+nohup.out
+build.log
+._*

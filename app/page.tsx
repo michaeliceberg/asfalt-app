@@ -820,26 +820,26 @@ const loadAllData = async () => {
   //   setRefreshing(true);
   //   try {
   //     if (activeMainTab === 'incoming') {
-  //       await fetch('/api/cron', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
+  //       await fetch('/api/cron');
   //       await loadAllData();
   //       await loadCronInfo();
   //       setNotificationMessage('✅ Поступления обновлены');
   //     } else if (activeMainTab === 'shipment') {
-  //       await fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
+  //       await fetch('/api/cron-shipments');
   //       await loadAllData();
   //       await loadShipmentCronInfo();
   //       await loadNewShipmentsCount();
   //       setNotificationMessage('✅ Отгрузки асфальта обновлены');
   //     } else if (activeMainTab === 'shipmentConcrete') {
-  //       await fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
+  //       await fetch('/api/cron-shipments');
   //       await loadAllData();
   //       await loadShipmentCronInfo();
   //       await loadNewConcreteCount();
   //       setNotificationMessage('✅ Отгрузки бетона обновлены');
   //     } else if (activeMainTab === 'summary') {
   //       await Promise.all([
-  //         fetch('/api/cron', { headers: { 'Authorization': 'Bearer icg72xf3b1' } }),
-  //         fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } }),
+  //         fetch('/api/cron'),
+  //         fetch('/api/cron-shipments'),
   //       ]);
   //       await loadAllData();
   //       await loadFutureRequestsCount();
@@ -867,26 +867,26 @@ const handleRefresh = async () => {
   setRefreshing(true);
   try {
     if (activeMainTab === 'incoming') {
-      await fetch('/api/cron', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
+      await fetch('/api/cron');
       await loadAllData();
       await loadCronInfo();
       setNotificationMessage('Поступления обновлены');
     } else if (activeMainTab === 'shipment') {
-      await fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
+      await fetch('/api/cron-shipments');
       await loadAllData();
       await loadShipmentCronInfo();
       loadNewShipmentsCount(); // ✅ БЕЗ await
       setNotificationMessage('Отгрузки асфальта обновлены');
     } else if (activeMainTab === 'shipmentConcrete') {
-      await fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } });
+      await fetch('/api/cron-shipments');
       await loadAllData();
       await loadShipmentCronInfo();
       loadNewConcreteCount(); // ✅ БЕЗ await
       setNotificationMessage('Отгрузки бетона обновлены');
     } else if (activeMainTab === 'summary') {
       await Promise.all([
-        fetch('/api/cron', { headers: { 'Authorization': 'Bearer icg72xf3b1' } }),
-        fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } }),
+        fetch('/api/cron'),
+        fetch('/api/cron-shipments'),
       ]);
       await loadAllData();
       loadFutureRequestsCount(); // ✅ БЕЗ await
@@ -1119,9 +1119,7 @@ const handleRefresh = async () => {
   const sendPlan = async () => {
     setRefreshing(true);
     try {
-      const response = await fetch('/api/send-plan', {
-        headers: { 'Authorization': 'Bearer icg72xf3b1' }
-      });
+      const response = await fetch('/api/send-plan');
       const data = await response.json();
       setNotificationMessage(`План отправлен! ${data.planCount} заказов`);
       setShowNotification(true);
@@ -2285,8 +2283,8 @@ useEffect(() => {
 //       setNotificationMessage(`✅ Отгрузки бетона обновлены`);
 //     } else if (activeMainTab === 'summary') {
 //       await Promise.all([
-//         fetch('/api/cron', { headers: { 'Authorization': 'Bearer icg72xf3b1' } }),
-//         fetch('/api/cron-shipments', { headers: { 'Authorization': 'Bearer icg72xf3b1' } }),
+//         fetch('/api/cron'),
+//         fetch('/api/cron-shipments'),
 //       ]);
 //       await loadAllData();
 //       await loadFutureRequestsCount();

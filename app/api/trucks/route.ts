@@ -1,10 +1,12 @@
 // app/api/trucks/route.ts
+import { GET as getTruckRoutes } from '../truck-routes/route';
 import { NextResponse } from 'next/server';
 import { getTrucks } from '@/lib/trucks';
 import { db } from '@/lib/db';
 import { shipments, type Shipment } from '@/lib/db/schema';
 
-const AUTH_TOKEN = 'XBNlAqRnZxU3Q%2BSLHe3qKZSIIYiSGWym3mN8%2BbXmbSZE74YqB3bYf4TLIWAzLPyg%2BR9qd2Mf9AxDn2K3f4j5lA%3D%3D';
+// Токен Геоинформера — в .env (GEOINFORMER_TOKEN), в коде его быть не должно: репозиторий публичный.
+const AUTH_TOKEN = process.env.GEOINFORMER_TOKEN || '';
 
 // ============================================
 // ТИПЫ
@@ -147,10 +149,9 @@ export async function GET() {
     let allShipments: Shipment[] = [];
     
     try {
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
-      
-      // Получаем маршруты
-      const routesResponse = await fetch(`${baseUrl}/api/truck-routes`);
+      // Маршруты считаем прямым вызовом, без HTTP к самому себе: тот
+      // запрос шёл бы без cookie пользователя и упирался в proxy.ts.
+      const routesResponse = await getTruckRoutes();
       
       if (routesResponse.ok) {
         const routesData = await routesResponse.json();
@@ -363,7 +364,7 @@ const routesWithDates: RouteData[] = routes.map((route) => {
 // import { NextResponse } from 'next/server';
 // import { TRUCKS } from '@/lib/trucks';
 
-// const AUTH_TOKEN = 'XBNlAqRnZxU3Q%2BSLHe3qKZSIIYiSGWym3mN8%2BbXmbSZE74YqB3bYf4TLIWAzLPyg%2BR9qd2Mf9AxDn2K3f4j5lA%3D%3D';
+// const AUTH_TOKEN = '';
 
 // // ============================================
 // // ТИПЫ
@@ -624,7 +625,7 @@ const routesWithDates: RouteData[] = routes.map((route) => {
 // // }
 
 // // // Токен авторизации (из вашего кода)
-// // const AUTH_TOKEN = 'XBNlAqRnZxU3Q%2BSLHe3qKZSIIYiSGWym3mN8%2BbXmbSZE74YqB3bYf4TLIWAzLPyg%2BR9qd2Mf9AxDn2K3f4j5lA%3D%3D';
+// // const AUTH_TOKEN = '';
 
 // // // Список машин (из вашего кода)
 // // const TRUCKS = [

@@ -5,7 +5,13 @@ import { calculateDistance, calculateETA, parseDestinationPoint, normalizePlate 
 import { getTrucks } from '../lib/trucks';
 import { minDistanceToPolylineMeters } from '../lib/geofence';
 
-const AUTH_TOKEN = 'XBNlAqRnZxU3Q%2BSLHe3qKZSIIYiSGWym3mN8%2BbXmbSZE74YqB3bYf4TLIWAzLPyg%2BR9qd2Mf9AxDn2K3f4j5lA%3D%3D';
+// Скрипт запускается кроном через tsx, без Next.js — переменные из .env подгружаем сами.
+import { config as loadEnv } from 'dotenv';
+loadEnv({ path: '.env.production' });
+loadEnv({ path: '.env' });
+
+// Токен Геоинформера — в .env (GEOINFORMER_TOKEN), в коде его быть не должно: репозиторий публичный.
+const AUTH_TOKEN = process.env.GEOINFORMER_TOKEN || '';
 const ARRIVAL_THRESHOLD_KM = 2;
 // Запасной сигнал прибытия — на случай, если машина ни разу не попала в
 // ARRIVAL_THRESHOLD_KM ровно в момент прогона крона (заехала и уехала

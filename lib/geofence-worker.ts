@@ -19,7 +19,8 @@ const POLL_INTERVAL_MS = 60_000; // раз в минуту — тот же по�
 const ALERT_BUFFER_METERS = 40; // сработать, если машина ближе 40м к линии дороги
 const EXIT_BUFFER_METERS = 60; // считаем что уехала, только выйдя за 60м (гистерезис — иначе на границе буфера тревога будет дребезжать открыта/закрыта каждый цикл)
 
-const AUTH_TOKEN = 'XBNlAqRnZxU3Q%2BSLHe3qKZSIIYiSGWym3mN8%2BbXmbSZE74YqB3bYf4TLIWAzLPyg%2BR9qd2Mf9AxDn2K3f4j5lA%3D%3D';
+// Токен Геоинформера — в .env (GEOINFORMER_TOKEN), в коде его быть не должно: репозиторий публичный.
+const AUTH_TOKEN = process.env.GEOINFORMER_TOKEN || '';
 
 interface TruckPosition {
   lat: number;
