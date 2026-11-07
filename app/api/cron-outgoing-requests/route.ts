@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { outgoingRequests } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
+import { unfDateFrom } from '@/lib/unf';
 import fs from 'fs';
 import path from 'path';
 
@@ -18,7 +19,7 @@ export async function GET(request: Request) {
     
     console.log('Fetching data from 1C...');
     
-    const url = `${UNF_BASE_URL}/hs/WebData-API/OutgoingRequest`;
+    const url = `${UNF_BASE_URL}/hs/WebData-API/OutgoingRequest?dateFrom=${unfDateFrom()}`;
     const auth = 'Basic ' + Buffer.from(`${LOGIN}:${PASSWORD}`).toString('base64');
     
     const response = await fetch(url, {

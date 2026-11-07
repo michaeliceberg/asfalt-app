@@ -11,6 +11,7 @@ import fs from 'fs';
 import path from 'path';
 import { sendPushNotification } from '@/lib/push-notifications';
 import { normalizePlate } from '@/lib/utils';
+import { unfDateFrom } from '@/lib/unf';
 
 const LAST_SYNC_FILE = path.join(process.cwd(), 'data', 'last-sync-shipments.json');
 
@@ -37,8 +38,13 @@ interface ShipmentItem {
 
 
 
-async function checkNewShipmentStarts(shipmentsData: ShipmentItem[]) {
+async function checkNewShipmentStarts(allShipments: ShipmentItem[]) {
   try {
+    // Только свежие отгрузки: когда 1С отдаёт пропущенное за месяцы разом,
+    // push «Началась отгрузка» по старым заявкам слать незачем
+    const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+    const shipmentsData = allShipments.filter(s => new Date(s.Дата).getTime() >= dayAgo);
+
     // Получаем уже отправленные уведомления
     const sentNotifications = await db
       .select()
@@ -231,7 +237,7 @@ export async function GET(request: Request) {
     
     process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
     
-    const response = await fetch(`${UNF_BASE_URL}/hs/WebData-API/outgoing`, {
+    const response = await fetch(`${UNF_BASE_URL}/hs/WebData-API/outgoing?dateFrom=${unfDateFrom()}`, {
       headers: {
         'Authorization': 'Basic ' + Buffer.from(`${LOGIN}:${PASSWORD}`).toString('base64'),
       },

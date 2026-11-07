@@ -7,6 +7,7 @@ import { eq } from 'drizzle-orm';
 import { normalizePlate } from '@/lib/utils';
 import fs from 'fs';
 import path from 'path';
+import { unfDateFrom } from '@/lib/unf';
 
 const LAST_SYNC_FILE = path.join(process.cwd(), 'data', 'last-sync.json');
 
@@ -34,11 +35,14 @@ export async function GET() {
     
     console.log('Fetching incoming from 1C (SSL verification disabled)...');
     
-    const response = await fetch(`${UNF_BASE_URL}/hs/WebData-API/incoming`, {
-      headers: {
-        'Authorization': 'Basic ' + Buffer.from(`${LOGIN}:${PASSWORD}`).toString('base64'),
-      },
-    });
+    const headers = {
+      'Authorization': 'Basic ' + Buffer.from(`${LOGIN}:${PASSWORD}`).toString('base64'),
+    };
+    let response = await fetch(`${UNF_BASE_URL}/hs/WebData-API/incoming?dateFrom=${unfDateFrom()}`, { headers });
+    // Не проверено, принимает ли incoming этот параметр: если нет, берём как раньше
+    if (!response.ok) {
+      response = await fetch(`${UNF_BASE_URL}/hs/WebData-API/incoming`, { headers });
+    }
     
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
