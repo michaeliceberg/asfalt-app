@@ -86,7 +86,8 @@ export async function POST(request: Request) {
         } else if (type === 'incoming') {
             for (const record of data) {
                 if (!record.number) continue;
-                await db.insert(incomingMaterials).values({
+                const existing = await db.select().from(incomingMaterials).where(eq(incomingMaterials.number, record.number)).limit(1);
+                const values = {
                     number: record.number,
                     date: record.date || new Date().toISOString(),
                     division: factory,
@@ -98,7 +99,12 @@ export async function POST(request: Request) {
                     licensePlate: record.licensePlate || null,
                     clientRequestNumber: record.clientRequestNumber || null,
                     createdAt: Date.now(),
-                });
+                };
+                if (existing.length === 0) {
+                    await db.insert(incomingMaterials).values(values);
+                } else {
+                    await db.update(incomingMaterials).set(values).where(eq(incomingMaterials.number, record.number));
+                }
                 processed++;
             }
         } else if (type === 'requests') {

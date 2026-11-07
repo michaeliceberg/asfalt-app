@@ -5,7 +5,12 @@
 import { IncomingItem, ShipmentItem } from '@/app/page';
 import { useState } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
-import { formatTime, getDateKey, getFactoryBadgeClass, isConcreteMaterial, isSpecialMaterial, parseRussianDate } from '@/lib/utils';
+import { formatTime, getDateKey, getFactoryBadgeClass, isConcreteMaterial, isSpecialMaterial, isImplausibleAsphaltQuantity, parseRussianDate } from '@/lib/utils';
+
+// Айсберг — те же коды, что и detectFactory/getFactory ниже возвращают для СП/Щ
+// (плюс демо-эквиваленты СЕ/ЮГ). Порог "не меньше 10 т" проверяем только тут —
+// у ТАС (ЛХ/ЛЮ) такой проблемы диспетчер не сообщал.
+const ICEBERG_FACTORIES = ['СП', 'Щ', 'СЕ', 'ЮГ'];
 
 type UnifiedDataItem = IncomingItem | ShipmentItem;
 
@@ -117,7 +122,12 @@ export default function ListView({ data, mainTab }: ListViewProps) {
   const filteredData = data.filter(item => {
     if (mainTab === 'incoming') return true;
     if (isConcreteOnly) return isConcreteMaterial(item.material);
-    return !isConcreteMaterial(item.material);
+    if (isConcreteMaterial(item.material)) return false;
+    // Тестовые/ошибочные отгрузки асфальта у Айсберга (машина меньше 10 т не возит).
+    if (ICEBERG_FACTORIES.includes(getFactory(item)) && isImplausibleAsphaltQuantity(item.material, item.quantity)) {
+      return false;
+    }
+    return true;
   });
   
   // Группируем по дате

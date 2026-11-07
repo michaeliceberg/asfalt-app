@@ -161,13 +161,22 @@ export const isSpecialMaterial = (material: string): boolean => {
   }
   
   // Инертные материалы
-  const specialMarkers = ['пбв', 'гранит', 'пыль', 'песок', 'щебень', 'битум', 'эмульсия', 'бнд', 'стилобит'];
+  const specialMarkers = ['пбв', 'гранит', 'габбро', 'пыль', 'песок', 'щебень', 'битум', 'эмульсия', 'бнд', 'стилобит', 'молочко цементное'];
   
   for (const marker of specialMarkers) {
     if (lower.includes(marker)) return true;
   }
   
   return false;
+};
+
+// Асфальтовоз меньше ~10 т не возит — отгрузка асфальта с меньшим весом
+// это тестовая/ошибочная запись диспетчера, а не реальный рейс.
+const MIN_REAL_ASPHALT_TONS = 10;
+
+export const isImplausibleAsphaltQuantity = (material: string, quantity: number): boolean => {
+  if (isConcreteMaterial(material) || isSpecialMaterial(material)) return false;
+  return quantity < MIN_REAL_ASPHALT_TONS;
 };
 
 // ============================================

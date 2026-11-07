@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { outgoingRequests, shipments } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { isConcreteMaterial } from '@/lib/utils';
+import { isConcreteMaterial, isImplausibleAsphaltQuantity } from '@/lib/utils';
 
 // ============================================
 // ТИПЫ
@@ -116,7 +116,10 @@ export async function GET(request: Request) {
     for (const shipment of allShipments) {
       const requestNumber = shipment.clientRequestNumber;
       if (!requestNumber) continue;
-      
+
+      // Тестовые/ошибочные отгрузки — асфальтовоз меньше 10 т не возит.
+      if (isImplausibleAsphaltQuantity(shipment.material, shipment.quantity)) continue;
+
       if (!shipmentsByRequest.has(requestNumber)) {
         shipmentsByRequest.set(requestNumber, {
           factQuantity: 0,
@@ -230,15 +233,21 @@ export async function GET(request: Request) {
 
 
     });
-    
+
+    // Заявки, по которым реально не было ни одной отгрузки (например,
+    // единственная запись была тестовой/ошибочной и отфильтрована выше по
+    // isImplausibleAsphaltQuantity) — не показываем, "отгрузки" без машин
+    // это не отгрузка.
+    const shippedResult = result.filter(r => r.truckCount > 0);
+
     // Сортируем по дате доставки (новые сверху)
-    result.sort((a, b) => {
+    shippedResult.sort((a, b) => {
       const dateA = a.delivery_date ? parseRussianDate(a.delivery_date) : new Date(0);
       const dateB = b.delivery_date ? parseRussianDate(b.delivery_date) : new Date(0);
       return dateB.getTime() - dateA.getTime();
     });
     
-    return NextResponse.json(result);
+    return NextResponse.json(shippedResult);
   } catch (error) {
     console.error('Combined requests error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
