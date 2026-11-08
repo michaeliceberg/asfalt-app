@@ -3,6 +3,7 @@
 'use client';
 
 import { motion } from 'framer-motion';
+import AbzLogo from './AbzLogo';
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { LogOut, RefreshCw, User, Sparkles } from 'lucide-react';
@@ -82,30 +83,14 @@ export default function Header({
           border: '1px solid rgba(255,255,255,0.08)',
           flexShrink: 0,
         }}>
-          <span style={{
-            background: 'linear-gradient(135deg, #ffd93d, #f6b93b)',
-            color: '#1a1a2e',
-            fontSize: '13px',
-            fontWeight: 800,
-            padding: '0 10px',
-            borderRadius: '12px',
-            lineHeight: '22px',
-            letterSpacing: '0.5px',
-          }}>
-            АБЗ
-          </span>
-          <span className="app-header-brand-divider" style={{
-            fontSize: '13px',
-            color: '#94a3b8',
-            fontWeight: 300,
-          }}>⚡</span>
+          <AbzLogo size={22} />
           <span className="app-header-brand-name" style={{
             fontSize: '13px',
             fontWeight: 500,
             color: '#e2e8f0',
             letterSpacing: '0.3px',
           }}>
-            Контроль
+            АБЗ Контроль
           </span>
         </div>
 

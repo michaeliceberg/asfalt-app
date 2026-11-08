@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { outgoingRequests, shipments } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { isConcreteMaterial, isImplausibleAsphaltQuantity } from '@/lib/utils';
+import { isConcreteMaterial, isImplausibleAsphaltQuantity, planInTons } from '@/lib/utils';
 
 // ============================================
 // ТИПЫ
@@ -174,19 +174,9 @@ export async function GET(request: Request) {
       // Определяем тип материала
       const isConcrete = isConcreteMaterial(req.material);
       
-      // Конвертируем план из кг в тонны для асфальта
-      let planQuantity = req.quantity;
+      // План в тоннах: у Айсберга план от 1000 — это кг (см. planInTons)
+      const planQuantity = planInTons(req.quantity, req.division);
       const factQuantity = shipmentData.factQuantity;
-      
-      // Если это асфальт и значение > 10000 — скорее всего килограммы
-      if (!isConcrete && planQuantity > 10000) {
-        planQuantity = planQuantity / 1000; // кг → тонны
-      }
-      
-      // Для бетона если значение в кг — тоже переводим
-      if (isConcrete && planQuantity > 10000) {
-        planQuantity = planQuantity / 1000; // кг → тонны
-      }
       
       // Единица измерения для отображения
       const unit = isConcrete ? 'м³' : 'т';

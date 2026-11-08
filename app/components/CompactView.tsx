@@ -18,7 +18,9 @@ import {
   formatFullDateTime,
   getIncomingDateKey,
   formatIncomingDateLabel,
-  isIncomingDateToday
+  isIncomingDateToday,
+  planInTons,
+  ACTIVE_SHIPMENT_HOURS,
 } from '@/lib/utils';
 import TruckProgressBar from './TruckProgressBar';
 import { Factory, Truck, Package, User, Lock, Pointer, ChevronDown, ChevronRight, Satellite } from 'lucide-react';
@@ -184,15 +186,13 @@ const detectFactory = (item: IncomingItem | ShipmentItem, type: 'incoming' | 'sh
   return item.division || 'Другой';
 };
 
+// Зелёная точка «Идут отгрузки» — машина по заявке уезжала за последние
+// ACTIVE_SHIPMENT_HOURS часов (то же правило, что у цифры на кнопке, countActiveRequests).
 const hasTodayShipments = (shipments: ShipmentItem[], requestNumber: string): boolean => {
-  const today = new Date();
-  return shipments.some(ship => {
-    const shipDate = parseRussianDate(ship.date);
-    const isToday = shipDate.getDate() === today.getDate() &&
-                    shipDate.getMonth() === today.getMonth() &&
-                    shipDate.getFullYear() === today.getFullYear();
-    return ship.clientRequestNumber === requestNumber && isToday;
-  });
+  const since = Date.now() - ACTIVE_SHIPMENT_HOURS * 3600 * 1000;
+  return shipments.some(ship =>
+    ship.clientRequestNumber === requestNumber && parseRussianDate(ship.date).getTime() >= since
+  );
 };
 
 // ============================================
@@ -468,10 +468,10 @@ useEffect(() => {
   // ЛОГИКА ДЛЯ ТАС (ЛХ, ЛЮ)
   // ============================================
   
-  const requestsMap = new Map<string, { quantity: number; closed: boolean | null }>();
+  const requestsMap = new Map<string, { quantity: number; closed: boolean | null; division?: string | null }>();
   outgoingRequests.forEach(req => {
     const key = req.number;
-    requestsMap.set(key, { quantity: req.quantity, closed: req.closed || false });
+    requestsMap.set(key, { quantity: req.quantity, closed: req.closed || false, division: req.division });
   });
   
   const groupedByDateAndRequest = !shouldUseCombined ? data.reduce((acc, item) => {
@@ -584,7 +584,7 @@ useEffect(() => {
       let requestClosed = false;
       const request = requestsMap.get(requestNumber);
       if (request) {
-        planQuantity = request.quantity;
+        planQuantity = planInTons(request.quantity, request.division);
         requestClosed = request.closed || false;
       }
       
@@ -803,7 +803,7 @@ useEffect(() => {
                               {item.closed ? (
                                 <span className="closed-lock"> <Lock size={10} strokeWidth={2.4} style={{ verticalAlign: -1 }} /></span>
                               ) : (
-                                !isCompleted && item.factQuantity > 0 && percentComplete < 90 && (
+                                !isCompleted && item.factQuantity > 0 && percentComplete < 90 && hasTodayShipments(allShipments, item.requestNumber) && (
                                   <span className="active-dot" title="Идут отгрузки"></span>
                                 )
                               )}

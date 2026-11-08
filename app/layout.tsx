@@ -9,7 +9,7 @@ import type { Metadata, Viewport } from 'next'
 export const metadata: Metadata = {
   title: 'АБЗ Контроль',
   description: 'Контроль отгрузок асфальтобетонного завода',
-  manifest: '/manifest.json',
+  manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -38,11 +38,11 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body suppressHydrationWarning>
-        {/* Тёмная тема Айсберга ставится до первой отрисовки главного экрана —
+        {/* Тёмная тема главного экрана (ТАС и Айсберг) ставится до первой отрисовки главного экрана —
             иначе при загрузке мелькает светлый фон (класс потом держит page.tsx) */}
         <script
           dangerouslySetInnerHTML={{
-            __html: "try{if(location.pathname==='/'&&localStorage.getItem('appMode')==='iceberg')document.body.classList.add('iceberg-mode')}catch(e){}",
+            __html: "try{if(location.pathname==='/'){document.body.classList.add('iceberg-mode');if(localStorage.getItem('appMode')!=='iceberg')document.body.classList.add('tas-mode')}}catch(e){}",
           }}
         />
         {children}
@@ -87,7 +87,7 @@ export default function RootLayout({
 // export const metadata: Metadata = {
 //   title: 'АБЗ Контроль',
 //   description: 'Контроль отгрузок асфальтобетонного завода',
-//   manifest: '/manifest.json',
+//   manifest: '/manifest.webmanifest',
 //   appleWebApp: {
 //     capable: true,
 //     statusBarStyle: 'default',

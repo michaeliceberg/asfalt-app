@@ -2,9 +2,11 @@
  *
  * Дизайн главного экрана (2026-11-07): сдержанный, в духе garaggio.
  * Две палитры:
- *   ТАС     — светлая: белые карточки, спокойный синий акцент;
- *   Айсберг — тёмная: графит, «ледяной» голубой акцент (body.iceberg-mode,
- *             класс ставит app/page.tsx по выбранному режиму).
+ * С 2026-11-08 главный экран тёмный у обеих организаций (body.iceberg-mode
+ * ставит app/page.tsx всегда):
+ *   ТАС     — тёплый графит и шампанское золото (body.iceberg-mode.tas-mode);
+ *   Айсберг — глубокий графит и ледяной голубой.
+ * :root — светлая палитра для остальных страниц (машины, админка).
  * Подключается ПОСЛЕ globals.css и перекрывает старые цвета. Цвета берём
  * только из переменных ниже — новую деталь интерфейса красить ими же.
  */
@@ -38,22 +40,24 @@
 }
 
 body.iceberg-mode {
-  --bg: #111518;
-  --surface: #1A2026;
-  --surface-2: #20272E;
-  --surface-3: #262E36;
-  --line: #2B343C;
-  --line-strong: #37424C;
-  --text: #EDF1F4;
-  --muted: #93A1AB;
-  --faint: #66737D;
-  --accent: #7CC4E4;
-  --accent-soft: rgba(124, 196, 228, .14);
-  --accent-text: #0E1A21;
-  --toggle-bg: #2B4A5E;
-  --toggle-text: #EDF1F4;
-  --chip-active-bg: rgba(124, 196, 228, .16);
-  --chip-active-text: #BFE6F6;
+  /* Айсберг: глубокий графит + ледяной голубой */
+  --bg: #0C1216;
+  --surface: #141B21;
+  --surface-2: #1A2229;
+  --surface-3: #212A32;
+  --line: #26303A;
+  --line-strong: #33404B;
+  --text: #EEF3F6;
+  --muted: #92A2AD;
+  --faint: #62717C;
+  --accent: #86CDEB;
+  --accent-soft: rgba(134, 205, 235, .13);
+  --accent-text: #0B1A22;
+  --active-border: rgba(134, 205, 235, .35);
+  --toggle-bg: #24465C;
+  --toggle-text: #EEF3F6;
+  --chip-active-bg: rgba(134, 205, 235, .15);
+  --chip-active-text: #C3E8F7;
   --ok: #5CBF86;
   --ok-soft: rgba(92, 191, 134, .10);
   --warn: #E2B04A;
@@ -61,8 +65,30 @@ body.iceberg-mode {
   --danger: #E5654F;
   --danger-soft: rgba(229, 101, 79, .12);
   --gold: #F2C35B;
-  --shadow: none;
+  --shadow: 0 1px 0 rgba(255, 255, 255, .03) inset, 0 8px 24px rgba(0, 0, 0, .25);
   color-scheme: dark;
+}
+
+body.iceberg-mode.tas-mode {
+  /* ТАС: тёплый графит + шампанское золото (как жёлтый логотипа) */
+  --bg: #11100E;
+  --surface: #1A1815;
+  --surface-2: #211E1A;
+  --surface-3: #2A2620;
+  --line: #2F2A24;
+  --line-strong: #3E372F;
+  --text: #F4EFE7;
+  --muted: #A69C8E;
+  --faint: #70675B;
+  --accent: #D9B46A;
+  --accent-soft: rgba(217, 180, 106, .14);
+  --accent-text: #1B1407;
+  --active-border: rgba(217, 180, 106, .38);
+  --toggle-bg: #4A3C22;
+  --toggle-text: #F6E7C4;
+  --chip-active-bg: rgba(217, 180, 106, .16);
+  --chip-active-text: #F1DBA8;
+  --gold: #E8C97F;
 }
 
 html body:not(._) { background: var(--bg) !important; color: var(--text); transition: background-color .25s ease; }
@@ -157,7 +183,7 @@ html body:not(._) .tabs .tab.active {
   border-color: transparent !important;
 }
 html body.iceberg-mode:not(._) .factory-switch .factory-btn.active,
-html body.iceberg-mode:not(._) .tabs .tab.active { border-color: rgba(124, 196, 228, .35) !important; }
+html body.iceberg-mode:not(._) .tabs .tab.active { border-color: var(--active-border) !important; }
 
 html body:not(._) .stats, html body:not(._) .header .stats {
   color: var(--muted) !important;
@@ -310,6 +336,7 @@ html body:not(._) .factory-switch .factory-btn {
 }
 
 /* Экран загрузки — в цвет темы (тёмный у Айсберга сразу, без белой вспышки) */
+html body:not(._) .loading-spinner-wrapper { background: var(--surface) !important; }
 html body:not(._) .loading-spinner-wrapper.fullscreen { background: var(--bg) !important; }
 html body:not(._) .loading-text { color: var(--muted) !important; }
 html body:not(._) .premium-spinner-ring { border-top-color: var(--accent) !important; }
@@ -441,3 +468,53 @@ html body:not(._) .detail-hero-icon {
 }
 html body:not(._) .detail-hero-label { color: var(--muted) !important; }
 html body:not(._) .detail-hero-value { color: var(--text) !important; }
+
+/* ---------- Загрузка: асфальтобетонный завод (LoadingSpinner) ---------- */
+.abz-load { display: block; margin-bottom: 18px; overflow: hidden; }
+.abz-load-yellow { fill: #F6B93B; }
+.abz-load-dark { fill: var(--surface, #1E2A33); }
+.abz-load-steel { fill: var(--muted, #93A1AB); }
+.abz-load-road { fill: var(--surface-3, #262E36); }
+.abz-load-belt { stroke: #F6B93B; stroke-width: 6; stroke-linecap: round; fill: none; }
+.abz-load-stone { fill: var(--text, #EDF1F4); opacity: 0; animation: abzStone 1.8s linear infinite; }
+@keyframes abzStone {
+  0% { transform: translate(0, 0); opacity: 0; }
+  10% { opacity: .9; }
+  85% { opacity: .9; }
+  100% { transform: translate(50px, -56px); opacity: 0; }
+}
+.abz-load-puff { fill: var(--muted, #93A1AB); transform-box: fill-box; transform-origin: center; animation: abzPuff 2.4s ease-out infinite; }
+@keyframes abzPuff {
+  0% { transform: translate(0, 0) scale(.5); opacity: .55; }
+  100% { transform: translate(14px, -26px) scale(1.7); opacity: 0; }
+}
+.abz-load-drum { animation: abzDrum .8s linear infinite; }
+@keyframes abzDrum { to { transform: translateX(8px); } }
+.abz-load-marks { animation: abzMarks 1.2s linear infinite; }
+@keyframes abzMarks { to { transform: translateX(-40px); } }
+.abz-load-truck { animation: abzTruck 4.8s cubic-bezier(.45, 0, .3, 1) infinite; }
+@keyframes abzTruck {
+  0% { transform: translateX(-60px); }
+  30%, 62% { transform: translateX(62px); }
+  100% { transform: translateX(230px); }
+}
+.abz-load-body { fill: var(--text, #EDF1F4); }
+.abz-load-cab { fill: #E06C4F; }
+.abz-load-glass { fill: var(--surface, #1E2A33); }
+.abz-load-wheel { fill: var(--faint, #66737D); stroke: var(--surface, #1E2A33); stroke-width: 2; }
+.abz-load-load { fill: var(--faint, #66737D); opacity: 0; transform-box: fill-box; transform-origin: bottom; animation: abzLoad 4.8s infinite; }
+@keyframes abzLoad {
+  0%, 36% { opacity: 0; transform: scaleY(.2); }
+  58%, 100% { opacity: .85; transform: scaleY(1); }
+}
+.abz-load-pour { fill: var(--faint, #66737D); opacity: 0; transform-box: fill-box; transform-origin: top; animation: abzPour 4.8s infinite; }
+@keyframes abzPour {
+  0%, 32% { opacity: 0; transform: scaleY(0); }
+  36%, 56% { opacity: .8; transform: scaleY(1); }
+  60%, 100% { opacity: 0; transform: scaleY(0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .abz-load * { animation: none !important; }
+  .abz-load-truck { transform: translateX(62px); }
+  .abz-load-load { opacity: .85; }
+}

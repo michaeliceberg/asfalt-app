@@ -326,11 +326,8 @@ export default function Home() {
     setContentKey(prev => prev + 1);
     setMode(newMode);
     setActiveFactory('all');
-    setTimeout(() => {
-      loadFutureRequestsCount();
-      loadNewShipmentsCount();
-      loadNewConcreteCount();
-    }, 50);
+    // Счётчики пересчитывает эффект ниже, когда mode уже новый. Раньше здесь был
+    // setTimeout со старыми функциями (старый mode) — ТАС показывал число Айсберга.
     if (window.navigator && window.navigator.vibrate) {
       window.navigator.vibrate(50);
     }
@@ -372,11 +369,11 @@ export default function Home() {
   };
 
   useEffect(() => {
-    if (mode === 'iceberg') {
-      document.body.classList.add('iceberg-mode');
-    } else {
-      document.body.classList.remove('iceberg-mode');
-    }
+    // Тёмный фон у обеих организаций (iceberg-mode = тёмная тема главного экрана),
+    // tas-mode меняет только палитру акцентов — «графит и золото» у ТАС.
+    document.body.classList.add('iceberg-mode');
+    document.body.classList.toggle('tas-mode', mode !== 'iceberg');
+    return () => { document.body.classList.remove('iceberg-mode', 'tas-mode'); };
   }, [mode]);
 
   // ============================================
@@ -1217,17 +1214,6 @@ useEffect(() => {
       } else if (activeMainTab === 'shipment' || activeMainTab === 'shipmentConcrete') {
         loadShipmentCronInfo();
       }
-      if (activeMainTab === 'shipment') {
-        loadNewShipmentsCount();
-      } else if (activeMainTab === 'shipmentConcrete' && mode === 'iceberg') {
-        loadNewConcreteCount();
-      } else if (activeMainTab === 'summary') {
-        loadFutureRequestsCount();
-        loadNewShipmentsCount();
-        if (mode === 'iceberg') {
-          loadNewConcreteCount();
-        }
-      }
     }, 60000);
     return () => clearInterval(interval);
   }, [activeMainTab, mode]);
@@ -1244,11 +1230,13 @@ useEffect(() => {
   // раньше счётчик на кнопке считался один раз при монтировании,
   // до того как данные успевали загрузиться, и потом не обновлялся,
   // из-за чего цифра на кнопке расходилась с фактическим списком.
+  // Все три счётчика — тоже: их функции зависят от данных и режима, вызов из
+  // старых замыканий (таймер, интервал) считал по устаревшим данным.
   useEffect(() => {
-    if (mode === 'tas') {
-      loadFutureRequestsCount();
-    }
-  }, [outgoingRequests, shipmentData, mode]);
+    loadFutureRequestsCount();
+    loadNewShipmentsCount();
+    loadNewConcreteCount();
+  }, [loadFutureRequestsCount, loadNewShipmentsCount, loadNewConcreteCount]);
 
   // ============================================
   // РЕНДЕР

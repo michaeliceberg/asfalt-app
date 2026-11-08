@@ -277,6 +277,19 @@ export interface RequestForCount {
 
 
 
+/**
+ * План заявки в тоннах. У Айсберга (СП, Щ) план асфальта приходит в кг с единицей «т»
+ * (500000 при факте 499,8 т; 1500 при факте 1,5 т) — от 1000 считаем килограммами.
+ * У ТАС бывают настоящие 1600 т, там кг только больше 10000 (как в formatWithUnit).
+ */
+export function planInTons(quantity: number, division?: string | null): number {
+  const icebergKg = (division === 'СП' || division === 'Щ') && quantity >= 1000;
+  return icebergKg || quantity > 10000 ? quantity / 1000 : quantity;
+}
+
+/** Заявка «грузится сейчас», если последняя машина по ней уехала не раньше этого срока. */
+export const ACTIVE_SHIPMENT_HOURS = 3;
+
 export function countActiveRequests(
   requests: RequestForCount[],
   shipments: ShipmentForCount[],
@@ -293,17 +306,15 @@ export function countActiveRequests(
   const filteredRequestsByFactory = filteredRequests.filter(r => validFactories.includes(r.division as FactoryCode));
   const filteredShipmentsByFactory = filteredShipments.filter(s => validFactories.includes(s.division as FactoryCode));
   
-  // Сегодня и вчера
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
+  // Точка = текущие отгрузки: заявка, по которой машина уезжала за последние
+  // ACTIVE_SHIPMENT_HOURS часов (раньше — любая за сегодня и вчера, и вчерашние
+  // недогруженные заявки горели весь следующий день).
+  const activeSince = Date.now() - ACTIVE_SHIPMENT_HOURS * 3600 * 1000;
   
   // Карта планов
   const planMap = new Map<string, number>();
   for (const req of filteredRequestsByFactory) {
-    planMap.set(req.number, req.quantity);
+    planMap.set(req.number, planInTons(req.quantity, req.division));
   }
   
   // Карта закрытых заявок
@@ -314,27 +325,20 @@ export function countActiveRequests(
     }
   }
   
-  // Группируем отгрузки за сегодня и вчера по заявкам
+  // Факт по заявке — все её отгрузки; «текущая» — была машина за последние часы
   const factByRequest = new Map<string, number>();
+  const recentRequests = new Set<string>();
   for (const shipment of filteredShipmentsByFactory) {
-    const shipmentDate = parseRussianDate(shipment.date);
-    shipmentDate.setHours(0, 0, 0, 0);
-    
-    const isToday = shipmentDate.getTime() === today.getTime();
-    const isYesterday = shipmentDate.getTime() === yesterday.getTime();
-    
-    if (!isToday && !isYesterday) continue;
-    
     const requestNumber = shipment.clientRequestNumber;
-    if (requestNumber) {
-      const current = factByRequest.get(requestNumber) || 0;
-      factByRequest.set(requestNumber, current + shipment.quantity);
-    }
+    if (!requestNumber) continue;
+    factByRequest.set(requestNumber, (factByRequest.get(requestNumber) || 0) + shipment.quantity);
+    if (parseRussianDate(shipment.date).getTime() >= activeSince) recentRequests.add(requestNumber);
   }
   
   // Считаем активные заявки (мигающие точки)
   let activeCount = 0;
-  for (const [requestNumber, factQuantity] of factByRequest) {
+  for (const requestNumber of recentRequests) {
+    const factQuantity = factByRequest.get(requestNumber) || 0;
     const planQuantity = planMap.get(requestNumber) || 0;
     const isClosed = closedMap.get(requestNumber) || false;
     
