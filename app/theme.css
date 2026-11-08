@@ -2,9 +2,8 @@
  *
  * Дизайн главного экрана (2026-11-07): сдержанный, в духе garaggio.
  * Две палитры:
- * С 2026-11-08 главный экран тёмный у обеих организаций (body.iceberg-mode
- * ставит app/page.tsx всегда):
- *   ТАС     — нейтральный тёмный фон, яркий янтарь и оранжевый (body.iceberg-mode.tas-mode);
+ * С 2026-11-08 фон главного экрана тёмный у обеих организаций:
+ *   ТАС     — светлые карточки (:root) на тёмном фоне (body.tas-mode);
  *   Айсберг — глубокий графит и ледяной голубой.
  * :root — светлая палитра для остальных страниц (машины, админка).
  * Подключается ПОСЛЕ globals.css и перекрывает старые цвета. Цвета берём
@@ -69,32 +68,9 @@ body.iceberg-mode {
   color-scheme: dark;
 }
 
-body.iceberg-mode.tas-mode {
-  /* ТАС: нейтральный тёмный фон, яркий тёплый фронт — солнечный янтарь и оранжевый (без зелёного) */
-  --bg: #121316;
-  --surface: #1B1C21;
-  --surface-2: #23242A;
-  --surface-3: #2C2D34;
-  --line: #31323A;
-  --line-strong: #41434C;
-  --text: #FBF7F1;
-  --muted: #B3ACA4;
-  --faint: #7A746D;
-  --accent: #FFB547;
-  --accent-soft: rgba(255, 181, 71, .16);
-  --accent-text: #1E1404;
-  --active-border: rgba(255, 181, 71, .55);
-  --toggle-bg: linear-gradient(135deg, #FFC857 0%, #FF9F43 100%);
-  --toggle-text: #241606;
-  --chip-active-bg: linear-gradient(135deg, #FFC857 0%, #FF9F43 100%);
-  --chip-active-text: #241606;
-  --ok: #FFC857;
-  --ok-soft: rgba(255, 200, 87, .09);
-  --warn: #FF9F43;
-  --warn-soft: rgba(255, 159, 67, .14);
-  --danger: #FF6B5A;
-  --danger-soft: rgba(255, 107, 90, .14);
-  --gold: #FFD27A;
+body.tas-mode {
+  /* ТАС: светлые карточки и кнопки (палитра :root), под ними тёмный фон */
+  --bg: #15191E;
 }
 
 html body:not(._) { background: var(--bg) !important; color: var(--text); transition: background-color .25s ease; }

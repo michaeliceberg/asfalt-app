@@ -42,7 +42,7 @@ export default function RootLayout({
             иначе при загрузке мелькает светлый фон (класс потом держит page.tsx) */}
         <script
           dangerouslySetInnerHTML={{
-            __html: "try{if(location.pathname==='/'){document.body.classList.add('iceberg-mode');if(localStorage.getItem('appMode')!=='iceberg')document.body.classList.add('tas-mode')}}catch(e){}",
+            __html: "try{if(location.pathname==='/'){document.body.classList.add(localStorage.getItem('appMode')==='iceberg'?'iceberg-mode':'tas-mode')}}catch(e){}",
           }}
         />
         {children}

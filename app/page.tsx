@@ -369,9 +369,8 @@ export default function Home() {
   };
 
   useEffect(() => {
-    // Тёмный фон у обеих организаций (iceberg-mode = тёмная тема главного экрана),
-    // tas-mode меняет только палитру акцентов — «графит и золото» у ТАС.
-    document.body.classList.add('iceberg-mode');
+    // Айсберг — тёмная тема (iceberg-mode); ТАС — светлые карточки на тёмном фоне (tas-mode).
+    document.body.classList.toggle('iceberg-mode', mode === 'iceberg');
     document.body.classList.toggle('tas-mode', mode !== 'iceberg');
     return () => { document.body.classList.remove('iceberg-mode', 'tas-mode'); };
   }, [mode]);
