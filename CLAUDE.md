@@ -150,3 +150,12 @@ docshiroko, bbr-studio. Никогда `pm2 restart all` / `pm2 reload all`. П�
 `app/theme.css` подключается после `globals.css` и перекрывает старые цвета: ТАС — светлая тема, Айсберг — тёмная
 (`body.iceberg-mode`). Новые элементы красить только переменными оттуда (`--surface`, `--line`, `--accent`…).
 Гистограмма 24 часа и «Графики» получают отгрузки только заводов текущей организации (ТАС: ЛХ, ЛЮ; Айсберг: СП, Щ).
+
+## Весовые рамки из nerudas.ru (2026-11-08)
+В weigh_stations загружено 26 точек с карты nerudas.ru («Весовой контроль», народная карта водителей):
+рамки АПВГК и стационарные посты в радиусе 130 км от центра Москвы. Источник точек —
+`https://nerudas.ru/index.php?option=com_ajax&module=wtyandexmapitems&module_id=172&Itemid=149&format=raw`
+(JSON, geometry.coordinates = [lat, lng]; marker_layout_id: vesy-ramka-bespl / vesy-ramka-big — рамки,
+vesy-budka — посты, vesy-mashina — выездные весы/ГИБДД, НЕ загружались). Имя станции вида
+«Рамка: … (nerudas #ID)», «не работает» в названии → is_active = 0. Точки народные, не официальные —
+неверную рамку выключать в /admin/weigh-stations. Обновить: заново скачать JSON и вставить новые ID.
